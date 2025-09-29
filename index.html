@@ -11,7 +11,6 @@
   <aside class="sidebar">
     <h1><span>AT</span>Arlo Tools Hub</h1>
     <p>Browse, search, and launch any of the bundled experiments. Pick a tool to load it here or open it directly in a new tab.</p>
-
     <label class="search-wrapper">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 015.977 12.072l3.226 3.225a1 1 0 01-1.414 1.415l-3.226-3.226A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 100 11 5.5 5.5 0 000-11z"/></svg>
       <span class="sr-only">Search tools</span>
@@ -26,7 +25,6 @@
     </div>
     <div class="frame-container">
       <iframe id="tool-frame" title="Selected tool" hidden></iframe>
-
     </div>
   </main>
 
@@ -54,8 +52,6 @@
     const iframe = document.getElementById("tool-frame");
     const toolName = document.getElementById("tool-name");
     const openNewTab = document.getElementById("open-new-tab");
-
-
     const createIcon = () => {
       const svgNS = "http://www.w3.org/2000/svg";
       const icon = document.createElementNS(svgNS, "svg");
@@ -86,7 +82,6 @@
       const url = toUrl(tool.file);
       iframe.src = url;
       iframe.hidden = false;
-
       toolName.textContent = tool.name;
       openNewTab.href = url;
     };
@@ -141,12 +136,9 @@
           activeButton.classList.remove("active");
           activeButton.setAttribute("aria-selected", "false");
         }
-
         activeButton = null;
         return;
       }
-
-
       iframe.hidden = false;
 
       if (!activeButton || activeButton.style.display === "none") {
