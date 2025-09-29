@@ -1,0 +1,290 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Medieval Border Generator — Complete Styles</title>
+<style>
+  :root{--paper:#f6f1e6;--card:#fff;--ink:#121212;--fill:#ffffff}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--paper);font:14px/1.25 ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;color:#222}
+  header{position:sticky;top:0;z-index:2;background:#fff9;border-bottom:1px solid #ddd;padding:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:end}
+  header h1{font-size:16px;margin:0 12px 0 0}
+  label{display:inline-grid;gap:6px;font-size:12px}
+  input,select,button{padding:8px 10px;border:1px solid #bbb;border-radius:8px;background:#fff}
+  button{cursor:pointer}
+  main{display:grid;grid-template-columns:340px 1fr;gap:12px;padding:12px}
+  .panel{background:var(--card);border:1px solid #ddd;border-radius:12px;padding:12px}
+  .tile{width:100%}
+  .preview{height:92px;width:100%;border-radius:10px;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,#f7f3ea,#f7f3ea 60px,#efe9dc 60px,#efe9dc 120px);overflow:hidden}
+  .strip{height:64px}
+  .muted{opacity:.7}
+  .swatch{display:inline-flex;gap:6px;align-items:center}
+  .swatch input{width:40px;height:34px;padding:0;border-radius:6px}
+</style>
+</head>
+<body>
+  <header>
+    <h1>Medieval Border Generator — <em>Complete Styles</em></h1>
+    <label>Seed
+      <input id="seed" value="carolingian-rose" />
+    </label>
+    <label>Style
+      <select id="style"></select>
+    </label>
+    <label>Grid Units (tile width = units×unitSize)
+      <select id="units"></select>
+    </label>
+    <label>Unit Size (px)
+      <input id="unitSize" type="number" value="16" min="8" step="2" />
+    </label>
+    <label>Scale (preview)
+      <input id="scale" type="range" min="0.75" max="3" step="0.05" value="1.2" />
+    </label>
+    <label class="swatch">Ink
+      <input id="ink" type="color" value="#121212" />
+    </label>
+    <label class="swatch">Fill
+      <input id="fill" type="color" value="#ffffff" />
+    </label>
+    <button id="regen">Regenerate</button>
+    <button id="savePNG">Download PNG</button>
+  </header>
+
+  <main>
+    <section class="panel">
+      <strong>Seamless Tile</strong>
+      <canvas id="tile" class="tile" width="640" height="160"></canvas>
+      <div class="muted">Includes original motifs (Rosette, Guilloche, Ogee Vine, Diamonds & Spears, Clover Links, Bead Cord, Interlace Bands) plus new motifs (Palmette, Egg-and-Dart, Chevron, Key Fret, Scrollwork).</div>
+    </section>
+    <section class="panel">
+      <strong>Preview (repeating the tile)</strong>
+      <div class="preview"><canvas id="strip1" class="strip" width="2000" height="64"></canvas></div>
+      <div class="preview" style="margin-top:8px"><canvas id="strip2" class="strip" width="2000" height="64"></canvas></div>
+      <div class="preview" style="margin-top:8px"><canvas id="strip3" class="strip" width="2000" height="64"></canvas></div>
+    </section>
+  </main>
+
+<script>
+// ===== RNG & Utils =====
+function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296}}
+function strHash(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function rng(seed){return mulberry32(strHash(seed))}
+function choice(r,arr){return arr[Math.floor(r()*arr.length)]}
+function divisors(n){const out=[];for(let k=2;k<=n;k++){if(n%k===0) out.push(k)}return out}
+
+// ===== Overlap framework (ensures seam over/under continuity) =====
+function drawOverlap(ctx,W,drawBack,drawFront){
+  [-W,0,W].forEach(s=>{ctx.save();ctx.translate(s,0);drawBack();ctx.restore();});
+  [-W,0,W].forEach(s=>{ctx.save();ctx.translate(s,0);drawFront();ctx.restore();});
+}
+
+// ===== Original motifs (fixed & overlap-aware) =====
+function rosetteChain(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const y=Math.round(H/2);
+  const R=Math.floor(Math.min(H*0.28,cell*0.35)); const lw=Math.max(1,Math.floor(u*0.12));
+  ctx.lineWidth=lw; ctx.strokeStyle=ink; ctx.fillStyle=fill;
+  drawOverlap(ctx,W,()=>{ // back: posts
+    for(let i=0;i<=reps;i++){const bx=Math.round(i*cell);ctx.beginPath();ctx.moveTo(bx,y-R*1.25);ctx.lineTo(bx,y+R*1.25);ctx.stroke();}
+  },()=>{ // front: rosettes
+    for(let i=0;i<reps;i++){
+      const cx=Math.round(i*cell+cell/2);
+      ctx.beginPath();ctx.arc(cx,y,R,0,Math.PI*2);ctx.fill();ctx.stroke();
+      for(let k=0;k<4;k++){const a=k*Math.PI/2;ctx.beginPath();ctx.arc(cx+Math.cos(a)*R,y+Math.sin(a)*R,Math.floor(R*0.65),0,Math.PI*2);ctx.stroke();}
+      ctx.beginPath();ctx.fillStyle=ink;ctx.arc(cx,y,Math.floor(R*0.4),0,Math.PI*2);ctx.fill();ctx.fillStyle=fill;
+    }
+  });
+}
+
+function guilloche(ctx,r,W,H,units,u,ink,fill){
+  const periods=choice(r,divisors(units).filter(d=>d%2===0));
+  const amp=Math.round(Math.min(H*0.30,u*5)); const N=units*24; const center=Math.round(H/2);
+  const lw=Math.max(1,Math.floor(u*0.15)); ctx.lineWidth=lw; ctx.strokeStyle=ink; ctx.fillStyle=fill;
+  drawOverlap(ctx,W,()=>{ // back: braided waves
+    for(let b=0;b<2;b++){
+      ctx.beginPath();
+      for(let i=0;i<=N;i++){const t=i/N, x=Math.round(t*W), y=Math.round(center+Math.sin((t*periods+b*0.5)*Math.PI*2)*amp); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
+    }
+  },()=>{ // front: medallions
+    const med=periods*2; const step=W/med; const R=Math.floor(Math.min(u*3,H*0.18));
+    for(let i=0;i<med;i++){const cx=Math.round(i*step+step/2); ctx.beginPath();ctx.arc(cx,center,R,0,Math.PI*2);ctx.fill();ctx.stroke(); ctx.beginPath();ctx.fillStyle=ink;ctx.arc(cx,center,Math.floor(R*0.42),0,Math.PI*2);ctx.fill();ctx.fillStyle=fill;}
+  });
+}
+
+function ogeeVine(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const mid=Math.round(H/2);
+  const a=Math.round(H*0.3/u)*u; const th=Math.max(1,Math.floor(u*0.14)); ctx.lineCap='round'; ctx.lineJoin='round';
+  drawOverlap(ctx,W,()=>{ // back: backbone
+    ctx.strokeStyle=ink; ctx.lineWidth=th;
+    for(let i=0;i<reps;i++){const x0=Math.round(i*cell), x1=Math.round((i+1)*cell), xm=Math.round((x0+x1)/2);
+      ctx.beginPath(); ctx.moveTo(x0,mid);
+      ctx.bezierCurveTo(x0+cell*0.25,mid-a,xm-cell*0.25,mid-a,xm,mid);
+      ctx.bezierCurveTo(xm+cell*0.25,mid+a,x1-cell*0.25,mid+a,x1,mid);
+      ctx.stroke();}
+  },()=>{ // front: leaves & buds
+    ctx.fillStyle=fill; ctx.strokeStyle=ink; ctx.lineWidth=th;
+    for(let i=0;i<reps;i++){const x0=Math.round(i*cell); const lw=Math.round(u*2.2), lh=Math.round(u*3.4);
+      [0.25,0.75].forEach(t=>{const x=Math.round(x0+t*cell); const up=t<0.5; const ly=mid+(up?-1:1)*Math.round(a*0.9);
+        ctx.beginPath(); ctx.ellipse(x,ly,lw,lh,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.fillStyle=ink; ctx.arc(x,mid,Math.max(1,Math.floor(u*0.7)),0,Math.PI*2); ctx.fill(); ctx.fillStyle=fill;});}
+  });
+}
+
+function diamondsSpears(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const y=Math.round(H/2); const dH=Math.round(Math.min(H*0.6,u*6));
+  const lw=Math.max(1,Math.floor(u*0.13)); ctx.strokeStyle=ink;
+  drawOverlap(ctx,W,()=>{ // back: diamonds
+    ctx.lineWidth=lw; ctx.fillStyle=fill;
+    for(let i=0;i<reps;i++){const cx=Math.round(i*cell+cell/2); ctx.beginPath(); ctx.moveTo(cx,y-dH/2); ctx.lineTo(cx+cell/2,y); ctx.lineTo(cx,y+dH/2); ctx.lineTo(cx-cell/2,y); ctx.closePath(); ctx.fill(); ctx.stroke();}
+  },()=>{ // front: spears
+    ctx.lineWidth=lw; ctx.fillStyle=ink;
+    for(let i=0;i<reps-1;i++){const ax=Math.round((i+1)*cell); const s=Math.round(Math.min(cell*0.28,u*5)); ctx.beginPath(); ctx.moveTo(ax,y); ctx.lineTo(ax+s,y-dH*0.28); ctx.lineTo(ax+s*0.65,y); ctx.lineTo(ax+s,y+dH*0.28); ctx.closePath(); ctx.fill(); ctx.stroke();}
+  });
+}
+
+function cloverLinks(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const y=Math.round(H/2); const R=Math.round(Math.min(cell*0.32,H*0.26));
+  const lw=Math.max(1,Math.floor(u*0.14));
+  drawOverlap(ctx,W,()=>{ // back: link posts
+    ctx.lineWidth=lw; ctx.strokeStyle=ink; for(let i=0;i<=reps;i++){const bx=Math.round(i*cell); ctx.beginPath(); ctx.moveTo(bx,y-R*0.9); ctx.lineTo(bx,y+R*0.9); ctx.stroke();}
+  },()=>{ // front: clovers
+    ctx.lineWidth=lw; ctx.strokeStyle=ink; ctx.fillStyle=fill;
+    for(let i=0;i<reps;i++){const cx=Math.round(i*cell+cell/2); for(let k=0;k<4;k++){const ang=k*Math.PI/2; const px=cx+Math.round(Math.cos(ang)*R); const py=y+Math.round(Math.sin(ang)*R); ctx.beginPath(); ctx.arc(px,py,R,0,Math.PI*2); ctx.stroke();}
+      ctx.beginPath(); ctx.arc(cx,y,Math.floor(R*0.55),0,Math.PI*2); ctx.fill(); ctx.stroke();}
+  });
+}
+
+function beadCord(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const y=Math.round(H/2); const R=Math.round(Math.min(H*0.25,u*3));
+  const lw=Math.max(1,Math.floor(u*0.12));
+  drawOverlap(ctx,W,()=>{ // back: cords
+    ctx.lineWidth=lw; ctx.strokeStyle=ink; ctx.beginPath(); ctx.moveTo(0,Math.round(H*0.22)); ctx.lineTo(W,Math.round(H*0.22)); ctx.moveTo(0,Math.round(H*0.78)); ctx.lineTo(W,Math.round(H*0.78)); ctx.stroke();
+  },()=>{ // front: beads
+    ctx.lineWidth=lw; ctx.strokeStyle=ink; ctx.fillStyle=fill;
+    for(let i=0;i<reps;i++){const cx=Math.round(i*cell+cell/2); ctx.beginPath(); ctx.arc(cx,y,R,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.fillStyle=ink; ctx.arc(cx,y,Math.floor(R*0.4),0,Math.PI*2); ctx.fill(); ctx.fillStyle=fill;}
+  });
+}
+
+function interlaceBands(ctx,r,W,H,units,u,ink,fill){
+  const periods=choice(r,divisors(units).filter(d=>d%2===0));
+  const amp=Math.round(Math.min(H*0.28,u*5)); const center=Math.round(H/2); const N=units*24;
+  const lwLight=Math.max(1,Math.floor(u*2.4)); const lwDark=Math.max(1,Math.floor(u*0.9)); ctx.lineCap='round'; ctx.lineJoin='round';
+  drawOverlap(ctx,W,()=>{ // back: light bands
+    ctx.strokeStyle=fill; ctx.lineWidth=lwLight; for(let b=0;b<3;b++){ctx.beginPath(); for(let i=0;i<=N;i++){const t=i/N, x=Math.round(t*W), y=Math.round(center+Math.sin(t*periods*2*Math.PI+b*(Math.PI*2/3))*amp); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();}
+  },()=>{ // front: dark edges
+    ctx.strokeStyle=ink; ctx.lineWidth=lwDark; for(let b=0;b<3;b++){ctx.beginPath(); for(let i=0;i<=N;i++){const t=i/N, x=Math.round(t*W), y=Math.round(center+Math.sin(t*periods*2*Math.PI+b*(Math.PI*2/3))*amp); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();}
+  });
+}
+
+// ===== New motifs =====
+function palmette(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const base=Math.round(H*0.9);
+  ctx.strokeStyle=ink; ctx.fillStyle=fill; ctx.lineWidth=Math.max(1,u*0.12);
+  drawOverlap(ctx,W,()=>{},()=>{
+    for(let i=0;i<reps;i++){
+      const cx=Math.round(i*cell+cell/2); const bw=Math.round(cell*0.32); const h=Math.round(H*0.65);
+      ctx.beginPath(); ctx.moveTo(cx,base);
+      ctx.bezierCurveTo(cx-bw,base-h*0.5,cx-bw,base-h,cx,base-h);
+      ctx.bezierCurveTo(cx+bw,base-h,cx+bw,base-h*0.5,cx,base);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      // stem pearl
+      ctx.beginPath(); ctx.fillStyle=ink; ctx.arc(cx,base,Math.max(1,Math.floor(u*0.7)),0,Math.PI*2); ctx.fill(); ctx.fillStyle=fill;
+    }
+  });
+}
+
+function eggAndDart(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const cy=Math.round(H*0.45); const R=Math.max(2,Math.floor(u*1.8));
+  drawOverlap(ctx,W,()=>{ // back: darts
+    ctx.strokeStyle=ink; ctx.lineWidth=Math.max(1,u*0.12);
+    for(let i=0;i<reps;i++){const x=Math.round(i*cell+cell/2); ctx.beginPath(); ctx.moveTo(x-R, cy+R*1.6); ctx.lineTo(x, cy+R*2.6); ctx.lineTo(x+R, cy+R*1.6); ctx.stroke();}
+  },()=>{ // front: eggs
+    ctx.strokeStyle=ink; ctx.fillStyle=fill; ctx.lineWidth=Math.max(1,u*0.12);
+    for(let i=0;i<reps;i++){const x=Math.round(i*cell+cell/2); ctx.beginPath(); ctx.ellipse(x,cy,R,Math.floor(R*1.45),0,0,Math.PI*2); ctx.fill(); ctx.stroke();}
+  });
+}
+
+function chevron(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const mid=Math.round(H/2); const off=Math.round(u*2);
+  drawOverlap(ctx,W,()=>{},()=>{
+    ctx.strokeStyle=ink; ctx.lineWidth=Math.max(1,u*0.15);
+    for(let i=0;i<reps;i++){const x0=Math.round(i*cell), x1=Math.round(x0+cell); ctx.beginPath(); ctx.moveTo(x0,mid+off); ctx.lineTo(Math.round((x0+x1)/2),mid-off); ctx.lineTo(x1,mid+off); ctx.stroke();}
+  });
+}
+
+function keyFret(ctx,r,W,H,units,u,ink,fill){
+  // Greek-key style created by repeating right-angles aligned to the grid
+  const reps=choice(r,divisors(units)); const cell=W/reps; const th=Math.max(1,Math.floor(u*0.18));
+  ctx.strokeStyle=ink; ctx.lineWidth=th;
+  drawOverlap(ctx,W,()=>{},()=>{
+    for(let i=0;i<reps;i++){
+      const x=Math.round(i*cell); const m=Math.round(cell*0.6);
+      const y0=Math.round(H*0.3), y1=Math.round(H*0.7);
+      ctx.beginPath();
+      ctx.moveTo(x, y0); ctx.lineTo(x+m, y0); ctx.lineTo(x+m, y1); ctx.lineTo(x+th*1.5, y1);
+      ctx.stroke();
+    }
+  });
+}
+
+function scrollwork(ctx,r,W,H,units,u,ink,fill){
+  const periods=choice(r,divisors(units)); const amp=Math.round(H*0.28); const cy=Math.round(H/2);
+  drawOverlap(ctx,W,()=>{},()=>{
+    ctx.lineWidth=Math.max(1,u*0.13); ctx.strokeStyle=ink; const N=units*24;
+    ctx.beginPath(); for(let i=0;i<=N;i++){const t=i/N, x=Math.round(t*W), y=Math.round(cy+Math.sin(t*periods*2*Math.PI)*amp); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
+  });
+}
+
+// ===== Motif map =====
+const motifMap={
+  'Rosette Chain':rosetteChain,
+  'Guilloche Wave':guilloche,
+  'Ogee Vine':ogeeVine,
+  'Diamonds & Spears':diamondsSpears,
+  'Clover Links':cloverLinks,
+  'Bead Cord':beadCord,
+  'Interlace Bands':interlaceBands,
+  'Palmette':palmette,
+  'Egg-and-Dart':eggAndDart,
+  'Chevron':chevron,
+  'Key Fret':keyFret,
+  'Scrollwork':scrollwork
+};
+
+// ===== Setup & Render =====
+const tile=document.getElementById('tile'); const tctx=tile.getContext('2d');
+const strips=[document.getElementById('strip1'),document.getElementById('strip2'),document.getElementById('strip3')];
+const allowedUnits=[24,28,30,32,36,40,42,48,56,60,64];
+(function init(){
+  const sel=document.getElementById('units'); allowedUnits.forEach(n=>{const o=document.createElement('option'); o.textContent=n+' units'; o.value=n; sel.appendChild(o)}); sel.value=40;
+  const styleSel=document.getElementById('style'); styleSel.innerHTML=''; ['Mixed', ...Object.keys(motifMap)].forEach(s=>{const o=document.createElement('option'); o.textContent=s; styleSel.appendChild(o)});
+})();
+
+function render(){
+  const seed=document.getElementById('seed').value.trim()||'seed'; const rand=rng(seed);
+  const styleSel=document.getElementById('style').value;
+  const available=Object.keys(motifMap);
+  const style=(styleSel==='Mixed')?choice(rand, available):styleSel;
+  const units=parseInt(document.getElementById('units').value,10); const u=parseInt(document.getElementById('unitSize').value,10);
+  const W=units*u, H=10*u; tile.width=W; tile.height=H;
+  const ink=document.getElementById('ink').value, fill=document.getElementById('fill').value;
+
+  // clear & background
+  tctx.setTransform(1,0,0,1,0,0); tctx.clearRect(0,0,W,H); tctx.fillStyle='#fff'; tctx.fillRect(0,0,W,H);
+
+  // draw motif (guard against undefined)
+  const fn=motifMap[style]; if(typeof fn==='function'){ fn(tctx, rand, W, H, units, u, ink, fill); }
+
+  // previews
+  const scale=parseFloat(document.getElementById('scale').value);
+  strips.forEach(c=>{const ctx=c.getContext('2d'); ctx.setTransform(1,0,0,1,0,0); ctx.clearRect(0,0,c.width,c.height); const y=(c.height-H*scale)/2; for(let x=0;x<c.width+1;x+=W*scale){ctx.drawImage(tile,0,0,W,H,x,y,W*scale,H*scale);} ctx.fillStyle='#0009'; ctx.font='12px ui-sans-serif'; ctx.fillText(style+`  •  ${units}u × ${u}px`,8,14);});
+}
+
+['seed','style','units','unitSize','scale','ink','fill'].forEach(id=>document.getElementById(id).addEventListener('input',render));
+document.getElementById('regen').addEventListener('click',()=>{const s=document.getElementById('seed'); s.value=s.value+'-'+Math.floor(Math.random()*1e6).toString(36); render();});
+document.getElementById('savePNG').addEventListener('click',()=>{const a=document.createElement('a'); a.download='border_tile_expanded.png'; a.href=tile.toDataURL('image/png'); a.click();});
+
+render();
+</script>
+</body>
+</html>

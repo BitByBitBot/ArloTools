@@ -1,0 +1,642 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Recursive Vector Fractal Lab — Standalone</title>
+  <style>
+    :root { --bg: #ffffff; --fg: #111; --panel: #fff; --border:#e5e7eb; --indigo:#6366f1; }
+    html,body{ height:100%; margin:0; font:14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color: var(--fg); }
+    .app{ display:flex; flex-direction:column; height:100%; }
+    header{ position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:.5rem; padding:.5rem 1rem; background:rgba(255,255,255,.7); backdrop-filter: blur(6px); border-bottom:1px solid var(--border); }
+    h1{ font-size:18px; font-weight:600; margin:0; }
+    .spacer{ flex:1; }
+    .btn{ font-size:13px; padding:.25rem .5rem; border:1px solid var(--border); background:#fff; border-radius:12px; box-shadow: 0 1px 0 rgba(0,0,0,.04); cursor:pointer; }
+    .btn:hover{ background:#f8fafc; }
+    .btn.primary{ background:#4f46e5; border-color:#4338ca; color:#fff; }
+    .btn.danger{ background:#fef2f2; color:#dc2626; }
+    .btn.active{ background:#4f46e5; color:#fff; border-color:#4338ca; }
+    .grid{ display:grid; grid-template-columns: 1fr 320px; min-height:0; flex:1; }
+    .left{ position:relative; background:var(--bg); }
+    .wrap{ position:absolute; inset:0; }
+    canvas, svg.overlay{ position:absolute; inset:0; display:block; }
+    .right{ border-left:1px solid var(--border); background:var(--panel); overflow:auto; }
+    section{ padding:12px; border-bottom:1px solid var(--border); }
+    .section-title{ font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6b7280; margin:0 0 8px; }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.25rem 0; }
+    .row input[type="number"]{ width:90px; }
+    .cols2{ display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:.5rem; font-size:13px; }
+    .muted{ color:#6b7280; font-size:12px; }
+    .divider{ width:1px; height:24px; background:var(--border); margin:0 .5rem; }
+    .shape-card{ border:1px solid var(--border); border-radius:12px; padding:8px; box-shadow:0 1px 0 rgba(0,0,0,.04); }
+    .ring{ outline: 2px solid #4f46e5; }
+    .controls{ display:flex; gap:.5rem; }
+    input[type="range"]{ width:160px; }
+    label.inline{ display:flex; align-items:center; gap:.25rem; font-size:13px; }
+    .kbd{ font-family: ui-monospace, Menlo, Consolas, monospace; padding:0 4px; border:1px solid var(--border); border-radius:4px; background:#f8fafc; }
+    /* Responsive tweaks */
+    .right{ width: clamp(260px, 30vw, 380px); z-index: 11; }
+    .backdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.12); z-index: 9; }
+    header{ gap:.5rem; }
+    @media (max-width: 900px){
+      .grid{ grid-template-columns: 1fr; }
+      header{ flex-wrap: wrap; }
+      input[type="range"]{ width:100%; }
+      .divider{ display:none; }
+      .right{ position:fixed; top: var(--hdr,56px); right:0; bottom:0; width:min(100vw, 360px); transform: translateX(100%); transition: transform .25s ease; box-shadow: -8px 0 16px rgba(0,0,0,.08); }
+      body.panel-open .right{ transform: translateX(0); }
+      body.panel-open .backdrop{ display:block; }
+      .left{ min-height: calc(100vh - var(--hdr,56px)); }
+    }
+  </style>
+</head>
+<body>
+<div class="app">
+  <header>
+    <h1>Recursive Vector Fractal Lab</h1>
+    <div class="spacer"></div>
+    <button id="tool-select" class="btn" title="(1) Select · Hold R/C to draw">Select</button>
+    <button id="tool-rect" class="btn" title="(2) Rectangle">Rect</button>
+    <button id="tool-circle" class="btn" title="(3) Circle">Circle</button>
+    <button id="tool-poly" class="btn" title="(4) Polygon">Polygon</button>
+    <div class="divider"></div>
+    <label class="inline">Snap <input id="toggle-snap" type="checkbox"/></label>
+    <label class="inline">Grid <input id="toggle-grid" type="checkbox" checked/></label>
+    <button id="btn-reset-view" class="btn">Reset View</button>
+    <button id="toggle-panel" class="btn" aria-expanded="false" aria-controls="panel">Panel</button>
+  </header>
+
+  <div class="grid">
+    <div id="drawer-backdrop" class="backdrop"></div>
+    <div class="left" id="left" style="background: var(--bg)">
+      <div class="wrap" id="wrap">
+        <canvas id="canvas"></canvas>
+        <svg class="overlay" id="overlay"></svg>
+      </div>
+    </div>
+
+    <div id="panel" class="right">
+      <section>
+        <h2 class="section-title">Fractal</h2>
+        <div class="row"><div>Depth (<span id="depth-label">5</span>)</div><input id="depth" type="range" min="0" max="10" value="5"></div>
+        <div class="row"><div>Alpha falloff (<span id="alpha-label">0.88</span>)</div><input id="alpha" type="range" min="0.5" max="1" step="0.01" value="0.88"></div>
+        <div class="row"><label class="inline"><input id="alpha-lock" type="checkbox"> No opacity falloff</label><span class="muted">Keeps alpha constant</span></div>
+        <div class="row"><div>Stroke falloff (<span id="stroke-label">1.00</span>)</div><input id="stroke" type="range" min="0.2" max="1.2" step="0.01" value="1.00"></div>
+        <div class="muted">Branches: <b id="branch">3</b> · Est. instances: <b id="est"></b></div>
+        <div class="row"><div>Instance cap</div><input id="limit" type="number" value="20000"></div>
+      </section>
+
+      <section>
+        <h2 class="section-title">Transforms</h2>
+        <button id="add-transform" class="btn primary" style="margin-bottom:6px">Add Transform</button>
+        <div id="transforms"></div>
+      </section>
+
+      <section>
+        <h2 class="section-title">Shapes</h2>
+        <div id="shapes"></div>
+        <div class="muted" id="no-shapes" style="display:none">No shapes yet. Use the toolbar, or hold <span class="kbd">R</span>/<span class="kbd">C</span> then drag on canvas.</div>
+      </section>
+
+      <section>
+        <h2 class="section-title">View</h2>
+        <div class="cols2">
+          <label class="inline">BG <input id="bg" type="color" value="#ffffff"></label>
+          <button id="center" class="btn">Center / 100%</button>
+          <label class="inline" style="grid-column:1 / -1"><input id="grid2" type="checkbox" checked> Show grid</label>
+          <label class="inline" style="grid-column:1 / -1"><input id="snap2" type="checkbox"> Snap to integer</label>
+          <div class="muted" style="grid-column:1 / -1">Zoom: <span id="zoomlabel">1.00</span> · Pan: <span id="panlabel">0, 0</span></div>
+        </div>
+      </section>
+
+      <section>
+        <h2 class="section-title">I/O</h2>
+        <div class="controls">
+          <button id="export-png" class="btn" style="background:#059669;color:#fff;border-color:#047857">Export PNG</button>
+          <button id="export-json" class="btn" style="background:#111;color:#fff;border-color:#000">Export JSON</button>
+          <label class="btn" style="cursor:pointer">Import JSON <input id="import-json" type="file" accept="application/json" hidden></label>
+          <button id="clear" class="btn danger">Clear</button>
+        </div>
+        <p class="muted" style="margin-top:8px">Tips: Hold <b>R</b> or <b>C</b> and drag in Select to create shapes. Middle-mouse or hold Space + drag to pan. Ctrl/Cmd + Scroll to zoom. Arrow keys nudge selected shape. Enter to close polygon. Shift + drag on selected = rotate.</p>
+      </section>
+    </div>
+  </div>
+</div>
+
+<script>
+// --------------------------- Types (JSDoc for hints) ---------------------------
+/** @typedef {{x:number,y:number}} Pt */
+/** @typedef {{ id:string, type:'rect', x:number, y:number, w:number, h:number, rotate?:number, stroke:string, fill:string, strokeWidth:number }} Rect */
+/** @typedef {{ id:string, type:'circle', cx:number, cy:number, r:number, stroke:string, fill:string, strokeWidth:number }} Circle */
+/** @typedef {{ id:string, type:'poly', points:Pt[], rotate?:number, closed:boolean, stroke:string, fill:string, strokeWidth:number }} Poly */
+/** @typedef {(Rect|Circle|Poly)} Shape */
+/** @typedef {{ id:string, tx:number, ty:number, scaleX:number, scaleY:number, rotateDeg:number, opacityMul:number }} Affine */
+/** @typedef {{ a:number,b:number,c:number,d:number,e:number,f:number }} Mat */
+
+// --------------------------- Utils ---------------------------
+const uid = () => Math.random().toString(36).slice(2, 9);
+const DEG = Math.PI/180;
+const I = () => ({ a:1, b:0, c:0, d:1, e:0, f:0 });
+const T = (tx,ty) => ({ a:1, b:0, c:0, d:1, e:tx, f:ty });
+const S = (sx,sy) => ({ a:sx, b:0, c:0, d:sy, e:0, f:0 });
+const R = (deg) => { const th=deg*DEG; const cos=Math.cos(th), sin=Math.sin(th); return { a:cos, b:sin, c:-sin, d:cos, e:0, f:0 }; };
+const Mmul = (m2,m1) => ({ a: m2.a*m1.a + m2.c*m1.b, b: m2.b*m1.a + m2.d*m1.b, c: m2.a*m1.c + m2.c*m1.d, d: m2.b*m1.c + m2.d*m1.d, e: m2.a*m1.e + m2.c*m1.f + m2.e, f: m2.b*m1.e + m2.d*m1.f + m2.f });
+const matFromAffine = (A) => Mmul(T(A.tx, A.ty), Mmul(R(A.rotateDeg), S(A.scaleX, A.scaleY)));
+const clamp = (v,lo,hi)=>Math.max(lo,Math.min(hi,v));
+
+// ---------------------- State ------------------------
+/** @type {Shape[]} */
+let shapes = loadLS('rvfl_shapes_v1', [
+  { id: uid(), type:'rect', x:-80, y:-50, w:160, h:100, rotate:0, stroke:'#111', fill:'transparent', strokeWidth:2 },
+  { id: uid(), type:'circle', cx:0, cy:0, r:30, stroke:'#111', fill:'transparent', strokeWidth:2 },
+]);
+/** @type {Affine[]} */
+let affines = loadLS('rvfl_affines_v1', [
+  { id: uid(), tx: 120, ty: 0,   scaleX: 0.5, scaleY: 0.5, rotateDeg:  0, opacityMul: 0.9 },
+  { id: uid(), tx: -60, ty: 104, scaleX: 0.5, scaleY: 0.5, rotateDeg: 30, opacityMul: 0.9 },
+  { id: uid(), tx: -60, ty: -104,scaleX: 0.5, scaleY: 0.5, rotateDeg:-30, opacityMul: 0.9 },
+]);
+let depth = loadLS('rvfl_depth_v1', 5);
+let alphaFalloff = loadLS('rvfl_alpha_v1', 0.88);
+let alphaLockEnabled = loadLS('rvfl_alpha_lock_v1', false);
+let alphaPrev = loadLS('rvfl_alpha_prev_v1', alphaFalloff);
+let strokeFalloff = loadLS('rvfl_strokeFall_v1', 1.0);
+let instanceLimit = loadLS('rvfl_limit_v1', 20000);
+let zoom = 1;
+let pan = { x:0, y:0 }; // CSS px
+let showGrid = true;
+let snap = false;
+let bg = '#ffffff';
+let tool = 'select'; // 'select'|'rect'|'circle'|'poly'
+/** @type {string|null} */ let selectedId = null;
+/** @type {Pt[]} */ let polyDraft = [];
+let isPanning = false;
+/** @type {null | { kind:'move'|'rect-size'|'circle-size'|'rotate', id:string, start?:Pt, last:Pt, center?:Pt }} */
+let drag = null;
+let spaceDown = false;
+/** @type {null|'rect'|'circle'} */ let drawMode = null; // gesture draw while in select
+
+// ---------------------- Elements ------------------------
+const wrap = document.getElementById('wrap');
+const canvas = document.getElementById('canvas');
+const overlay = document.getElementById('overlay');
+const ctx = canvas.getContext('2d');
+
+// Controls
+const depthInput = document.getElementById('depth');
+const alphaInput = document.getElementById('alpha');
+const strokeInput = document.getElementById('stroke');
+const depthLbl = document.getElementById('depth-label');
+const alphaLbl = document.getElementById('alpha-label');
+const alphaLock = document.getElementById('alpha-lock');
+const strokeLbl = document.getElementById('stroke-label');
+const branchLbl = document.getElementById('branch');
+const estLbl = document.getElementById('est');
+const limitInput = document.getElementById('limit');
+const transformsDiv = document.getElementById('transforms');
+const shapesDiv = document.getElementById('shapes');
+const noShapesDiv = document.getElementById('no-shapes');
+const bgInput = document.getElementById('bg');
+const centerBtn = document.getElementById('center');
+const exportPNGBtn = document.getElementById('export-png');
+const exportJSONBtn = document.getElementById('export-json');
+const importJSONInput = document.getElementById('import-json');
+const clearBtn = document.getElementById('clear');
+const addTransformBtn = document.getElementById('add-transform');
+if(addTransformBtn){
+  addTransformBtn.onclick = ()=>{
+    const A = { id: uid(), tx:50, ty:0, scaleX:0.5, scaleY:0.5, rotateDeg:0, opacityMul:0.9 };
+    affines = [...affines, A];
+    saveLS('rvfl_affines_v1', affines);
+    renderTransforms();
+    renderAll();
+  };
+}
+
+// toolbar
+const btnSelect = document.getElementById('tool-select');
+const btnRect = document.getElementById('tool-rect');
+const btnCircle = document.getElementById('tool-circle');
+const btnPoly = document.getElementById('tool-poly');
+const toggleSnap = document.getElementById('toggle-snap');
+const toggleGrid = document.getElementById('toggle-grid');
+const btnResetView = document.getElementById('btn-reset-view');
+const zoomLbl = document.getElementById('zoomlabel');
+const panLbl = document.getElementById('panlabel');
+
+// responsive panel controls
+const panelEl = document.getElementById('panel');
+const panelToggleBtn = document.getElementById('toggle-panel');
+const backdropEl = document.getElementById('drawer-backdrop');
+const headerEl = document.querySelector('header');
+function updateHdr(){ if(headerEl){ document.documentElement.style.setProperty('--hdr', headerEl.offsetHeight + 'px'); } }
+function ensurePanelStateForViewport(){ if(window.innerWidth>900){ document.body.classList.remove('panel-open'); if(panelToggleBtn) panelToggleBtn.setAttribute('aria-expanded','false'); if(backdropEl) backdropEl.style.display='none'; } }
+if(panelToggleBtn){ panelToggleBtn.onclick = ()=>{ const open = !document.body.classList.contains('panel-open'); document.body.classList.toggle('panel-open', open); if(backdropEl) backdropEl.style.display = open ? 'block' : 'none'; panelToggleBtn.setAttribute('aria-expanded', String(open)); }; }
+if(backdropEl){ backdropEl.onclick = ()=>{ document.body.classList.remove('panel-open'); if(panelToggleBtn) panelToggleBtn.setAttribute('aria-expanded','false'); backdropEl.style.display='none'; }; }
+window.addEventListener('resize', ()=>{ updateHdr(); ensurePanelStateForViewport(); });
+const roHdr = new ResizeObserver(()=> updateHdr()); if(headerEl) roHdr.observe(headerEl);
+
+// ---------------------- Resize ------------------------
+const ro = new ResizeObserver(()=>{ resizeCanvas(); renderAll(); });
+ro.observe(wrap);
+
+function resizeCanvas(){
+  const r = wrap.getBoundingClientRect();
+  const dpr = window.devicePixelRatio || 1;
+  canvas.width = Math.max(1, Math.floor(r.width*dpr));
+  canvas.height = Math.max(1, Math.floor(r.height*dpr));
+  canvas.style.width = r.width+"px";
+  canvas.style.height = r.height+"px";
+}
+
+// ---------------------- Rendering ------------------------
+function renderAll(){
+  if(!ctx) return;
+  // background
+  ctx.setTransform(1,0,0,1,0,0);
+  ctx.fillStyle = bg; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+  const dpr = window.devicePixelRatio||1; const cssW = canvas.width/dpr, cssH = canvas.height/dpr;
+  ctx.setTransform(zoom*dpr, 0, 0, zoom*dpr, (pan.x+cssW/2)*dpr, (pan.y+cssH/2)*dpr);
+
+  // grid
+  if(showGrid){ drawGrid(ctx, cssW, cssH); }
+
+  const branch = affines.length || 1;
+  const est = sumGeom(branch, depth);
+  const overLimit = est > instanceLimit;
+  if(overLimit){
+    ctx.resetTransform(); ctx.fillStyle = '#111'; ctx.font = `${16*dpr}px ui-sans-serif`;
+    ctx.fillText(`Instance estimate ${est.toLocaleString()} exceeds limit ${instanceLimit.toLocaleString()}. Lower depth or branches.`, 16, 28*dpr);
+  } else {
+    const baseStroke = getMaxStroke(shapes);
+    drawFractal(ctx, shapes, affines, depth, alphaFalloff, strokeFalloff, baseStroke);
+  }
+
+  // overlay SVG: selection + polygon draft
+  overlay.setAttribute('viewBox', `0 0 ${cssW} ${cssH}`);
+  overlay.innerHTML = '';
+  if(tool==='poly' && polyDraft.length>0){
+    const pts = polyDraft.map(p=>{ const s=worldToScreenCSS(p); return `${s.x},${s.y}`; }).join(' ');
+    const pl = `<polyline points="${pts}" fill="none" stroke="#14b8a6" stroke-width="2" vector-effect="non-scaling-stroke"/>`;
+    overlay.insertAdjacentHTML('beforeend', pl);
+  }
+  if(selectedId){
+    const sh = shapes.find(s=>s.id===selectedId);
+    if(sh){ overlay.insertAdjacentHTML('beforeend', selectionSVG(sh)); }
+  }
+
+  // labels (defensive: check exists)
+  if(depthLbl) depthLbl.textContent = String(depth);
+  if(alphaLbl) alphaLbl.textContent = Number(alphaFalloff).toFixed(2);
+  if(strokeLbl) strokeLbl.textContent = Number(strokeFalloff).toFixed(2);
+  if(branchLbl) branchLbl.textContent = String(branch);
+  if(estLbl) estLbl.textContent = est.toLocaleString();
+  if(zoomLbl) zoomLbl.textContent = zoom.toFixed(2);
+  if(panLbl) panLbl.textContent = `${Math.round(pan.x)}, ${Math.round(pan.y)}`;
+  if(noShapesDiv) noShapesDiv.style.display = shapes.length? 'none':'block';
+}
+
+function drawGrid(ctx, cssW, cssH){
+  const step = 50; const start = screenToWorldCSS({x:0,y:0}); const end = screenToWorldCSS({x:cssW,y:cssH});
+  const x0 = Math.floor(start.x/step)*step; const y0 = Math.floor(start.y/step)*step;
+  ctx.save(); ctx.lineWidth = 1/zoom; ctx.strokeStyle = '#e5e7eb'; ctx.beginPath();
+  for(let x=x0; x<end.x; x+=step){ ctx.moveTo(x, start.y); ctx.lineTo(x, end.y); }
+  for(let y=y0; y<end.y; y+=step){ ctx.moveTo(start.x, y); ctx.lineTo(end.x, y); }
+  ctx.stroke(); ctx.restore();
+}
+
+function drawFractal(ctx, base, A, maxDepth, alphaFall, strokeFall, baseStroke){
+  const mats = A.map(matFromAffine);
+  const rec = (M, d, alpha, stroke) => {
+    ctx.save(); ctx.transform(M.a, M.b, M.c, M.d, M.e, M.f);
+    for(const sh of base){ drawShape(ctx, sh, alpha, stroke); }
+    ctx.restore();
+    if(d >= maxDepth) return;
+    for(let i=0;i<mats.length;i++){ const Mm = Mmul(M, mats[i]); rec(Mm, d+1, alpha*alphaFall, stroke*strokeFall); }
+  };
+  rec(I(), 0, 1.0, baseStroke);
+}
+
+function drawShape(ctx, sh, alpha, stroke){
+  ctx.globalAlpha = alpha; ctx.lineWidth = Math.max(0.2, stroke);
+  ctx.strokeStyle = sh.stroke || '#111'; ctx.fillStyle = sh.fill || 'transparent';
+  ctx.save();
+  if(sh.type==='rect'){
+    const cx = sh.x + sh.w/2, cy = sh.y + sh.h/2; const rot = (sh.rotate||0)*DEG; ctx.translate(cx, cy); if(rot) ctx.rotate(rot);
+    ctx.beginPath(); ctx.rect(-sh.w/2, -sh.h/2, sh.w, sh.h);
+  } else if(sh.type==='circle'){
+    ctx.beginPath(); ctx.arc(sh.cx, sh.cy, Math.max(0, sh.r), 0, Math.PI*2);
+  } else if(sh.type==='poly'){
+    if(sh.points.length){ const c = centroid(sh.points); const rot = (sh.rotate||0)*DEG; ctx.translate(c.x, c.y); if(rot) ctx.rotate(rot);
+      ctx.beginPath(); ctx.moveTo(sh.points[0].x - c.x, sh.points[0].y - c.y); for(let i=1;i<sh.points.length;i++) ctx.lineTo(sh.points[i].x - c.x, sh.points[i].y - c.y); if(sh.closed) ctx.closePath(); }
+  }
+  if(sh.fill && sh.fill !== 'transparent') ctx.fill(); ctx.stroke(); ctx.restore();
+}
+
+function getMaxStroke(arr){ let s = 0.5; for(const sh of arr){ s = Math.max(s, sh.strokeWidth || 1); } return s / zoom; }
+
+// ---------------------- Interaction helpers ------------------------
+function getLocalCSS(e){ const r = wrap.getBoundingClientRect(); return { x: e.clientX - r.left, y: e.clientY - r.top }; }
+function screenToWorldCSS(pCSS){ const dpr = window.devicePixelRatio||1; const cssW=canvas.width/dpr, cssH=canvas.height/dpr; return { x: (pCSS.x - (pan.x + cssW/2))/zoom, y: (pCSS.y - (pan.y + cssH/2))/zoom }; }
+function worldToScreenCSS(p){ const dpr = window.devicePixelRatio||1; const cssW=canvas.width/dpr, cssH=canvas.height/dpr; return { x: p.x*zoom + (pan.x + cssW/2), y: p.y*zoom + (pan.y + cssH/2) }; }
+
+function hitTest(w){
+  for(let i=shapes.length-1;i>=0;i--){ const sh = shapes[i];
+    if(sh.type==='rect'){
+      const cx=sh.x+sh.w/2, cy=sh.y+sh.h/2; const rot = -((sh.rotate||0)*DEG); const p = rotateAround(w,{x:cx,y:cy},rot);
+      if(p.x>=sh.x && p.x<=sh.x+sh.w && p.y>=sh.y && p.y<=sh.y+sh.h) return sh.id;
+    } else if(sh.type==='circle'){
+      const dx=w.x-sh.cx, dy=w.y-sh.cy; if(dx*dx+dy*dy <= sh.r*sh.r) return sh.id;
+    } else { const c=centroid(sh.points); const rot= -((sh.rotate||0)*DEG); const p=rotateAround(w,c,rot); if(pointInPoly(p, sh.points)) return sh.id; }
+  } return null;
+}
+function pointInPoly(p, pts){ if(pts.length<3) return false; let inside=false; for(let i=0,j=pts.length-1;i<pts.length;j=i++){ const xi=pts[i].x, yi=pts[i].y, xj=pts[j].x, yj=pts[j].y; const inter=((yi>p.y)!=(yj>p.y))&&(p.x < (xj-xi)*(p.y-yi)/(yj-yi)+xi); if(inter) inside=!inside; } return inside; }
+function centroid(pts){ let sx=0, sy=0; for(const p of pts){ sx+=p.x; sy+=p.y; } const n=Math.max(1,pts.length); return { x:sx/n, y:sy/n }; }
+function rotateAround(p, c, ang){ const s=Math.sin(ang), q=Math.cos(ang); const dx=p.x-c.x, dy=p.y-c.y; return { x: c.x + dx*q - dy*s, y: c.y + dx*s + dy*q } }
+function shapeCenter(sh){ if(!sh) return {x:0,y:0}; if(sh.type==='rect') return { x: sh.x + sh.w/2, y: sh.y + sh.h/2 }; if(sh.type==='circle') return { x: sh.cx, y: sh.cy }; return centroid(sh.points); }
+
+function selectionSVG(sh){
+  if(sh.type==='rect'){
+    const c = { x: sh.x+sh.w/2, y: sh.y+sh.h/2 }; const rot=(sh.rotate||0)*DEG;
+    const p1 = worldToScreenCSS(rotateAround({x:sh.x, y:sh.y}, c, rot));
+    const p2 = worldToScreenCSS(rotateAround({x:sh.x+sh.w, y:sh.y}, c, rot));
+    const p3 = worldToScreenCSS(rotateAround({x:sh.x+sh.w, y:sh.y+sh.h}, c, rot));
+    const p4 = worldToScreenCSS(rotateAround({x:sh.x, y:sh.y+sh.h}, c, rot));
+    const pts = [p1,p2,p3,p4].map(p=>`${p.x},${p.y}`).join(' ');
+    return `<polygon points="${pts}" fill="none" stroke="#6366f1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>`;
+  }
+  if(sh.type==='circle'){
+    const c = worldToScreenCSS({x:sh.cx,y:sh.cy}); const rPt = worldToScreenCSS({x:sh.cx+sh.r,y:sh.cy}); const r = Math.hypot(rPt.x-c.x, rPt.y-c.y);
+    return `<circle cx="${c.x}" cy="${c.y}" r="${r}" fill="none" stroke="#6366f1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>`;
+  }
+  if(sh.type==='poly'){
+    const c = centroid(sh.points); const rot=(sh.rotate||0)*DEG; const pts = sh.points.map(p=>rotateAround(p,c,rot)).map(worldToScreenCSS).map(p=>`${p.x},${p.y}`).join(' ');
+    return `<polyline points="${pts}" fill="none" stroke="#6366f1" stroke-dasharray="4 4" vector-effect="non-scaling-stroke"/>`;
+  }
+  return '';
+}
+
+// ---------------------- Events ------------------------
+// Toolbar
+function setTool(newTool){ tool = newTool; updateToolbar(); }
+function updateToolbar(){
+  btnSelect.classList.toggle('active', tool==='select');
+  btnRect.classList.toggle('active', tool==='rect');
+  btnCircle.classList.toggle('active', tool==='circle');
+  btnPoly.classList.toggle('active', tool==='poly');
+}
+btnSelect.onclick = ()=>setTool('select');
+btnRect.onclick = ()=>setTool('rect');
+btnCircle.onclick = ()=>setTool('circle');
+btnPoly.onclick = ()=>setTool('poly');
+btnResetView.onclick = ()=>{ zoom=1; pan={x:0,y:0}; renderAll(); };
+
+toggleSnap.onchange = (e)=>{ snap = e.target.checked; document.getElementById('snap2').checked = snap; };
+toggleGrid.onchange = (e)=>{ showGrid = e.target.checked; document.getElementById('grid2').checked = showGrid; renderAll(); };
+
+document.getElementById('snap2').onchange = (e)=>{ snap = e.target.checked; toggleSnap.checked = snap; };
+document.getElementById('grid2').onchange = (e)=>{ showGrid = e.target.checked; toggleGrid.checked = showGrid; renderAll(); };
+
+// Sliders
+depthInput.oninput = ()=>{ depth = parseInt(depthInput.value||'0'); saveLS('rvfl_depth_v1', depth); renderAll(); };
+alphaInput.oninput = ()=>{ alphaFalloff = parseFloat(alphaInput.value||'1'); saveLS('rvfl_alpha_v1', alphaFalloff); renderAll(); };
+strokeInput.oninput = ()=>{ strokeFalloff = parseFloat(strokeInput.value||'1'); saveLS('rvfl_strokeFall_v1', strokeFalloff); renderAll(); };
+// No opacity falloff toggle
+if(alphaLock){
+  alphaLock.onchange = (e)=>{
+    alphaLockEnabled = e.target.checked;
+    saveLS('rvfl_alpha_lock_v1', alphaLockEnabled);
+    if(alphaLockEnabled){
+      alphaPrev = alphaFalloff; saveLS('rvfl_alpha_prev_v1', alphaPrev);
+      alphaFalloff = 1; alphaInput.disabled = true; alphaInput.value = '1'; saveLS('rvfl_alpha_v1', alphaFalloff);
+    } else {
+      alphaFalloff = (typeof alphaPrev === 'number') ? alphaPrev : 0.88;
+      alphaInput.disabled = false; alphaInput.value = String(alphaFalloff); saveLS('rvfl_alpha_v1', alphaFalloff);
+    }
+    renderAll();
+  };
+}
+limitInput.onchange = ()=>{ instanceLimit = parseInt(limitInput.value||'0'); saveLS('rvfl_limit_v1', instanceLimit); renderAll(); };
+
+// View controls
+bgInput.oninput = ()=>{ bg = bgInput.value; document.documentElement.style.setProperty('--bg', bg); renderAll(); };
+centerBtn.onclick = ()=>{ zoom=1; pan={x:0,y:0}; renderAll(); };
+
+// I/O
+exportPNGBtn.onclick = ()=>{ const a=document.createElement('a'); a.download='fractal.png'; a.href=canvas.toDataURL('image/png'); a.click(); };
+exportJSONBtn.onclick = ()=>{
+  const data = { shapes, affines, depth, alphaFalloff, strokeFalloff, pan, zoom, bg };
+  const blob = new Blob([JSON.stringify(data,null,2)], { type:'application/json' });
+  const url = URL.createObjectURL(blob); const a = document.createElement('a'); a.href=url; a.download='fractal_scene.json'; a.click(); URL.revokeObjectURL(url);
+};
+importJSONInput.onchange = (ev)=>{ const file = ev.target.files && ev.target.files[0]; if(!file) return; const reader=new FileReader(); reader.onload=()=>{ try{
+    const data = JSON.parse(String(reader.result));
+    if(data.shapes) shapes=data.shapes; if(data.affines) affines=data.affines; if(typeof data.depth==='number') depth=data.depth; if(typeof data.alphaFalloff==='number') alphaFalloff=data.alphaFalloff; if(typeof data.strokeFalloff==='number') strokeFalloff=data.strokeFalloff; if(data.pan) pan=data.pan; if(typeof data.zoom==='number') zoom=data.zoom; if(typeof data.bg==='string') { bg=data.bg; document.documentElement.style.setProperty('--bg', bg); }
+    saveAll(); renderAll(); renderTransforms(); renderShapes();
+  }catch(err){ alert('Invalid JSON'); } }; reader.readAsText(file); ev.target.value=''; };
+clearBtn.onclick = ()=>{ if(confirm('Clear all shapes and transforms?')){ shapes=[]; affines=[]; selectedId=null; saveAll(); renderAll(); renderTransforms(); renderShapes(); } };
+
+// Wheel zoom
+canvas.addEventListener('wheel', (e)=>{
+  if(e.metaKey || e.ctrlKey){ e.preventDefault();
+    const delta = -Math.sign(e.deltaY) * 0.08; const newZoom = clamp(zoom * (1+delta), 0.1, 8);
+    const r = wrap.getBoundingClientRect(); const cx = e.clientX - r.left; const cy = e.clientY - r.top;
+    const before = screenToWorldCSS({x:cx,y:cy}); zoom = newZoom; const after = screenToWorldCSS({x:cx,y:cy});
+    pan = { x: pan.x + (after.x - before.x)*newZoom, y: pan.y + (after.y - before.y)*newZoom };
+    renderAll(); saveAll();
+  }
+}, { passive:false });
+
+// Keyboard
+window.addEventListener('keydown', (e)=>{
+  const t=e.target; const typing = t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.tagName==='SELECT' || t.isContentEditable); if(typing) return;
+  if(e.code==='Space'){ spaceDown = true; e.preventDefault(); }
+  if(e.code==='KeyR'){ drawMode = 'rect'; }
+  if(e.code==='KeyC' || e.code==='KeyO'){ drawMode = 'circle'; }
+  if(e.key==='Escape'){ tool='select'; polyDraft=[]; drag=null; updateToolbar(); renderAll(); }
+  if(e.key==='Enter' && tool==='poly'){ finishPoly(true); }
+  if(e.key==='Backspace' && selectedId){ shapes = shapes.filter(x=>x.id!==selectedId); selectedId=null; saveLS('rvfl_shapes_v1', shapes); renderAll(); renderShapes(); }
+  if(e.key==='a' && (e.metaKey||e.ctrlKey)){ e.preventDefault(); selectedId=null; tool='select'; updateToolbar(); }
+  if(e.key==='1') setTool('select'); if(e.key==='2') setTool('rect'); if(e.key==='3') setTool('circle'); if(e.key==='4') setTool('poly');
+  // quick add transform shortcut
+  if(e.key==='t' || e.key==='T'){ const btn=document.getElementById('add-transform'); if(btn) btn.click(); }
+  if(e.key==='=') { zoom = clamp(zoom*1.1,0.1,8); renderAll(); }
+  if(e.key==='-') { zoom = clamp(zoom/1.1,0.1,8); renderAll(); }
+  if(e.key==='0') { zoom=1; pan={x:0,y:0}; renderAll(); }
+  if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(e.key) && selectedId){ e.preventDefault(); const step=e.shiftKey?10:1; shapes = shapes.map(sh=> sh.id!==selectedId? sh : nudge(sh,e.key,step)); saveLS('rvfl_shapes_v1', shapes); renderAll(); renderShapes(); }
+});
+window.addEventListener('keyup', (e)=>{
+  const t=e.target; const typing = t && (t.tagName==='INPUT' || t.tagName==='TEXTAREA' || t.tagName==='SELECT' || t.isContentEditable); if(typing) return;
+  if(e.code==='Space'){ spaceDown = false; e.preventDefault(); }
+  if((e.code==='KeyR' && drawMode==='rect') || ((e.code==='KeyC' || e.code==='KeyO') && drawMode==='circle')){ drawMode=null; }
+});
+
+function nudge(sh, key, step){ const dx = key==='ArrowLeft'? -step : key==='ArrowRight'? step : 0; const dy = key==='ArrowUp'? -step : key==='ArrowDown'? step : 0; if(sh.type==='rect') return { ...sh, x:sh.x+dx, y:sh.y+dy }; if(sh.type==='circle') return { ...sh, cx:sh.cx+dx, cy:sh.cy+dy }; return { ...sh, points: sh.points.map(p=>({x:p.x+dx,y:p.y+dy})) } }
+
+// Overlay pointer handlers
+overlay.addEventListener('mousedown', onOverlayDown);
+overlay.addEventListener('mousemove', onOverlayMove);
+overlay.addEventListener('mouseup', onOverlayUp);
+overlay.addEventListener('mouseleave', onOverlayUp);
+
+function onOverlayDown(e){
+  const local = getLocalCSS(e); const world = screenToWorldCSS(local);
+  if(e.button===1 || (e.button===0 && spaceDown)) { isPanning=true; return; }
+
+  if(tool==='select' && drawMode){
+    if(drawMode==='rect'){
+      const x = snap? Math.round(world.x):world.x; const y=snap?Math.round(world.y):world.y;
+      const id=uid(); const rect={ id, type:'rect', x, y, w:1, h:1, rotate:0, stroke:'#111', fill:'transparent', strokeWidth:2 };
+      shapes=[...shapes, rect]; selectedId=id; drag={ kind:'rect-size', id, start:{x,y}, last:world }; saveLS('rvfl_shapes_v1', shapes); renderAll(); renderShapes(); return;
+    }
+    if(drawMode==='circle'){
+      const id=uid(); const c={ id, type:'circle', cx:world.x, cy:world.y, r:1, stroke:'#111', fill:'transparent', strokeWidth:2 };
+      shapes=[...shapes,c]; selectedId=id; drag={ kind:'circle-size', id, start:{x:world.x,y:world.y}, last:world }; saveLS('rvfl_shapes_v1', shapes); renderAll(); renderShapes(); return;
+    }
+  }
+
+  if(tool==='select'){
+    const id = hitTest(world); selectedId=id; if(id){ if(e.shiftKey){ const sh = shapes.find(s=>s.id===id); const center = shapeCenter(sh); drag={ kind:'rotate', id, last:world, center }; } else { drag={ kind:'move', id, last:world }; } }
+    renderAll(); renderShapes();
+  } else if(tool==='rect'){
+    const x = snap? Math.round(world.x):world.x; const y=snap?Math.round(world.y):world.y; const id=uid(); const rect={ id, type:'rect', x, y, w:1, h:1, rotate:0, stroke:'#111', fill:'transparent', strokeWidth:2 };
+    shapes=[...shapes, rect]; selectedId=id; drag={ kind:'rect-size', id, start:{x,y}, last:world }; saveLS('rvfl_shapes_v1', shapes); renderAll(); renderShapes();
+  } else if(tool==='circle'){
+    const id=uid(); const c={ id, type:'circle', cx:world.x, cy:world.y, r:1, stroke:'#111', fill:'transparent', strokeWidth:2 };
+    shapes=[...shapes,c]; selectedId=id; drag={ kind:'circle-size', id, start:{x:world.x,y:world.y}, last:world }; saveLS('rvfl_shapes_v1', shapes); renderAll(); renderShapes();
+  } else if(tool==='poly'){
+    polyDraft=[...polyDraft, world]; renderAll();
+  }
+}
+
+function onOverlayMove(e){
+  if(isPanning){ pan = { x: pan.x + e.movementX, y: pan.y + e.movementY }; renderAll(); return; }
+  if(!drag) return; const current = drag; const local = getLocalCSS(e); const world = screenToWorldCSS(local);
+  shapes = shapes.map(sh => {
+    if(sh.id!==current.id) return sh;
+    if(current.kind==='move'){
+      const dx = world.x - current.last.x; const dy = world.y - current.last.y;
+      if(sh.type==='rect') return { ...sh, x: sh.x+dx, y: sh.y+dy };
+      if(sh.type==='circle') return { ...sh, cx: sh.cx+dx, cy: sh.cy+dy };
+      if(sh.type==='poly') return { ...sh, points: sh.points.map(p=>({x:p.x+dx,y:p.y+dy})) };
+    } else if(current.kind==='rect-size'){
+      const sx = world.x - current.start.x; const sy = world.y - current.start.y; const nx = Math.min(current.start.x, world.x), ny = Math.min(current.start.y, world.y); const nw = Math.abs(sx), nh = Math.abs(sy);
+      return { ...sh, x:nx, y:ny, w:nw, h:nh };
+    } else if(current.kind==='circle-size'){
+      const r = Math.hypot(world.x - current.start.x, world.y - current.start.y); return { ...sh, r };
+    } else if(current.kind==='rotate'){
+      const ctr = current.center || shapeCenter(sh); const angle = Math.atan2(world.y-ctr.y, world.x-ctr.x) * 180/Math.PI; if(sh.type==='circle') return sh; return { ...sh, rotate: angle };
+    }
+    return sh;
+  });
+  drag = { ...current, last: world };
+  saveLS('rvfl_shapes_v1', shapes);
+  renderAll(); renderShapes();
+}
+
+function onOverlayUp(){ isPanning=false; drag=null; if(tool==='rect' || tool==='circle'){ tool='select'; updateToolbar(); } }
+
+function finishPoly(closed){ if(polyDraft.length < 2) { polyDraft=[]; return; }
+  const id = uid(); const poly = { id, type:'poly', points: snap? polyDraft.map(p=>({x:Math.round(p.x),y:Math.round(p.y)})) : polyDraft, rotate:0, closed, stroke:'#111', fill:'transparent', strokeWidth:2 };
+  shapes=[...shapes, poly]; selectedId=id; tool='select'; polyDraft=[]; saveLS('rvfl_shapes_v1', shapes); updateToolbar(); renderAll(); renderShapes();
+}
+
+// ---------------------- UI: Transforms & Shapes lists ------------------------
+function renderTransforms(){
+  transformsDiv.innerHTML = '';
+  affines.forEach((A, i)=>{
+    const el = document.createElement('div'); el.className='shape-card';
+    el.innerHTML = `
+      <div class="row" style="margin-bottom:4px"><div class="muted">Branch ${i+1}</div>
+        <div class="controls">
+          <button class="btn" data-act="clone">Clone</button>
+          <button class="btn danger" data-act="delete">Delete</button>
+        </div>
+      </div>
+      <div class="cols2">
+        ${num('tx',A.tx)}${num('ty',A.ty)}
+        ${num('scaleX',A.scaleX,0.01)}${num('scaleY',A.scaleY,0.01)}
+        ${num('rotateDeg',A.rotateDeg,1,'rotate°')}${num('opacityMul',A.opacityMul,0.01,'opacity×')}
+      </div>`;
+    el.querySelector('[data-act="clone"]').onclick = ()=>{ const c={...A, id:uid()}; affines=[...affines,c]; saveLS('rvfl_affines_v1', affines); renderTransforms(); renderAll(); };
+    el.querySelector('[data-act="delete"]').onclick = ()=>{ affines=affines.filter(x=>x.id!==A.id); saveLS('rvfl_affines_v1', affines); renderTransforms(); renderAll(); };
+    // wire inputs
+    el.querySelectorAll('input').forEach(inp=>{
+      inp.oninput = (ev)=>{ const k = ev.target.getAttribute('data-k'); const v = parseFloat(ev.target.value||'0'); affines=affines.map(x=> x.id===A.id ? { ...x, [k]: v } : x); saveLS('rvfl_affines_v1', affines); renderAll(); };
+    });
+    transformsDiv.appendChild(el);
+  });
+}
+function num(k,v,step=0.1,label){ return `<label class="inline"><span class="muted">${label||k}</span> <input type="number" step="${step}" value="${v}" data-k="${k}"></label>`; }
+
+function renderShapes(){
+  shapesDiv.innerHTML = '';
+  shapes.forEach((sh,i)=>{
+    const el = document.createElement('div'); el.className='shape-card' + (selectedId===sh.id? ' ring':'');
+    el.innerHTML = `
+      <div class="row"><div class="muted">${i+1}. ${labelFor(sh)}</div>
+        <div class="controls">
+          <button class="btn" data-act="select">Select</button>
+          <button class="btn danger" data-act="delete">Delete</button>
+        </div>
+      </div>
+      <div class="cols2" style="margin-top:4px">
+        <label class="inline">Stroke <input type="color" data-k="stroke" value="${sh.stroke||'#111111'}"></label>
+        <label class="inline">Fill <input type="color" data-k="fill" value="${sh.fill||'#000000'}"></label>
+        <label class="inline">Width <input type="number" class="w-20" step="0.2" data-k="strokeWidth" value="${sh.strokeWidth||1}"></label>
+      </div>`;
+    el.querySelector('[data-act="select"]').onclick = ()=>{ selectedId=sh.id; renderAll(); renderShapes(); };
+    el.querySelector('[data-act="delete"]').onclick = ()=>{ shapes=shapes.filter(x=>x.id!==sh.id); if(selectedId===sh.id) selectedId=null; saveLS('rvfl_shapes_v1', shapes); renderAll(); renderShapes(); };
+    el.querySelectorAll('input').forEach(inp=>{
+      inp.oninput = (ev)=>{ const k = ev.target.getAttribute('data-k'); let v = ev.target.value; if(k==='strokeWidth') v=parseFloat(v||'1'); shapes = shapes.map(x=> x.id===sh.id? { ...x, [k]: v } : x); saveLS('rvfl_shapes_v1', shapes); renderAll(); };
+    });
+    shapesDiv.appendChild(el);
+  });
+}
+
+function labelFor(sh){ if(sh.type==='rect') return `Rect (${Math.round(sh.w)}×${Math.round(sh.h)})`; if(sh.type==='circle') return `Circle (r=${Math.round(sh.r)})`; return `Polygon (${sh.points.length} pts)`; }
+
+// ---------------------- Persistence helpers ------------------------
+function saveLS(key, value){ try{ localStorage.setItem(key, JSON.stringify(value)); }catch(e){} }
+function loadLS(key, def){ try{ const v = localStorage.getItem(key); return v? JSON.parse(v): def; }catch(e){ return def; }}
+function saveAll(){ saveLS('rvfl_shapes_v1', shapes); saveLS('rvfl_affines_v1', affines); saveLS('rvfl_depth_v1', depth); saveLS('rvfl_alpha_v1', alphaFalloff); saveLS('rvfl_strokeFall_v1', strokeFalloff); saveLS('rvfl_limit_v1', instanceLimit); }
+
+// ---------------------- Math helpers ------------------------
+function sumGeom(r, n){ if(r===1) return n+1; return Math.round((Math.pow(r, n+1) - 1) / (r - 1)); }
+
+// ---------------------- Init ------------------------
+resizeCanvas();
+// init slider labels and values from LS
+if(depthInput) depthInput.value = String(depth);
+if(alphaInput) alphaInput.value = String(alphaFalloff);
+if(strokeInput) strokeInput.value = String(strokeFalloff);
+if(limitInput) limitInput.value = String(instanceLimit);
+// apply persisted no-falloff lock
+if(alphaLock){
+  alphaLock.checked = !!alphaLockEnabled;
+  if(alphaLockEnabled){
+    alphaPrev = (typeof alphaPrev === 'number') ? alphaPrev : 0.88;
+    alphaFalloff = 1;
+    if(alphaInput){ alphaInput.disabled = true; alphaInput.value = '1'; }
+  }
+}
+renderTransforms(); renderShapes(); updateToolbar(); updateHdr(); ensurePanelStateForViewport(); renderAll();
+
+// ---------------------- Tiny Dev Tests ------------------------
+(function runDevTests(){
+  // math
+  console.assert(sumGeom(1,0)===1, 'sumGeom r=1 n=0');
+  console.assert(sumGeom(1,3)===4, 'sumGeom r=1 n=3');
+  console.assert(sumGeom(2,3)===15, 'sumGeom r=2 n=3');
+  const c={x:5,y:-7}; const p0={x:12,y:3}; const th=Math.PI/3; const p1=rotateAround(p0,c, th); const p2=rotateAround(p1,c, -th); console.assert(Math.hypot(p0.x-p2.x,p0.y-p2.y) < 1e-6, 'rotateAround invertible');
+  const tri=[{x:0,y:0},{x:6,y:0},{x:0,y:6}]; const ce=centroid(tri); console.assert(Math.abs(ce.x-2)<1e-6 && Math.abs(ce.y-2)<1e-6, 'centroid triangle');
+  // DOM existence for labels (prevents null textContent issues)
+  console.assert(!!document.getElementById('depth-label'), '#depth-label missing');
+  console.assert(!!document.getElementById('alpha-label'), '#alpha-label missing');
+  console.assert(!!document.getElementById('stroke-label'), '#stroke-label missing');
+  console.assert(!!document.getElementById('alpha'), '#alpha slider missing');
+})();
+</script>
+</body>
+</html>

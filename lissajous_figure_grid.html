@@ -1,0 +1,222 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lissajous Figure Table</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      font-family: sans-serif;
+      background: #f0f0f0;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      flex-direction: row;
+    }
+    #sidebar {
+      width: 200px;
+      background: #fff;
+      padding: 1rem;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+    }
+    #table-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+    }
+    #lissajous-table {
+      border-collapse: collapse;
+      width: 90vmin;
+      height: 90vmin;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0;
+      background: #fff;
+    }
+    th {
+      background: #e0e0e0;
+      font-size: 0.6rem;
+      text-align: center;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      display: block;
+    }
+    h1 {
+      margin: 0 0 1rem 0;
+      font-size: 1.1rem;
+    }
+    th.corner {
+      width: 2em;
+      height: 2em;
+      min-width: 2em;
+      min-height: 2em;
+      padding: 0;
+    }
+    th.row-header {
+      width: 2em;
+      text-align: center;
+    }
+    label {
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+  <div id="table-container">
+    <table id="lissajous-table"></table>
+  </div>
+  <div id="sidebar">
+    <h1>Lissajous UI</h1>
+    <button id="toggleBtn">Pause</button>
+    <label for="speedRange">Speed:</label>
+    <input type="range" id="speedRange">
+    <label for="modeSelect">Mode:</label>
+    <select id="modeSelect">
+      <option value="math">Mathematical (phase difference)</option>
+      <option value="visual">Visual (rotate Y by π/2)</option>
+      <option value="sync">Synchronized (mirror symmetry)</option>
+    </select>
+  </div>
+
+  <script>
+    const table = document.getElementById("lissajous-table");
+    const maxA = 10;
+    const maxB = 10;
+    const canvases = [];
+
+    const thead = document.createElement("thead");
+    const headRow = document.createElement("tr");
+    const cornerTh = document.createElement("th");
+    cornerTh.className = "corner";
+    headRow.appendChild(cornerTh);
+    for (let b = 1; b <= maxB; b++) {
+      const th = document.createElement("th");
+      th.textContent = b;
+      headRow.appendChild(th);
+    }
+    thead.appendChild(headRow);
+    table.appendChild(thead);
+
+    const tbody = document.createElement("tbody");
+    for (let a = 1; a <= maxA; a++) {
+      const row = document.createElement("tr");
+      const rowHeader = document.createElement("th");
+      rowHeader.textContent = a;
+      rowHeader.className = "row-header";
+      row.appendChild(rowHeader);
+      for (let b = 1; b <= maxB; b++) {
+        const cell = document.createElement("td");
+        const canvas = document.createElement("canvas");
+        canvas.width = 100;
+        canvas.height = 100;
+        canvases.push({ canvas, a, b });
+        cell.appendChild(canvas);
+        row.appendChild(cell);
+      }
+      tbody.appendChild(row);
+    }
+    table.appendChild(tbody);
+
+    let speed;
+    let running = true;
+    let startTime = performance.now();
+    let phase = 0;
+    let mode = 'math';
+
+    const speedSlider = document.getElementById("speedRange");
+    const modeSelect = document.getElementById("modeSelect");
+
+    modeSelect.addEventListener("change", () => {
+      mode = modeSelect.value;
+    });
+
+    const minLog = -2;
+    const maxLog = 2;
+    speedSlider.min = minLog;
+    speedSlider.max = maxLog;
+    speedSlider.step = 0.01;
+    speedSlider.value = Math.log10(0.02);
+    speed = Math.pow(10, parseFloat(speedSlider.value));
+
+    speedSlider.addEventListener("input", e => {
+      speed = Math.pow(10, parseFloat(e.target.value));
+      startTime = performance.now();
+    });
+
+    document.getElementById("toggleBtn").addEventListener("click", () => {
+      running = !running;
+      if (running) startTime = performance.now() - (phase / speed * 1000);
+      document.getElementById("toggleBtn").textContent = running ? "Pause" : "Play";
+    });
+
+    function animate(time) {
+      if (running) {
+        phase = ((time - startTime) * 0.001 * speed);
+      }
+
+      for (const { canvas, a, b } of canvases) {
+        drawLissajous(canvas, a, b, phase, mode);
+      }
+      requestAnimationFrame(animate);
+    }
+
+    function drawLissajous(canvas, a, b, phase, mode) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      const A = canvas.width / 2.5;
+      const B = canvas.height / 2.5;
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      const T = 2 * Math.PI * lcm(a, b);
+
+      for (let t = 0; t <= T; t += 0.01) {
+        let x, y;
+        if (mode === 'math') {
+          x = cx + A * Math.sin(a * t + phase);
+          y = cy + B * Math.sin(b * t);
+        } else if (mode === 'visual') {
+          x = cx + A * Math.sin(a * t + phase);
+          y = cy + B * Math.sin(b * t + Math.PI / 2);
+        } else if (mode === 'sync') {
+          x = cx + A * Math.sin(a * t + phase);
+          y = cy + B * Math.sin(b * t + phase);
+        }
+        ctx.lineTo(x, y);
+      }
+
+      ctx.strokeStyle = "#333";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    function gcd(x, y) {
+      while (y) [x, y] = [y, x % y];
+      return x;
+    }
+
+    function lcm(x, y) {
+      return (x * y) / gcd(x, y);
+    }
+
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

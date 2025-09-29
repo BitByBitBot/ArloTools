@@ -1,0 +1,350 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Graded Game of Life</title>
+  <style>
+    :root {
+      --bg: #121212;
+      --panel: #1f1f1f;
+      --accent: #00ffe7;
+      --text: #f0f0f0;
+      --slider-bg: #333;
+      --slider-thumb: var(--accent);
+      --font: 'Segoe UI', sans-serif;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      font-family: var(--font);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    canvas {
+      background: black;
+      cursor: crosshair;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+      margin: 1.5rem 0;
+      border-radius: 8px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      width: 95%;
+      max-width: 1200px;
+      background: var(--panel);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    }
+    h4 {
+      color: var(--accent);
+      margin-top: 0;
+      font-weight: 500;
+      font-size: 1.1rem;
+    }
+    .control-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      font-size: 0.9rem;
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+    input[type="range"] {
+      width: 100%;
+      background-color: var(--slider-bg);
+      accent-color: var(--slider-thumb);
+    }
+    input[type="text"], button {
+      padding: 0.4rem 0.6rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: var(--font);
+    }
+    input[type="text"] {
+      background: #333;
+      color: var(--text);
+      width: 300px;
+    }
+    button {
+      background: var(--accent);
+      color: #000;
+      font-weight: bold;
+      margin: 0 0.5rem 0.5rem 0;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #00ccbb;
+    }
+    .button-row {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  </style>
+</head>
+<body>
+  <div class="controls">
+    <div>
+      <h4>Birth</h4>
+      <div class="control-group">
+        <label for="birthMin">Birth Min: <span id="birthMinLabel"></span></label>
+        <input type="range" id="birthMin" oninput="document.getElementById('birthMinLabel').textContent = this.value" min="0" max="8" step="0.1" value="2.6667">
+      </div>
+      <div class="control-group">
+        <label for="birthMax">Birth Max: <span id="birthMaxLabel"></span></label>
+        <input type="range" id="birthMax" oninput="document.getElementById('birthMaxLabel').textContent = this.value" min="0" max="8" step="0.1" value="4.8">
+      </div>
+      <div class="control-group">
+        <label for="birthBoost">Birth Boost: <span id="birthBoostLabel"></span></label>
+        <input type="range" id="birthBoost" oninput="document.getElementById('birthBoostLabel').textContent = this.value" min="0" max="255" value="191">
+      </div>
+    </div>
+    <div>
+      <h4>Survival</h4>
+      <div class="control-group">
+        <label for="surviveMin">Survive Min: <span id="surviveMinLabel"></span></label>
+        <input type="range" id="surviveMin" oninput="document.getElementById('surviveMinLabel').textContent = this.value" min="0" max="8" step="0.1" value="3.2">
+      </div>
+      <div class="control-group">
+        <label for="surviveMax">Survive Max: <span id="surviveMaxLabel"></span></label>
+        <input type="range" id="surviveMax" oninput="document.getElementById('surviveMaxLabel').textContent = this.value" min="0" max="8" step="0.1" value="6">
+      </div>
+      <div class="control-group">
+        <label for="survivalGain">Survival Gain: <span id="survivalGainLabel"></span></label>
+        <input type="range" id="survivalGain" oninput="document.getElementById('survivalGainLabel').textContent = this.value" min="0" max="10" value="0">
+      </div>
+    </div>
+    <div>
+      <h4>Decay & Drawing</h4>
+      <div class="control-group">
+        <label for="decayRate">Decay Rate: <span id="decayRateLabel"></span></label>
+        <input type="range" id="decayRate" oninput="document.getElementById('decayRateLabel').textContent = this.value" min="0" max="255" value="255">
+      </div>
+      <div class="control-group">
+        <label for="drawIntensity">Draw Intensity: <span id="drawIntensityLabel"></span></label>
+        <input type="range" id="drawIntensity" oninput="document.getElementById('drawIntensityLabel').textContent = this.value" min="0" max="255" value="255">
+      </div>
+      <div class="control-group">
+        <label for="brushSize">Brush Size: <span id="brushSizeLabel"></span></label>
+        <input type="range" id="brushSize" oninput="document.getElementById('brushSizeLabel').textContent = this.value" min="1" max="10" value="3">
+      </div>
+      <div class="control-group">
+        <label for="eraser">Eraser</label>
+        <input type="checkbox" id="eraser">
+      </div>
+    </div>
+  </div>
+
+  <canvas id="lifeCanvas" width="400" height="400" style="width: 800px; height: 800px; image-rendering: pixelated;"></canvas>
+  <div class="button-row">
+    <button id="togglePlay">Pause</button>
+    <button id="clearButton">Clear</button>
+  </div>
+  <div class="button-row">
+    <button onclick="copyPresetCode()">Copy Preset Code</button>
+    <input type="text" id="presetInput" placeholder="Enter preset code">
+    <button onclick="applyPresetCode()">Apply</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById("lifeCanvas");
+    const ctx = canvas.getContext("2d");
+    const width = canvas.width;
+    const height = canvas.height;
+    const resolution = 2;
+    const cols = width / resolution;
+    const rows = height / resolution;
+
+    let grid = new Array(cols).fill(null).map(() => new Array(rows).fill(0).map(() => Math.floor(Math.random() * 256)));
+    let momentum = new Array(cols).fill(null).map(() => new Array(rows).fill(0));
+
+    function drawGrid() {
+      for (let x = 0; x < cols; ++x) {
+        for (let y = 0; y < rows; ++y) {
+          const val = grid[x][y];
+          ctx.fillStyle = `rgb(${val},${val},${val})`;
+          ctx.fillRect(x * resolution, y * resolution, resolution, resolution);
+        }
+      }
+    }
+
+    function countNeighbors(grid, x, y) {
+      let total = 0;
+      for (let i = -1; i <= 1; i++) {
+        for (let j = -1; j <= 1; j++) {
+          if (i === 0 && j === 0) continue;
+          const col = (x + i + cols) % cols;
+          const row = (y + j + rows) % rows;
+          total += grid[col][row] / 255;
+        }
+      }
+      return total;
+    }
+
+    function update() {
+      const birthMin = parseFloat(document.getElementById("birthMin").value);
+      const birthMax = parseFloat(document.getElementById("birthMax").value);
+      const surviveMin = parseFloat(document.getElementById("surviveMin").value);
+      const surviveMax = parseFloat(document.getElementById("surviveMax").value);
+      const birthBoost = parseInt(document.getElementById("birthBoost").value);
+      const decayRate = parseInt(document.getElementById("decayRate").value);
+      const survivalGain = parseInt(document.getElementById("survivalGain").value);
+
+      const next = Array.from({ length: cols }, () => new Array(rows));
+
+      for (let x = 0; x < cols; ++x) {
+        const col = grid[x];
+        const momCol = momentum[x];
+        const nextCol = next[x];
+        for (let y = 0; y < rows; ++y) {
+          const neighbors = countNeighbors(grid, x, y);
+          const current = col[y];
+
+          let delta = 0;
+          if (current < 20 && neighbors >= birthMin && neighbors <= birthMax) {
+            delta = birthBoost;
+          } else if (current >= 20 && neighbors >= surviveMin && neighbors <= surviveMax) {
+            delta = survivalGain;
+          } else {
+            delta = -decayRate;
+          }
+
+          momCol[y] += delta;
+          momCol[y] *= 0.9;
+
+          nextCol[y] = Math.max(0, Math.min(255, current + momCol[y]));
+        }
+      }
+
+      grid = next;
+      drawGrid();
+    }
+
+    let playing = true;
+    function loop() {
+      if (playing) update();
+      requestAnimationFrame(loop);
+    }
+
+    let isDrawing = false;
+
+    canvas.addEventListener("mousedown", (e) => {
+      isDrawing = true;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+      const drawVal = document.getElementById("eraser").checked ? 0 : parseInt(document.getElementById("drawIntensity").value);
+      const brushSize = parseInt(document.getElementById("brushSize").value);
+
+      const startX = Math.floor(mouseX / resolution) - Math.floor(brushSize / 2);
+      const startY = Math.floor(mouseY / resolution) - Math.floor(brushSize / 2);
+
+      for (let dx = 0; dx < brushSize; dx++) {
+        for (let dy = 0; dy < brushSize; dy++) {
+          const x = startX + dx;
+          const y = startY + dy;
+          if (x >= 0 && x < cols && y >= 0 && y < rows) {
+            grid[x][y] = drawVal;
+            momentum[x][y] = 0;
+          }
+        }
+      }
+      drawGrid();
+    });
+    canvas.addEventListener("mouseup", () => isDrawing = false);
+    canvas.addEventListener("mouseleave", () => isDrawing = false);
+    canvas.addEventListener("mousemove", (e) => {
+      if (!isDrawing) return;
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = (e.clientX - rect.left) * (canvas.width / rect.width);
+      const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
+      const drawVal = document.getElementById("eraser").checked ? 0 : parseInt(document.getElementById("drawIntensity").value);
+      const brushSize = parseInt(document.getElementById("brushSize").value);
+
+      const startX = Math.floor(mouseX / resolution) - Math.floor(brushSize / 2);
+      const startY = Math.floor(mouseY / resolution) - Math.floor(brushSize / 2);
+
+      for (let dx = 0; dx < brushSize; dx++) {
+        for (let dy = 0; dy < brushSize; dy++) {
+          const x = startX + dx;
+          const y = startY + dy;
+          if (x >= 0 && x < cols && y >= 0 && y < rows) {
+            grid[x][y] = drawVal;
+            momentum[x][y] = 0;
+          }
+        }
+      }
+      drawGrid();
+    });
+
+    drawGrid();
+    [
+      'birthMin', 'birthMax', 'birthBoost',
+      'surviveMin', 'surviveMax', 'survivalGain',
+      'decayRate', 'drawIntensity', 'brushSize'
+    ].forEach(id => {
+      const el = document.getElementById(id);
+      const label = document.getElementById(id + 'Label');
+      if (el && label) label.textContent = el.value;
+    });
+    loop();
+
+    document.getElementById("togglePlay").addEventListener("click", () => {
+      playing = !playing;
+      document.getElementById("togglePlay").textContent = playing ? "Pause" : "Play";
+    });
+
+    document.getElementById("clearButton").addEventListener("click", () => {
+      for (let x = 0; x < cols; x++) {
+        for (let y = 0; y < rows; y++) {
+          grid[x][y] = 0;
+          momentum[x][y] = 0;
+        }
+      }
+      drawGrid();
+    });
+
+    function copyPresetCode() {
+      const values = [
+        'birthMin', 'birthMax', 'surviveMin', 'surviveMax',
+        'birthBoost', 'decayRate', 'survivalGain',
+        'drawIntensity', 'brushSize'
+      ].map(id => document.getElementById(id).value);
+      const preset = values.join(',');
+      const presetInput = document.getElementById('presetInput');
+      presetInput.value = preset;
+      presetInput.select();
+      document.execCommand('copy');
+      alert('Preset copied!');
+    }
+
+    function applyPresetCode() {
+      const code = document.getElementById('presetInput').value;
+      const values = code.split(',');
+      const ids = [
+        'birthMin', 'birthMax', 'surviveMin', 'surviveMax',
+        'birthBoost', 'decayRate', 'survivalGain',
+        'drawIntensity', 'brushSize'
+      ];
+      if (values.length !== ids.length) {
+        alert('Invalid code');
+        return;
+      }
+      ids.forEach((id, i) => {
+        const el = document.getElementById(id);
+        el.value = values[i];
+        const label = document.getElementById(id + 'Label');
+        if (label) label.textContent = values[i];
+      });
+    }
+  </script>
+</body>
+</html>

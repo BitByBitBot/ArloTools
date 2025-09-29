@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Row and Column Glitch Image Processor</title>
+  <style>
+    body {
+      background: #111;
+      color: white;
+      font-family: sans-serif;
+      text-align: center;
+      padding: 20px;
+    }
+    canvas {
+      border: 1px solid #444;
+      display: block;
+      margin: 1rem auto;
+    }
+    input[type="range"] {
+      width: 300px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Row and Column Glitch Image Processor</h1>
+  <input type="file" id="imageLoader" accept="image/*" />
+  <br><br>
+  <label for="shiftSlider">Horizontal Row Shift: </label>
+  <input type="range" id="shiftSlider" min="-100" max="100" value="0" />
+  <br><br>
+  <label for="vShiftSlider">Vertical Column Shift: </label>
+  <input type="range" id="vShiftSlider" min="-100" max="100" value="0" />
+  <canvas id="glitchCanvas"></canvas>
+
+  <script>
+    const imageLoader = document.getElementById('imageLoader');
+    const canvas = document.getElementById('glitchCanvas');
+    const ctx = canvas.getContext('2d');
+    const hSlider = document.getElementById('shiftSlider');
+    const vSlider = document.getElementById('vShiftSlider');
+
+    let img = new Image();
+    let originalImageData;
+
+    imageLoader.addEventListener('change', function (e) {
+      const reader = new FileReader();
+      reader.onload = function (event) {
+        img.onload = function () {
+          canvas.width = img.width;
+          canvas.height = img.height;
+          ctx.drawImage(img, 0, 0);
+          originalImageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        }
+        img.src = event.target.result;
+      }
+      reader.readAsDataURL(e.target.files[0]);
+    });
+
+    function applyGlitch() {
+      if (!originalImageData) return;
+
+      const hShift = parseInt(hSlider.value);
+      const vShift = parseInt(vSlider.value);
+      const width = canvas.width;
+      const height = canvas.height;
+      const src = originalImageData.data;
+      const output = ctx.createImageData(width, height);
+      const dst = output.data;
+
+      for (let y = 0; y < height; y++) {
+        const vOffset = ((y * hShift) % width + width) % width;
+        for (let x = 0; x < width; x++) {
+          const hOffset = ((x * vShift) % height + height) % height;
+          const srcY = (y + hOffset) % height;
+          const srcX = (x + vOffset) % width;
+
+          const srcIndex = (srcY * width + srcX) * 4;
+          const dstIndex = (y * width + x) * 4;
+
+          dst[dstIndex] = src[srcIndex];       // R
+          dst[dstIndex + 1] = src[srcIndex + 1]; // G
+          dst[dstIndex + 2] = src[srcIndex + 2]; // B
+          dst[dstIndex + 3] = src[srcIndex + 3]; // A
+        }
+      }
+      ctx.putImageData(output, 0, 0);
+    }
+
+    hSlider.addEventListener('input', applyGlitch);
+    vSlider.addEventListener('input', applyGlitch);
+  </script>
+</body>
+</html>

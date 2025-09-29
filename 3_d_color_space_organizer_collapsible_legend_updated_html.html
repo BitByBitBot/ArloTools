@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>3D Color‑Space Organizer — RGB / HSV (no ML)</title>
+  <style>
+   :root { --bg:#ffffff; --fg:#000000; --muted:#666666; --accent:#0077ff; --panel:#f9f9f9; }
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial}
+header{position:sticky;top:0;z-index:5;backdrop-filter:blur(6px);background:rgba(255,255,255,0.9);border-bottom:1px solid #ddd}
+.bar{display:grid;grid-template-columns:1fr auto auto auto auto;gap:.75rem;padding:.9rem 1rem;align-items:center}
+.title{font-weight:700;letter-spacing:.2px}
+.controls{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+label{font-size:.85rem;color:var(--muted)}
+input[type=number],select{background:var(--panel);color:var(--fg);border:1px solid #ccc;border-radius:.4rem;padding:.4rem .6rem}
+input[type=number]{width:6rem}
+button{background:var(--accent);color:#fff;border:none;padding:.5rem .8rem;border-radius:.5rem;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+button.secondary{background:#f0f0f0;color:var(--fg);border:1px solid #ccc;box-shadow:none}
+.progress-wrap{height:.4rem;background:#eee;border-top:1px solid #ddd}
+.progress{height:100%;width:0;background:linear-gradient(90deg,#0077ff,#66bbff);transition:width .15s ease}
+
+main{display:grid;grid-template-columns:1fr;gap:0}
+#view3d{height:64vh;min-height:420px;outline:1px solid #ddd}
+#stage2d{position:relative;margin:0 auto;border-radius:.5rem;background:#fafafa;outline:1px solid #ddd;width:min(95vw,1600px);aspect-ratio:1/1;overflow:hidden;display:none}
+.tile{position:absolute;border-radius:.25rem;overflow:hidden;box-shadow:0 1px 4px rgba(0,0,0,.15)}
+.tile img{width:100%;height:100%;object-fit:cover;display:block}
+
+/* Legend is now a collapsible <details> */
+.legend{padding:.6rem 1rem 1rem;color:var(--muted);font-size:.9rem;border-top:1px solid #eee}
+.legend>summary{cursor:pointer;user-select:none;font-weight:600;color:var(--fg);display:flex;align-items:center;gap:.5rem}
+.legend>summary::marker{content:""}
+.legend>summary:before{content:"▸";display:inline-block;transform:rotate(0deg);transition:transform .15s ease}
+.legend[open]>summary:before{transform:rotate(90deg)}
+.row{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap;margin-top:.5rem}
+.pill{background:#f2f2f2;border:1px solid #ccc;color:var(--muted);padding:.2rem .5rem;border-radius:999px;font-size:.75rem}
+footer{padding:1rem;color:var(--muted);font-size:.8rem;text-align:center;border-top:1px solid #ddd}
+.kbd{border:1px solid #ccc;background:#f9f9f9;padding:.1rem .3rem;border-radius:.25rem;font-size:.8rem}
+
+/* Simple test summary badges */
+.tests{display:flex;gap:.5rem;justify-content:center;flex-wrap:wrap;margin:.5rem 0}
+.badge{font-size:.75rem;padding:.25rem .5rem;border-radius:999px;border:1px solid #ccc;background:#f5f5f5;color:#555}
+.badge.pass{border-color:#4caf50;background:#e8f5e9;color:#2e7d32}
+.badge.fail{border-color:#f44336;background:#fdecea;color:#c62828}
+  </style>
+  <!-- Import map fixes bare specifiers so example add-ons can import "three" correctly -->
+  <script type="importmap">
+  {
+    "imports": {
+      "three": "https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js",
+      "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/"
+    }
+  }
+  </script>
+</head>
+<body>
+  <header>
+    <div class="bar">
+      <div class="title">3D Color‑Space Organizer <span class="pill">RGB/HSV (no ML)</span></div>
+      <div class="controls">
+        <label>Images <input id="count" type="number" min="12" max="400" value="160"/></label>
+        <label>Thumb px <input id="thumb" type="number" min="48" max="256" value="128"/></label>
+        <label>Colorspace
+          <select id="space">
+            <option value="rgb" selected>RGB → (x=R, y=G, z=B)</option>
+            <option value="hsv">HSV → (x=H, y=S, z=V)</option>
+          </select>
+        </label>
+        <label>Mode
+          <select id="mode">
+            <option value="3d" selected>3D Cloud</option>
+            <option value="grid">Projected Grid (Morton/Z‑order)</option>
+          </select>
+        </label>
+        <button id="go">Load & Arrange</button>
+        <button id="repack" class="secondary">Re‑pack</button>
+        <button id="save" class="secondary">Save Grid PNG</button>
+      </div>
+    </div>
+    <div class="progress-wrap"><div class="progress" id="progress"></div></div>
+  </header>
+
+  <main>
+    <div id="view3d"></div>
+    <div id="stage2d"></div>
+  </main>
+
+  <!-- Collapsible legend (closed by default). Open to read description & self‑tests. -->
+  <details class="legend" id="legend">
+    <summary>About & self‑tests</summary>
+    <div class="row">
+      <span class="pill">Source: <code>picsum.photos</code> API</span>
+      <span class="pill">Placement: average color → 3D position</span>
+      <span class="pill">Grid order: Morton (Z‑order) on quantized channels</span>
+    </div>
+    <p>Images are sampled to a small thumbnail, average color is computed, then each image becomes a textured sprite in a 3D color cube. Switch to “Projected Grid” to space‑fill sort by Morton code (interleaved RGB/HSV bits) and lay them out into a 2D grid. All in‑browser; no ML.</p>
+    <div class="tests" id="testBadges"></div>
+  </details>
+
+  <footer>
+    Tip: In 3D view, drag to orbit, scroll to zoom, double‑click background to auto‑frame. Press <span class="kbd">G</span> to toggle grid mode, <span class="kbd">3</span> to toggle 3D.
+  </footer>
+
+  <script type="module">
+    // ======= Module imports via import map (fixes the bare specifier issue) =======
+    import * as THREE from 'three';
+    import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+
+    // ======= Helpers =======
+    const view3d = document.getElementById('view3d');
+    const stage2d = document.getElementById('stage2d');
+    const countEl = document.getElementById('count');
+    const thumbEl = document.getElementById('thumb');
+    const spaceEl = document.getElementById('space');
+    const modeEl = document.getElementById('mode');
+    const goBtn = document.getElementById('go');
+    const repackBtn = document.getElementById('repack');
+    const saveBtn = document.getElementById('save');
+    const progress = document.getElementById('progress');
+    const testBadges = document.getElementById('testBadges');
+
+    function setProgress(f){ progress.style.width = `${Math.max(0, Math.min(1, f))*100}%`; }
+
+    async function fetchPicsumList(n, size){
+      const perPage = Math.min(100, n);
+      const pages = Math.ceil(n / perPage);
+      let out = [];
+      for (let p=1; p<=pages; p++){
+        const resp = await fetch(`https://picsum.photos/v2/list?page=${p}&limit=${perPage}`);
+        const data = await resp.json();
+        out = out.concat(data);
+      }
+      return out.slice(0,n).map(d=>({ id:d.id, url:`https://picsum.photos/id/${d.id}/${size}/${size}.jpg` }));
+    }
+
+    function loadImage(src){
+      return new Promise((resolve,reject)=>{
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.decoding = 'async';
+        img.onload = () => resolve(img);
+        img.onerror = reject;
+        img.src = src;
+      });
+    }
+
+    function rgb2hsv(r,g,b){
+      r/=255; g/=255; b/=255;
+      const max=Math.max(r,g,b), min=Math.min(r,g,b); const d=max-min;
+      let h=0; if (d!==0){
+        switch(max){ case r: h=((g-b)/d)%6; break; case g: h=(b-r)/d+2; break; case b: h=(r-g)/d+4; break; }
+        h*=60; if(h<0) h+=360;
+      }
+      const s = max===0?0:d/max; const v=max; return [h/360, s, v]; // normalized
+    }
+
+    function averageColor(img){
+      const c = document.createElement('canvas'); const s = Math.min(thumbEl.value|0, 64);
+      c.width=s; c.height=s; const ctx=c.getContext('2d');
+      ctx.drawImage(img, 0,0,s,s); const { data } = ctx.getImageData(0,0,s,s);
+      let r=0,g=0,b=0,n=0; for(let i=0;i<data.length;i+=4){ r+=data[i]; g+=data[i+1]; b+=data[i+2]; n++; }
+      r/=n; g/=n; b/=n; return [r,g,b];
+    }
+
+    // Morton (Z‑order) encode 3x8‑bit → 24‑bit interleaved
+    function part1by2(n){ n&=0x3ff; n=(n|(n<<16)) & 0x30000ff; n=(n|(n<<8)) & 0x300f00f; n=(n|(n<<4)) & 0x30c30c3; n=(n|(n<<2)) & 0x9249249; return n; }
+    function morton3(r,g,b){ return (part1by2(r)<<0) | (part1by2(g)<<1) | (part1by2(b)<<2); }
+
+    // ======= Three.js Setup =======
+    let renderer, scene, camera, controls, sprites=[];
+
+    function init3D(){
+      if (renderer) return;
+      renderer = new THREE.WebGLRenderer({ antialias:true, alpha:true });
+      renderer.setSize(view3d.clientWidth, view3d.clientHeight);
+      renderer.setPixelRatio(Math.min(2, window.devicePixelRatio||1));
+      view3d.appendChild(renderer.domElement);
+      scene = new THREE.Scene();
+      camera = new THREE.PerspectiveCamera(55, view3d.clientWidth/view3d.clientHeight, 0.01, 100);
+      camera.position.set(1.6,1.6,1.6);
+      controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+
+      const grid = new THREE.GridHelper(1,10,0x335577,0x223344); grid.rotation.x=Math.PI/2; grid.position.set(.5,.5,.0); scene.add(grid);
+      const box = new THREE.Box3Helper(new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(1,1,1)), 0x446688); scene.add(box);
+      const amb = new THREE.AmbientLight(0xffffff, 1.0); scene.add(amb);
+
+      window.addEventListener('resize', ()=>{
+        renderer.setSize(view3d.clientWidth, view3d.clientHeight);
+        camera.aspect = view3d.clientWidth/view3d.clientHeight; camera.updateProjectionMatrix();
+      });
+
+      function animate(){ requestAnimationFrame(animate); controls.update(); renderer.render(scene, camera); }
+      animate();
+    }
+
+    function clear3D(){ if (!scene) return; for (const s of sprites){ scene.remove(s); s.material.map?.dispose?.(); s.material.dispose(); } sprites.length=0; }
+
+    // Create a sprite from an <img>
+    function spriteFromImage(img){
+      const tex = new THREE.Texture(img); tex.needsUpdate = true; tex.colorSpace = THREE.SRGBColorSpace;
+      const mat = new THREE.SpriteMaterial({ map: tex, depthTest: true, sizeAttenuation: true });
+      const spr = new THREE.Sprite(mat); const scale = 0.08; spr.scale.set(scale, scale * img.naturalHeight/img.naturalWidth, 1);
+      return spr;
+    }
+
+    // ======= State & Pipeline =======
+    const state = { metas:[], images:[], avg:[], coords3:[], order:[] };
+
+    function computeCoords(space){
+      const coords = new Array(state.images.length);
+      for (let i=0;i<state.images.length;i++){
+        const [r,g,b] = state.avg[i];
+        if (space==='rgb'){
+          coords[i] = [r/255, g/255, b/255];
+        } else {
+          const [hh, ss, vv] = rgb2hsv(r,g,b);
+          coords[i] = [hh, ss, vv];
+        }
+      }
+      state.coords3 = coords;
+    }
+
+    function render3D(){
+      init3D(); clear3D();
+      // add sprites at coords
+      for (let i=0;i<state.images.length;i++){
+        const spr = spriteFromImage(state.images[i]);
+        const [x,y,z] = state.coords3[i];
+        spr.position.set(x, y, z);
+        scene.add(spr); sprites.push(spr);
+      }
+      // frame
+      controls.target.set(0.5,0.5,0.5); camera.position.set(1.6,1.6,1.6); controls.update();
+      view3d.style.display = '';
+      stage2d.style.display = 'none';
+    }
+
+    function renderGrid(){
+      // Morton order, then grid pack
+      const q = state.coords3.map(([x,y,z])=>[Math.max(0,Math.min(255, Math.round(x*255))), Math.max(0,Math.min(255, Math.round(y*255))), Math.max(0,Math.min(255, Math.round(z*255)))]);
+      const order = q.map((c,i)=>({ i, key: morton3(c[0],c[1],c[2]) })).sort((a,b)=>a.key-b.key).map(o=>o.i);
+      state.order = order;
+
+      // draw
+      stage2d.innerHTML = '';
+      const N = state.images.length; const tile =  Math.max(56, Math.min(thumbEl.value|0, 256));
+      const G = Math.ceil(Math.sqrt(N));
+      const W = G*tile, H = G*tile; stage2d.style.aspectRatio = `${W}/${H}`;
+      for (let k=0;k<N;k++){
+        const idx = order[k]; const r = Math.floor(k/G), c=Math.floor(k%G);
+        const div = document.createElement('div'); div.className='tile';
+        div.style.left = (c*tile)+'px'; div.style.top = (r*tile)+'px';
+        div.style.width = tile+'px'; div.style.height = tile+'px';
+        const im = document.createElement('img'); im.src = state.images[idx].src; im.alt = `img ${idx}`; div.appendChild(im);
+        // tooltip via title
+        const [x,y,z] = state.coords3[idx]; const rgb = state.avg[idx].map(v=>v|0);
+        div.title = `${spaceEl.value.toUpperCase()} (${x.toFixed(2)}, ${y.toFixed(2)}, ${z.toFixed(2)}) — RGB ${rgb.join(',')}`;
+        stage2d.appendChild(div);
+      }
+      view3d.style.display = 'none'; stage2d.style.display = '';
+    }
+
+    async function run(){
+      goBtn.disabled = true; repackBtn.disabled = true; saveBtn.disabled = true; setProgress(0.02);
+      const n = parseInt(countEl.value,10); const s = parseInt(thumbEl.value,10);
+      const metas = await fetchPicsumList(n, s); state.metas = metas; setProgress(0.08);
+      // load images with limited concurrency
+      const imgs = new Array(metas.length); const CONC=12; let done=0;
+      async function worker(start){
+        for (let i=start;i<metas.length;i+=CONC){
+          try { imgs[i] = await loadImage(metas[i].url); }
+          catch(e){ console.warn('img fail', metas[i], e); imgs[i] = await loadImage(`https://picsum.photos/${s}/${s}.jpg`); }
+          done++; setProgress(0.08 + 0.22*(done/metas.length));
+        }
+      }
+      await Promise.all([...Array(CONC).keys()].map(worker)); state.images = imgs;
+      // average colors
+      state.avg = imgs.map(averageColor); setProgress(0.35);
+      computeCoords(spaceEl.value); setProgress(0.45);
+      if (modeEl.value==='3d') render3D(); else renderGrid(); setProgress(1); setTimeout(()=>setProgress(0), 350);
+      goBtn.disabled = false; repackBtn.disabled = false; saveBtn.disabled = false;
+    }
+
+    function repack(){ computeCoords(spaceEl.value); if (modeEl.value==='3d') render3D(); else renderGrid(); }
+
+    function savePNG(){ if (modeEl.value!=='grid') return alert('Switch to Grid mode first.');
+      const N = state.images.length; const tile =  Math.max(56, Math.min(thumbEl.value|0, 256)); const G = Math.ceil(Math.sqrt(N));
+      const W=G*tile, H=G*tile; const canvas=document.createElement('canvas'); canvas.width=W; canvas.height=H; const ctx=canvas.getContext('2d');
+      for (let k=0;k<N;k++){
+        const idx = state.order[k]; const r = Math.floor(k/G), c=k%G; const img = state.images[idx];
+        ctx.drawImage(img, 0,0,img.naturalWidth,img.naturalHeight, c*tile, r*tile, tile, tile);
+      }
+      const a=document.createElement('a'); a.href=canvas.toDataURL('image/png'); a.download=`colorspace_grid_${spaceEl.value}_${N}.png`; a.click();
+    }
+
+    goBtn.addEventListener('click', run);
+    repackBtn.addEventListener('click', repack);
+    saveBtn.addEventListener('click', savePNG);
+    modeEl.addEventListener('change', ()=>{ if (modeEl.value==='3d') { render3D(); } else { renderGrid(); } });
+    window.addEventListener('keydown', (e)=>{
+      if (e.key.toLowerCase()==='g'){ modeEl.value='grid'; renderGrid(); }
+      if (e.key==='3'){ modeEl.value='3d'; render3D(); }
+    });
+
+    // ======= Minimal Test Harness =======
+    function addBadge(text, ok){
+      const b = document.createElement('div'); b.className = 'badge ' + (ok?'pass':'fail'); b.textContent = (ok?'✔ ':'✖ ') + text; testBadges.appendChild(b);
+    }
+    function almost(a,b,eps=1e-3){ return Math.abs(a-b) <= eps; }
+    function runTests(){
+      // 1) Module load
+      addBadge('three loaded', !!THREE && !!THREE.WebGLRenderer);
+      addBadge('OrbitControls available', !!OrbitControls);
+      // 2) rgb2hsv sanity
+      const r = rgb2hsv(255,0,0); const g = rgb2hsv(0,255,0); const b = rgb2hsv(0,0,255);
+      addBadge('HSV red hue≈0', almost(r[0], 0));
+      addBadge('HSV green hue≈1/3', almost(g[0], 1/3, 0.02));
+      addBadge('HSV blue hue≈2/3', almost(b[0], 2/3, 0.02));
+      addBadge('HSV black v=0', almost(rgb2hsv(0,0,0)[2], 0));
+      addBadge('HSV white s=0,v=1', almost(rgb2hsv(255,255,255)[1], 0) && almost(rgb2hsv(255,255,255)[2], 1));
+      // 3) Morton monotonicity along R axis when G=B=0
+      const m0 = morton3(0,0,0), m1 = morton3(128,0,0), m2 = morton3(255,0,0);
+      addBadge('Morton monotone on R (G=B=0)', m0 < m1 && m1 < m2);
+      // 4) Average color returns finite triplet
+      const fake = document.createElement('canvas'); fake.width=2; fake.height=2; const c = fake.getContext('2d'); c.fillStyle='#804020'; c.fillRect(0,0,2,2);
+      const img = new Image(); img.src = fake.toDataURL(); img.onload = () => {
+        const [ar,ag,ab] = averageColor(img); addBadge('averageColor finite', isFinite(ar)&&isFinite(ag)&&isFinite(ab));
+      };
+    }
+
+    // boot
+    runTests();
+    run();
+  </script>
+</body>
+</html>

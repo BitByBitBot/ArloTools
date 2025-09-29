@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Brutalist Mind Map Tool</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      background: white;
+      color: black;
+      font-family: monospace;
+      overflow: hidden;
+    }
+    canvas {
+      display: block;
+    }
+    #ui {
+      position: fixed;
+      top: 10px;
+      left: 10px;
+      background: white;
+      border: 1px solid black;
+      padding: 5px;
+      z-index: 10;
+    }
+    button, input[type=number] {
+      margin-right: 5px;
+      background: white;
+      color: black;
+      border: 1px solid black;
+      font-size: 12px;
+      cursor: pointer;
+    }
+    label {
+      margin-right: 5px;
+      font-size: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div id="ui">
+    <label>Aspect X: <input type="number" id="aspectX" value="1" step="0.1" onchange="updateAspect()"></label>
+    <label>Aspect Y: <input type="number" id="aspectY" value="1" step="0.1" onchange="updateAspect()"></label>
+    <button onclick="addNode()">Add Node (N)</button>
+    <button onclick="clearMap()">Clear (C)</button>
+    <button onclick="exportAsSVG()">Export SVG</button>
+    <div>Shape: <span id="shapeDisplay">square</span></div>
+    <div>Scale: <span id="scaleDisplay">medium</span></div>
+  </div>
+  <canvas id="mindmap"></canvas>
+  <script>
+    const canvas = document.getElementById('mindmap');
+    const ctx = canvas.getContext('2d');
+    const shapeDisplay = document.getElementById('shapeDisplay');
+    const scaleDisplay = document.getElementById('scaleDisplay');
+
+    let nodes = [];
+    let connections = [];
+    let draggingNode = null;
+    let selectedNode = null;
+    let currentShape = 'square';
+    let currentScale = 'medium';
+    let mouseX = 200;
+    let mouseY = 200;
+
+    const SCALE_MAP = {
+      small: [0.5, 0.5],
+      medium: [1, 1],
+      large: [1.5, 1.5]
+    };
+
+    let scaleX = SCALE_MAP[currentScale][0];
+    let scaleY = SCALE_MAP[currentScale][1];
+    let aspectX = 1;
+    let aspectY = 1;
+
+    function resize() {
+      canvas.width = window.innerWidth;
+      canvas.height = window.innerHeight;
+    }
+    window.addEventListener('resize', resize);
+    resize();
+
+    function addNode() {
+      const baseSize = 60;
+      const x = mouseX - (baseSize * scaleX * aspectX) / 2;
+      const y = mouseY - (baseSize * scaleY * aspectY) / 2;
+      nodes.push({ x, y, w: baseSize * scaleX * aspectX, h: baseSize * scaleY * aspectY, shape: currentShape });
+      draw();
+    }
+
+    function clearMap() {
+      nodes = [];
+      connections = [];
+      draw();
+    }
+
+    function setScale(scale) {
+      if (!SCALE_MAP[scale]) return;
+      currentScale = scale;
+      scaleDisplay.textContent = scale;
+      [scaleX, scaleY] = SCALE_MAP[scale];
+    }
+
+    function exportAsSVG() {
+      let svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${canvas.width}' height='${canvas.height}' style='background:white'>`;
+      for (let [a, b] of connections) {
+        const ax = a.x + a.w / 2;
+        const ay = a.y + a.h / 2;
+        const bx = b.x + b.w / 2;
+        const by = b.y + b.h / 2;
+        svg += `<line x1='${ax}' y1='${ay}' x2='${bx}' y2='${by}' stroke='black' stroke-width='1' />`;
+      }
+      for (let node of nodes) {
+        const { x, y, w, h, shape } = node;
+        if (shape === 'circle') {
+          svg += `<circle cx='${x + w / 2}' cy='${y + h / 2}' r='${w / 2}' fill='white' stroke='black' />`;
+        } else if (shape === 'triangle') {
+          const path = `M ${x + w / 2} ${y} L ${x + w} ${y + h} L ${x} ${y + h} Z`;
+          svg += `<path d='${path}' fill='white' stroke='black' />`;
+        } else {
+          svg += `<rect x='${x}' y='${y}' width='${w}' height='${h}' fill='white' stroke='black' />`;
+        }
+      }
+      svg += `</svg>`;
+      const blob = new Blob([svg], { type: 'image/svg+xml' });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.download = 'mindmap.svg';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(url);
+    }
+
+    canvas.addEventListener('mousemove', (e) => {
+      mouseX = e.offsetX;
+      mouseY = e.offsetY;
+      if (draggingNode) {
+        draggingNode.x = mouseX - draggingNode.w / 2;
+        draggingNode.y = mouseY - draggingNode.h / 2;
+        draw();
+      }
+    });
+
+    canvas.addEventListener('mousedown', (e) => {
+      const { offsetX, offsetY } = e;
+      for (let node of nodes) {
+        if (
+          offsetX > node.x &&
+          offsetX < node.x + node.w &&
+          offsetY > node.y &&
+          offsetY < node.y + node.h
+        ) {
+          if (e.shiftKey && selectedNode && selectedNode !== node) {
+            connections.push([selectedNode, node]);
+            selectedNode = null;
+            draw();
+            return;
+          }
+          selectedNode = node;
+          draggingNode = node;
+          return;
+        }
+      }
+      selectedNode = null;
+    });
+
+    canvas.addEventListener('mouseup', () => {
+      draggingNode = null;
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'n') addNode();
+      if (e.key === 'c') clearMap();
+      if (e.key === '1') setShape('square');
+      if (e.key === '2') setShape('circle');
+      if (e.key === '3') setShape('triangle');
+      if (e.key === 's') setScale('small');
+      if (e.key === 'm') setScale('medium');
+      if (e.key === 'l') setScale('large');
+    });
+
+    function setShape(shape) {
+      currentShape = shape;
+      shapeDisplay.textContent = shape;
+    }
+
+    function updateAspect() {
+      aspectX = parseFloat(document.getElementById('aspectX').value) || 1;
+      aspectY = parseFloat(document.getElementById('aspectY').value) || 1;
+      for (let node of nodes) {
+        const scale = getNodeScaleLabel(node.w, node.h);
+        const [sx, sy] = SCALE_MAP[scale];
+        node.w = 60 * sx * aspectX;
+        node.h = 60 * sy * aspectY;
+      }
+      draw();
+    }
+
+    function getNodeScaleLabel(w, h) {
+      for (const [label, [sx, sy]] of Object.entries(SCALE_MAP)) {
+        const targetW = 60 * sx;
+        const targetH = 60 * sy;
+        if (Math.abs(w / aspectX - targetW) < 1 && Math.abs(h / aspectY - targetH) < 1) {
+          return label;
+        }
+      }
+      return currentScale;
+    }
+
+    function draw() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.lineWidth = 1;
+      ctx.strokeStyle = 'black';
+      ctx.fillStyle = 'white';
+      for (let [a, b] of connections) {
+        ctx.beginPath();
+        ctx.moveTo(a.x + a.w / 2, a.y + a.h / 2);
+        ctx.lineTo(b.x + b.w / 2, b.y + b.h / 2);
+        ctx.stroke();
+      }
+      for (let node of nodes) {
+        const { x, y, w, h, shape } = node;
+        ctx.fillStyle = 'white';
+        ctx.strokeStyle = 'black';
+        if (shape === 'circle') {
+          ctx.beginPath();
+          ctx.arc(x + w / 2, y + h / 2, w / 2, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        } else if (shape === 'triangle') {
+          ctx.beginPath();
+          ctx.moveTo(x + w / 2, y);
+          ctx.lineTo(x + w, y + h);
+          ctx.lineTo(x, y + h);
+          ctx.closePath();
+          ctx.fill();
+          ctx.stroke();
+        } else {
+          ctx.fillRect(x, y, w, h);
+          ctx.strokeRect(x, y, w, h);
+        }
+      }
+    }
+  </script>
+</body>
+</html>
