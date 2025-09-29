@@ -24,11 +24,13 @@
     <nav aria-label="Available tools">
       <ul id="tool-list"></ul>
     </nav>
+
   </aside>
   <main>
     <div class="toolbar">
       <h2 id="tool-name">Choose a tool</h2>
       <a id="open-new-tab" class="disabled" aria-disabled="true" tabindex="-1" target="_blank" rel="noopener">Open tool ↗</a>
+
     </div>
     <div class="frame-container">
       <iframe id="tool-frame" title="Selected tool" hidden></iframe>
@@ -60,6 +62,7 @@
     const toolName = document.getElementById("tool-name");
     const openNewTab = document.getElementById("open-new-tab");
 
+
     let activeButton = null;
 
     const toUrl = (file) => encodeURI(file).replace(/#/g, "%23");
@@ -72,11 +75,13 @@
       if (activeButton) {
         activeButton.classList.remove("active");
         activeButton.setAttribute("aria-current", "false");
+
       }
 
       activeButton = button;
       button.classList.add("active");
       button.setAttribute("aria-current", "true");
+
       const url = toUrl(tool.file);
       iframe.src = url;
       iframe.hidden = false;
@@ -95,6 +100,7 @@
       button.className = "tool-button";
       button.setAttribute("aria-current", "false");
       button.tabIndex = 0;
+
       button.dataset.file = tool.file;
       button.dataset.name = tool.name.toLowerCase();
 
@@ -102,6 +108,7 @@
       label.textContent = tool.name;
 
       button.appendChild(label);
+
       button.addEventListener("click", () => selectTool(tool, button));
       button.addEventListener("keydown", (event) => {
         if (event.key === "Enter" || event.key === " ") {
@@ -112,6 +119,7 @@
 
       item.appendChild(button);
       toolList.appendChild(item);
+
 
       if (index === 0) {
         selectTool(tool, button);
@@ -127,6 +135,7 @@
         const matches = button.dataset.name.includes(query);
         item.hidden = !matches;
         button.tabIndex = matches ? 0 : -1;
+
         if (matches) {
           visibleButtons += 1;
         }
@@ -143,6 +152,7 @@
         if (activeButton) {
           activeButton.classList.remove("active");
           activeButton.setAttribute("aria-current", "false");
+
         }
         activeButton = null;
         return;
@@ -153,6 +163,7 @@
       if (!activeButton || activeButton.closest(".tool-item").hidden) {
         const firstVisible = Array.from(toolList.querySelectorAll(".tool-item"))
           .find((item) => !item.hidden)?.querySelector(".tool-button");
+
         if (firstVisible) {
           const file = firstVisible.dataset.file;
           const tool = tools.find((item) => item.file === file);

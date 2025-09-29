@@ -19,6 +19,7 @@
   --arlo-accent: #ff0054;
   --arlo-accent-alt: #0096ff;
   --arlo-focus: var(--arlo-accent-alt);
+
 }
 
 *, *::before, *::after {
@@ -113,6 +114,7 @@ input[type="submit"],
   box-shadow: none;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
+
 }
 
 button:hover,
@@ -121,6 +123,7 @@ input[type="submit"]:hover,
 .btn:hover {
   background: var(--arlo-panel-strong);
   border-color: var(--arlo-accent);
+
 }
 
 button:focus-visible,
@@ -154,6 +157,7 @@ textarea {
   border-radius: 0;
   min-width: 3rem;
   box-shadow: none;
+
 }
 
 input[type="range"] {
@@ -405,6 +409,7 @@ body.tool-index {
   min-height: 100vh;
   background: var(--arlo-bg);
   color: var(--arlo-ink);
+
 }
 
 body.tool-index aside.sidebar {
@@ -497,6 +502,7 @@ body.tool-index #tool-list {
 
 body.tool-index #tool-list li {
   margin: 0;
+
 }
 
 body.tool-index #tool-list button {
@@ -507,6 +513,7 @@ body.tool-index #tool-list button {
   background: var(--arlo-bg);
   color: var(--arlo-ink);
   letter-spacing: 0.1em;
+
 }
 
 body.tool-index #tool-list button span {
@@ -531,6 +538,7 @@ body.tool-index main {
   gap: 2rem;
   background: var(--arlo-bg);
   border-left: 4px solid var(--arlo-border);
+
 }
 
 body.tool-index .toolbar {
@@ -558,6 +566,7 @@ body.tool-index .toolbar a.disabled {
   opacity: 0.45;
   pointer-events: none;
   color: var(--arlo-muted);
+
 }
 
 body.tool-index .frame-container {
@@ -565,6 +574,7 @@ body.tool-index .frame-container {
   display: flex;
   border: 4px solid var(--arlo-border);
   background: var(--arlo-bg);
+
 }
 
 body.tool-index iframe {
@@ -573,6 +583,7 @@ body.tool-index iframe {
   width: 100%;
   min-height: 70vh;
   background: var(--arlo-bg);
+
 }
 
 @media (max-width: 960px) {
@@ -591,11 +602,13 @@ body.tool-index iframe {
   body.tool-index nav {
     max-height: 40vh;
     overflow-y: auto;
+
   }
 
   body.tool-index main {
     border-left: none;
     border-top: 4px solid var(--arlo-border);
+
   }
 }
 
@@ -1112,4 +1125,5 @@ body.tool-square-tiling-tool-svg-import-export canvas {
     grid-template-columns: 1fr;
   }
 }
+
 
