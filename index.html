@@ -52,7 +52,6 @@
     const iframe = document.getElementById("tool-frame");
     const toolName = document.getElementById("tool-name");
     const openNewTab = document.getElementById("open-new-tab");
-
     const createIcon = () => {
       const svgNS = "http://www.w3.org/2000/svg";
       const icon = document.createElementNS(svgNS, "svg");
@@ -140,7 +139,6 @@
         activeButton = null;
         return;
       }
-
       iframe.hidden = false;
 
       if (!activeButton || activeButton.style.display === "none") {
