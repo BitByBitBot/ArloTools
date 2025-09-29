@@ -1,0 +1,1016 @@
+/*
+  Arlo Tools brutalist theme
+  -------------------------------------------------------------------
+  A single monochrome-forward palette shared across every tool.
+  Layout rules stay tool-specific, but colors, borders, and typography
+  draw from the same set of variables so each experiment feels like it
+  belongs to one family.
+*/
+
+:root {
+  color-scheme: light;
+  --arlo-bg: #f5f1e8;
+  --arlo-panel: #fffdf7;
+  --arlo-panel-strong: #efe9de;
+  --arlo-ink: #16130d;
+  --arlo-muted: #5c564d;
+  --arlo-border: #16130d;
+  --arlo-shadow: rgba(22, 19, 13, 0.18);
+  --arlo-accent: #16130d;
+  --arlo-focus: #ff5a36;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html, body {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--arlo-bg);
+  color: var(--arlo-ink);
+  font-family: "Inter", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
+  letter-spacing: 0.01em;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  margin: 0 0 1rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+}
+
+p, ul, ol {
+  margin: 0 0 1rem;
+}
+
+ul, ol {
+  padding-left: 1.5rem;
+}
+
+a {
+  color: var(--arlo-accent);
+  text-decoration: none;
+  border-bottom: 2px solid currentColor;
+}
+
+a:hover {
+  background: var(--arlo-panel-strong);
+}
+
+code, pre {
+  font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  background: var(--arlo-panel-strong);
+  border: 2px solid var(--arlo-border);
+  padding: 0.15rem 0.35rem;
+}
+
+.kbd {
+  display: inline-block;
+  padding: 0.15rem 0.4rem;
+  margin: 0 0.15rem;
+  border: 2px solid var(--arlo-border);
+  background: var(--arlo-panel);
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+button,
+input[type="button"],
+input[type="submit"],
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  padding: 0.55rem 0.9rem;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--arlo-ink);
+  background: var(--arlo-panel);
+  border: 2px solid var(--arlo-border);
+  box-shadow: 6px 6px 0 var(--arlo-shadow);
+  cursor: pointer;
+  transition: transform 0.1s ease, box-shadow 0.1s ease, background 0.1s ease;
+}
+
+button:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover,
+.btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 8px 8px 0 var(--arlo-shadow);
+  background: var(--arlo-panel-strong);
+}
+
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible,
+.btn:focus-visible {
+  outline: 3px solid var(--arlo-focus);
+  outline-offset: 2px;
+}
+
+button:disabled,
+input:disabled,
+select:disabled,
+textarea:disabled,
+.btn[disabled] {
+  opacity: 0.6;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  letter-spacing: 0.02em;
+  background: var(--arlo-panel);
+  color: var(--arlo-ink);
+  border: 2px solid var(--arlo-border);
+  padding: 0.4rem 0.6rem;
+  border-radius: 0;
+  min-width: 3rem;
+  box-shadow: 4px 4px 0 var(--arlo-shadow);
+}
+
+input[type="range"] {
+  width: 100%;
+  min-width: 120px;
+  background: transparent;
+  box-shadow: none;
+  accent-color: var(--arlo-ink);
+}
+
+input[type="color"] {
+  padding: 0.1rem;
+  height: 2.25rem;
+}
+
+input[type="checkbox"],
+input[type="radio"] {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0 0.4rem 0 0;
+  vertical-align: middle;
+  accent-color: var(--arlo-ink);
+  box-shadow: none;
+  border: 2px solid var(--arlo-border);
+}
+
+label {
+  font-size: 0.9rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  color: var(--arlo-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+label.inline {
+  display: inline-flex;
+}
+
+.muted,
+label .muted,
+.muted span {
+  color: var(--arlo-muted);
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+canvas,
+svg,
+video {
+  border: 2px solid var(--arlo-border);
+  background: var(--arlo-panel);
+  box-shadow: 10px 10px 0 var(--arlo-shadow);
+  max-width: 100%;
+}
+
+table {
+  border-collapse: collapse;
+  width: 100%;
+  background: var(--arlo-panel);
+  border: 2px solid var(--arlo-border);
+  box-shadow: 8px 8px 0 var(--arlo-shadow);
+}
+
+table th,
+table td {
+  padding: 0.6rem;
+  border: 2px solid var(--arlo-border);
+  text-align: center;
+}
+
+table th {
+  background: var(--arlo-panel-strong);
+  font-weight: 600;
+}
+
+.controls,
+.toolbar,
+.panel,
+.group,
+section,
+aside,
+legend,
+fieldset,
+.details-panel,
+.sidebar,
+.info-box,
+header,
+footer {
+  background: var(--arlo-panel);
+  border: 2px solid var(--arlo-border);
+  box-shadow: 12px 12px 0 var(--arlo-shadow);
+  padding: 1.25rem;
+}
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5rem;
+  align-items: flex-start;
+}
+
+.control-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  min-width: 180px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  background: var(--arlo-panel);
+  border: 2px solid var(--arlo-border);
+  box-shadow: 8px 8px 0 var(--arlo-shadow);
+  padding: 0.75rem 1rem;
+}
+
+.wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.card {
+  display: flex;
+  flex-direction: column;
+  gap: 0.6rem;
+  background: var(--arlo-panel-strong);
+  border: 2px solid var(--arlo-border);
+  padding: 1rem;
+  box-shadow: 8px 8px 0 var(--arlo-shadow);
+}
+
+.alert {
+  background: var(--arlo-panel-strong);
+  border: 2px solid var(--arlo-border);
+  padding: 0.75rem 1rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+}
+
+.placeholder {
+  border: 2px dashed var(--arlo-border);
+  padding: 2rem;
+  text-align: center;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--arlo-muted);
+}
+
+.spacer {
+  flex: 1 1 auto;
+}
+
+.transport-label {
+  font-size: 0.75rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--arlo-muted);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0.25rem 0.65rem;
+  border: 2px solid var(--arlo-border);
+  background: var(--arlo-panel);
+  font-size: 0.75rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+.badge.pass {
+  background: var(--arlo-panel-strong);
+}
+
+.badge.fail {
+  background: var(--arlo-bg);
+}
+
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.25rem 0.6rem;
+  border: 2px solid var(--arlo-border);
+  background: var(--arlo-panel-strong);
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.legend {
+  margin: 1rem 0;
+}
+
+details {
+  background: var(--arlo-panel);
+  border: 2px solid var(--arlo-border);
+  box-shadow: 10px 10px 0 var(--arlo-shadow);
+  padding: 1rem 1.25rem;
+}
+
+details > summary {
+  cursor: pointer;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+details > summary::-webkit-details-marker {
+  display: none;
+}
+
+details > summary::before {
+  content: "▸";
+  display: inline-block;
+  transition: transform 0.2s ease;
+}
+
+details[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+fieldset {
+  border: 2px solid var(--arlo-border);
+  margin: 0 0 1rem;
+}
+
+img {
+  max-width: 100%;
+  border: 2px solid var(--arlo-border);
+  box-shadow: 8px 8px 0 var(--arlo-shadow);
+}
+
+/* ---------- Hub (index.html) ---------- */
+
+body.tool-index {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) 1fr;
+  min-height: 100vh;
+}
+
+body.tool-index aside.sidebar {
+  position: sticky;
+  top: 0;
+  align-self: flex-start;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  padding: 2rem 1.75rem;
+}
+
+body.tool-index aside.sidebar h1 {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+
+body.tool-index aside.sidebar h1 span {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  background: var(--arlo-ink);
+  color: var(--arlo-panel);
+  font-weight: 700;
+  border: 2px solid var(--arlo-border);
+  box-shadow: 6px 6px 0 var(--arlo-shadow);
+}
+
+body.tool-index .search-wrapper {
+  position: relative;
+}
+
+body.tool-index .search-wrapper svg {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1.1rem;
+  height: 1.1rem;
+  fill: var(--arlo-muted);
+}
+
+body.tool-index input[type="search"] {
+  width: 100%;
+  padding-left: 2.5rem;
+  box-shadow: none;
+}
+
+body.tool-index #tool-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+body.tool-index #tool-list button {
+  justify-content: flex-start;
+  width: 100%;
+}
+
+body.tool-index #tool-list button[aria-selected="true"] {
+  background: var(--arlo-panel-strong);
+}
+
+body.tool-index main {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+body.tool-index .toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+body.tool-index .frame-container {
+  flex: 1;
+  display: flex;
+  border: 2px solid var(--arlo-border);
+  box-shadow: 16px 16px 0 var(--arlo-shadow);
+  background: var(--arlo-panel);
+}
+
+body.tool-index iframe {
+  border: none;
+  flex: 1;
+  width: 100%;
+  min-height: 70vh;
+  background: var(--arlo-panel);
+}
+
+@media (max-width: 960px) {
+  body.tool-index {
+    grid-template-columns: 1fr;
+  }
+
+  body.tool-index aside.sidebar {
+    position: static;
+    order: -1;
+  }
+}
+
+/* ---------- Tool-specific layout rules ---------- */
+
+body[class^="tool-"]:not(.tool-index) {
+  padding: 2rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+body[class^="tool-"] > script {
+  display: none;
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html header {
+  position: sticky;
+  top: 1.5rem;
+  z-index: 10;
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem 1.5rem;
+  align-items: flex-end;
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .title {
+  font-size: 1rem;
+  letter-spacing: 0.12em;
+  font-weight: 700;
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .controls {
+  gap: 1rem;
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .controls label {
+  flex-direction: column;
+  align-items: flex-start;
+  color: var(--arlo-ink);
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .controls input,
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .controls select {
+  width: 140px;
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .progress-wrap {
+  margin-top: 1rem;
+  height: 0.6rem;
+  background: var(--arlo-panel-strong);
+  border: 2px solid var(--arlo-border);
+  box-shadow: 4px 4px 0 var(--arlo-shadow);
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .progress {
+  height: 100%;
+  width: 0;
+  background: var(--arlo-ink);
+  transition: width 0.2s ease;
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html main {
+  display: grid;
+  gap: 1.5rem;
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html #view3d,
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html #stage2d {
+  min-height: 480px;
+  background: var(--arlo-panel);
+  border: 2px solid var(--arlo-border);
+  box-shadow: 14px 14px 0 var(--arlo-shadow);
+  position: relative;
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html #stage2d {
+  display: none;
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .legend .row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html footer {
+  font-size: 0.85rem;
+  color: var(--arlo-muted);
+}
+
+body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .tests {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* Audio spectrogram */
+
+body.tool-audio-spectrogram-tool {
+  align-items: center;
+  text-align: center;
+}
+
+body.tool-audio-spectrogram-tool #sidebar {
+  position: fixed;
+  top: 2rem;
+  left: 2rem;
+  bottom: 2rem;
+  width: min(320px, 85vw);
+  overflow-y: auto;
+  display: none;
+  flex-direction: column;
+  gap: 1rem;
+  background: var(--arlo-panel);
+  border: 2px solid var(--arlo-border);
+  box-shadow: 12px 12px 0 var(--arlo-shadow);
+  text-align: left;
+  padding: 1.5rem;
+  z-index: 20;
+}
+
+body.tool-audio-spectrogram-tool .sidebar-close {
+  align-self: flex-end;
+}
+
+body.tool-audio-spectrogram-tool .help-button {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  z-index: 15;
+}
+
+body.tool-audio-spectrogram-tool canvas {
+  margin-top: 1rem;
+  width: min(960px, 95vw);
+  height: auto;
+}
+
+/* Brutalist mind map */
+
+body.tool-brutalist-mind-map-scaled {
+  display: block;
+  padding: 0;
+  overflow: hidden;
+}
+
+body.tool-brutalist-mind-map-scaled #ui {
+  position: fixed;
+  top: 1.5rem;
+  left: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  background: var(--arlo-panel);
+  border: 2px solid var(--arlo-border);
+  box-shadow: 12px 12px 0 var(--arlo-shadow);
+  z-index: 20;
+}
+
+body.tool-brutalist-mind-map-scaled canvas {
+  display: block;
+  width: 100vw;
+  height: 100vh;
+  box-shadow: none;
+  border: none;
+  background: var(--arlo-bg);
+}
+
+/* Chisel-tip pen */
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html {
+  display: block;
+  padding: 0;
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html .app {
+  display: grid;
+  grid-template-columns: minmax(280px, 360px) 1fr;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html header {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html header h1 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html .toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html .side {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  border-right: 2px solid var(--arlo-border);
+  box-shadow: 12px 0 0 var(--arlo-shadow);
+  background: var(--arlo-panel);
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html .group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  background: var(--arlo-panel-strong);
+  border: 2px solid var(--arlo-border);
+  padding: 1rem;
+  box-shadow: 8px 8px 0 var(--arlo-shadow);
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html .group h3 {
+  margin: 0;
+  font-size: 0.9rem;
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html .row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html .row-spaced {
+  justify-content: space-between;
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html .help {
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--arlo-muted);
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html .swatch {
+  width: 36px;
+  height: 36px;
+  border: 2px solid var(--arlo-border);
+  box-shadow: 6px 6px 0 var(--arlo-shadow);
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html canvas {
+  width: 100%;
+  height: 100%;
+  border: none;
+  box-shadow: none;
+}
+
+body.tool-chisel-tip-pen-drawing-tool-standalone-html .app main,
+body.tool-chisel-tip-pen-drawing-tool-standalone-html .app .canvas-wrap {
+  position: relative;
+  background: var(--arlo-bg);
+}
+
+/* Graded Game of Life */
+
+body.tool-graded-game-of-life {
+  align-items: center;
+}
+
+body.tool-graded-game-of-life canvas {
+  width: min(90vw, 640px);
+  height: auto;
+}
+
+body.tool-graded-game-of-life .controls {
+  width: min(90vw, 960px);
+  justify-content: space-between;
+}
+
+body.tool-graded-game-of-life .controls > div {
+  flex: 1;
+  min-width: 220px;
+}
+
+body.tool-graded-game-of-life h4 {
+  margin-bottom: 0.5rem;
+}
+
+/* Less circle-centric fractal */
+
+body.tool-less-circle-centric-fractal-1 {
+  align-items: center;
+}
+
+body.tool-less-circle-centric-fractal-1 canvas {
+  width: min(95vw, 820px);
+  height: auto;
+}
+
+/* Lissajous grid */
+
+body.tool-lissajous-figure-grid {
+  display: grid;
+  gap: 1.5rem;
+}
+
+body.tool-lissajous-figure-grid #table-container {
+  overflow: auto;
+  border: 2px solid var(--arlo-border);
+  box-shadow: 14px 14px 0 var(--arlo-shadow);
+  background: var(--arlo-panel);
+}
+
+body.tool-lissajous-figure-grid #sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  max-width: 320px;
+}
+
+body.tool-lissajous-figure-grid #sidebar button {
+  width: fit-content;
+}
+
+/* Medieval border generator */
+
+body.tool-medieval-border-generator-geometric-tiling-v-2 .controls {
+  width: min(90vw, 1024px);
+}
+
+body.tool-medieval-border-generator-geometric-tiling-v-2 canvas {
+  width: min(95vw, 960px);
+  height: auto;
+}
+
+/* MIDI to neumes */
+
+body.tool-midi-neumes-converter-single-file-html {
+  gap: 1rem;
+}
+
+body.tool-midi-neumes-converter-single-file-html textarea {
+  width: min(90vw, 720px);
+  min-height: 200px;
+}
+
+body.tool-midi-neumes-converter-single-file-html .controls {
+  width: min(90vw, 720px);
+}
+
+/* Particle tree */
+
+body.tool-particle-tree-zoom-scroll {
+  align-items: center;
+}
+
+body.tool-particle-tree-zoom-scroll canvas {
+  width: min(95vw, 960px);
+  height: auto;
+}
+
+/* Pixel row glitcher */
+
+body.tool-pixel-row-glitcher {
+  align-items: center;
+}
+
+body.tool-pixel-row-glitcher canvas {
+  width: min(95vw, 960px);
+  height: auto;
+}
+
+/* Random I Heart */
+
+body.tool-random-i-heart {
+  align-items: center;
+}
+
+body.tool-random-i-heart canvas {
+  width: min(90vw, 640px);
+  height: auto;
+}
+
+/* Recursive vector fractal lab */
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 {
+  display: block;
+  padding: 0;
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 .app {
+  display: grid;
+  grid-template-columns: minmax(260px, 320px) 1fr;
+  grid-template-rows: auto 1fr;
+  min-height: 100vh;
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 header {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  align-items: center;
+  position: sticky;
+  top: 0;
+  z-index: 15;
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 header .spacer {
+  flex: 1;
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 .grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 320px;
+  position: relative;
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 .left {
+  position: relative;
+  background: var(--arlo-bg);
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 .wrap {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 canvas,
+body.tool-recursive-vector-fractal-lab-standalone-html-2 .overlay {
+  border: none;
+  box-shadow: none;
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 .right {
+  background: var(--arlo-panel);
+  border-left: 2px solid var(--arlo-border);
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  max-height: calc(100vh - 4rem);
+  overflow-y: auto;
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 section {
+  background: var(--arlo-panel-strong);
+  border: 2px solid var(--arlo-border);
+  padding: 1rem;
+  box-shadow: 8px 8px 0 var(--arlo-shadow);
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 .row {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 .cols2 {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+body.tool-recursive-vector-fractal-lab-standalone-html-2 .full-span {
+  grid-column: 1 / -1;
+}
+
+/* Spectrogram glitch posteffects */
+
+body.tool-spectrogram-glitch-posteffects-1 {
+  align-items: center;
+}
+
+body.tool-spectrogram-glitch-posteffects-1 canvas {
+  width: min(95vw, 960px);
+  height: auto;
+}
+
+/* Square tiling tool */
+
+body.tool-square-tiling-tool-svg-import-export .controls {
+  width: min(90vw, 960px);
+}
+
+body.tool-square-tiling-tool-svg-import-export canvas {
+  width: min(95vw, 960px);
+  height: auto;
+}
+
+@media (max-width: 840px) {
+  body.tool-chisel-tip-pen-drawing-tool-standalone-html .app,
+  body.tool-recursive-vector-fractal-lab-standalone-html-2 .app {
+    grid-template-columns: 1fr;
+  }
+
+  body.tool-chisel-tip-pen-drawing-tool-standalone-html .side,
+  body.tool-recursive-vector-fractal-lab-standalone-html-2 .right {
+    position: static;
+    max-height: none;
+  }
+
+  body.tool-recursive-vector-fractal-lab-standalone-html-2 .grid {
+    grid-template-columns: 1fr;
+  }
+}
+
