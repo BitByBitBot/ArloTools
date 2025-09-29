@@ -4,45 +4,10 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Chisel‑Tip Pen — Standalone</title>
-<style>
-  :root{
-    --bg:#111417; --panel:#1b2026; --panel-2:#151a1f; --text:#e7edf3; --muted:#9db0c4; --accent:#5bb6ff;
-    --btn:#222933; --btn-hover:#2a3340; --danger:#ff6b6b; --ok:#58d68d; --grid:#1f2530;
-  }
-  *{box-sizing:border-box}
-  html,body{height:100%}
-  body{margin:0; background:var(--bg); color:var(--text); font:14px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;}
-  .app{display:grid; grid-template-columns: 320px 1fr; grid-template-rows:auto 1fr; height:100vh}
-  header{grid-column:1/3; padding:10px 12px; display:flex; gap:10px; align-items:center; background:linear-gradient(180deg,var(--panel),var(--panel-2)); border-bottom:1px solid #0d1117; position:sticky; top:0; z-index:3}
-  header h1{font-size:14px; margin:0; letter-spacing:.02em; color:var(--muted)}
-  .toolbar{display:flex; gap:8px; flex-wrap:wrap; align-items:center}
-  .side{padding:12px; background:var(--panel); border-right:1px solid #0d1117; overflow:auto}
-  .group{background:var(--panel-2); border:1px solid #0d1117; border-radius:12px; padding:10px; margin-bottom:10px}
-  .group h3{margin:0 0 8px; font-size:12px; color:var(--muted); font-weight:600; text-transform:uppercase; letter-spacing:.08em}
-  label{display:grid; grid-template-columns: 1fr auto; gap:8px; align-items:center; margin:6px 0}
-  input[type="range"]{width:180px}
-  input[type="number"]{width:72px; background:#0f141a; color:var(--text); border:1px solid #0d1117; padding:4px 6px; border-radius:8px}
-  input[type="checkbox"]{transform:translateY(1px)}
-  .row{display:flex; gap:8px; align-items:center; flex-wrap:wrap}
-  .btn{border:1px solid #0d1117; background:var(--btn); color:var(--text); padding:8px 10px; border-radius:10px; cursor:pointer}
-  .btn:hover{background:var(--btn-hover)}
-  .btn.eraser{border-color:#2b2b2b}
-  .btn.danger{background:#2a1b1b; border-color:#3b2222}
-  .btn.primary{outline:1px solid #2b3642}
-  .swatch{width:30px; height:30px; border-radius:8px; border:1px solid #0d1117; overflow:hidden}
-  #canvasWrap{position:relative; background:var(--bg)}
-  canvas{display:block; width:100%; height:100%; background:transparent; cursor: crosshair}
-  .overlay{position:absolute; inset:0; pointer-events:none}
-  .grid{position:absolute; inset:0; background-size: 32px 32px, 8px 8px; background-image:
-        linear-gradient(var(--grid) 1px, transparent 1px),
-        linear-gradient(90deg, var(--grid) 1px, transparent 1px);
-        pointer-events:none; z-index:0; opacity:.6}
-  .readout{position:absolute; right:10px; bottom:10px; background:rgba(0,0,0,.5); padding:6px 8px; border-radius:8px; font:12px/1.2 ui-monospace, SFMono-Regular, Menlo, monospace; color:#cde}
-  .kbd{font:12px/1 ui-monospace, SFMono-Regular, Menlo, monospace; background:#10151b; border:1px solid #0d1117; padding:2px 5px; border-radius:6px}
-  .help{color:var(--muted); font-size:12px}
-</style>
+<link rel="stylesheet" href="theme.css">
+
 </head>
-<body>
+<body class="tool-chisel-tip-pen-drawing-tool-standalone-html">
   <div class="app">
     <header>
       <h1>Chisel‑Tip Pen</h1>
@@ -60,7 +25,7 @@
     <aside class="side">
       <div class="group">
         <h3>Nib</h3>
-        <div class="row" style="gap:12px">
+        <div class="row row-spaced">
           <div>
             <div class="help">Color</div>
             <input id="color" type="color" value="#000000" />

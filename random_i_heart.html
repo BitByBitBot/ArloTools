@@ -4,34 +4,10 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>Random “I ♥” Generator</title>
-  <style>
-    :root { --red:#e4002b; }
-    *{box-sizing:border-box;}
-    body{margin:0;display:flex;flex-direction:column;align-items:center;font-family:Helvetica,Arial,sans-serif;background:#fff;color:#000;}
-    #design{text-align:center;line-height:1.05;margin-top:1rem;}
-    #topText{font-size:12rem;letter-spacing:-.05em;white-space:nowrap;}
-    .heart{width:1em;height:1em;display:inline-block;vertical-align:-0.12em;}
-    .heart path{fill:var(--red);}
-    #bottomCanvas{display:block;margin:-0.35em auto 0 auto;}
+  <link rel="stylesheet" href="theme.css">
 
-    /* Toggle button */
-    #toggleFilters{margin:1rem 0;padding:.5rem 1rem;font-size:1rem;border:2px solid #000;background:#fff;cursor:pointer;}
-    #toggleFilters:hover{background:#f2f2f2;}
-
-    /* Controls */
-    #controls{max-width:700px;padding:1rem 0;display:none;} /* hidden by default */
-    #controls.open{display:block;}
-    fieldset{border:1px solid #0003;padding:1rem;margin:0;}
-    legend{padding:0 .5rem;}
-    label{display:inline-flex;align-items:center;margin:0 .8rem .4rem 0;user-select:none;}
-    label input{margin-right:.3rem;}
-
-    #generate{margin:1.5rem 0 2rem;padding:.75rem 1.5rem;font-size:1rem;border:2px solid #000;background:#fff;cursor:pointer;}
-    #generate:hover{background:#f2f2f2;}
-    #status{font-size:.9rem;color:#555;}
-  </style>
 </head>
-<body>
+<body class="tool-random-i-heart">
   <!-- Toggle button -->
   <button id="toggleFilters" aria-expanded="false">Show Filters ▾</button>
 
