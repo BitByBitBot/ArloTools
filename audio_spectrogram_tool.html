@@ -3,28 +3,13 @@
 <head>
   <meta charset="UTF-8">
   <title>Audio Spectrogram Viewer</title>
-  <style>
-    body {
-      background: #111;
-      color: white;
-      font-family: sans-serif;
-      text-align: center;
-    }
-    canvas {
-      background: black;
-      margin: 10px 0;
-      border: 1px solid #444;
-      image-rendering: pixelated;
-    }
-    input[type="file"] {
-      margin-top: 10px;
-    }
-  </style>
+  <link rel="stylesheet" href="theme.css">
+
 </head>
-<body>
-  <div id="sidebar" style="position: fixed; top: 0; left: 0; bottom: 0; width: 280px; background: #222; color: #ccc; padding: 1em; font-size: 0.9em; font-family: sans-serif; text-align: left; overflow-y: auto; display: none; z-index: 10;">
-    <button onclick="document.getElementById('sidebar').style.display='none'" style="float: right; margin-bottom: 0.5em; background: #444; color: white; border: none; padding: 0.3em 0.6em; cursor: pointer;">×</button>
-    <h2 style="margin-top: 2em;">Instructions</h2>
+<body class="tool-audio-spectrogram-tool">
+  <div id="sidebar">
+    <button class="sidebar-close" onclick="document.getElementById('sidebar').style.display='none'">×</button>
+    <h2>Instructions</h2>
     <ol>
       <li>Upload an audio file using the file input.</li>
       <li>The spectrogram will render the full audio length.</li>
@@ -32,9 +17,9 @@
       <li>Hold <code>Option</code> (or <code>Alt</code>) and drag the selection to duplicate it.</li>
       <li>Click <em>Resynthesize Audio</em> to play the modified audio.</li>
     </ol>
-    <p style="margin-top: 1em; font-style: italic;">Time runs left to right. Frequencies are low at the bottom, high at the top.</p>
+    <p class="sidebar-note">Time runs left to right. Frequencies are low at the bottom, high at the top.</p>
   </div>
-  <button onclick="document.getElementById('sidebar').style.display='block'" style="position: fixed; top: 10px; left: 10px; z-index: 11; background: #444; color: white; border: none; padding: 0.4em 0.8em; cursor: pointer;">❔ Help</button>
+  <button class="help-button" onclick="document.getElementById('sidebar').style.display='block'">❔ Help</button>
   <h1>Audio Spectrogram Viewer</h1>
   
   <input type="file" id="audioFile" accept="audio/*"><br>
