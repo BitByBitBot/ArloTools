@@ -19,6 +19,7 @@
   --arlo-accent: #ff0054;
   --arlo-accent-alt: #0096ff;
   --arlo-focus: var(--arlo-accent-alt);
+
 }
 
 *, *::before, *::after {
@@ -113,6 +114,7 @@ input[type="submit"],
   box-shadow: none;
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
+
 }
 
 button:hover,
@@ -121,6 +123,7 @@ input[type="submit"]:hover,
 .btn:hover {
   background: var(--arlo-panel-strong);
   border-color: var(--arlo-accent);
+
 }
 
 button:focus-visible,
@@ -154,6 +157,7 @@ textarea {
   border-radius: 0;
   min-width: 3rem;
   box-shadow: none;
+
 }
 
 input[type="range"] {
@@ -404,6 +408,7 @@ body.tool-index {
   grid-template-columns: minmax(260px, 320px) 1fr;
   min-height: 100vh;
   background: var(--arlo-bg);
+
 }
 
 body.tool-index aside.sidebar {
@@ -416,6 +421,7 @@ body.tool-index aside.sidebar {
   padding: 2rem 1.75rem;
   border-right: 3px solid var(--arlo-border);
   background: var(--arlo-panel);
+
 }
 
 body.tool-index aside.sidebar h1 {
@@ -423,6 +429,7 @@ body.tool-index aside.sidebar h1 {
   align-items: center;
   gap: 0.9rem;
   font-size: 1.1rem;
+
   margin-bottom: 0.25rem;
 }
 
@@ -446,6 +453,7 @@ body.tool-index aside.sidebar p {
   border-left: 3px solid var(--arlo-accent-alt);
   padding-left: 0.85rem;
   margin: 0;
+
 }
 
 body.tool-index .search-wrapper {
@@ -505,6 +513,7 @@ body.tool-index #tool-list button[aria-selected="true"] {
 body.tool-index #tool-list button:not([aria-selected="true"]):hover {
   border-color: var(--arlo-accent-alt);
   color: var(--arlo-accent-alt);
+
 }
 
 body.tool-index main {
@@ -514,6 +523,7 @@ body.tool-index main {
   gap: 1.5rem;
   background: var(--arlo-panel);
   border-left: 3px solid var(--arlo-border);
+
 }
 
 body.tool-index .toolbar {
@@ -529,6 +539,7 @@ body.tool-index .toolbar a {
   color: var(--arlo-accent-alt);
   border-bottom-width: 3px;
   font-weight: 600;
+
 }
 
 body.tool-index .frame-container {
@@ -536,6 +547,7 @@ body.tool-index .frame-container {
   display: flex;
   border: 3px solid var(--arlo-border);
   box-shadow: none;
+
   background: var(--arlo-panel);
 }
 
@@ -562,6 +574,7 @@ body.tool-index iframe {
   body.tool-index main {
     border-left: none;
     border-top: 3px solid var(--arlo-border);
+
   }
 }
 
@@ -1078,4 +1091,5 @@ body.tool-square-tiling-tool-svg-import-export canvas {
     grid-template-columns: 1fr;
   }
 }
+
 
