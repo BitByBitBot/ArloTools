@@ -4,30 +4,10 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>MIDI → Neumes (Square‑Note) — Single‑File HTML</title>
-  <style>
-    :root { --bg:#fafafa; --fg:#111; --muted:#666; --border:#ddd; --accent:#ef4444; }
-    * { box-sizing: border-box; }
-    body { margin: 0; font: 15px/1.4 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif; color: var(--fg); background: var(--bg); }
-    header { padding: 20px 16px 8px; max-width: 1200px; margin: 0 auto; }
-    h1 { margin: 0 0 6px; font-size: 22px; }
-    p.lede { margin: 0 0 16px; color: var(--muted); }
-    .wrap { max-width: 1200px; margin: 0 auto; padding: 0 16px 32px; }
-    .controls { display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 10px; margin-bottom: 12px; }
-    .card { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 10px 12px; display: flex; align-items: center; gap: 8px; }
-    label { font-size: 13px; color: var(--fg); }
-    select, input[type="file"], button, input[type="range"] { font: inherit; }
-    select { padding: 6px 8px; border: 1px solid var(--border); border-radius: 10px; background: white; }
-    button { padding: 8px 10px; border: 1px solid var(--border); background: #fff; border-radius: 12px; cursor: pointer; }
-    button:hover { box-shadow: 0 1px 6px rgba(0,0,0,.08); }
-    .alert { border: 1px solid #fecaca; background: #fff1f2; color: #991b1b; padding: 10px 12px; border-radius: 10px; margin: 8px 0 12px; }
-    #neumes-svg-container { background: #fff; border: 1px solid var(--border); border-radius: 14px; padding: 10px; overflow: auto; min-height: 160px; }
-    details { margin-top: 10px; color: var(--muted); }
-    details > summary { cursor: pointer; color: #222; }
-    .spacer { flex: 1; }
-    .pill { padding: 2px 8px; border: 1px solid var(--border); border-radius: 999px; font-size: 12px; color: #333; }
-  </style>
+  <link rel="stylesheet" href="theme.css">
+
 </head>
-<body>
+<body class="tool-midi-neumes-converter-single-file-html">
   <header>
     <h1>MIDI → Neumes (square‑note) Converter</h1>
     <p class="lede">Upload a MIDI file, choose a melodic track, and render approximate medieval chant neumes (punctum, podatus, clivis, torculus, porrectus, scandicus, climacus) on a 4‑line staff. Export the SVG — and now, <strong>play it back with a moving cursor</strong>.</p>
@@ -60,22 +40,22 @@
         <button id="play" disabled>▶︎ Play</button>
         <button id="stop" disabled>■ Stop</button>
         <span class="pill" id="tempo">Tempo: —</span>
-        <label for="wave" style="margin-left:8px">Wave</label>
+        <label for="wave" class="transport-label">Wave</label>
         <select id="wave">
           <option value="sine">sine</option>
           <option value="triangle">triangle</option>
           <option value="square">square</option>
           <option value="sawtooth">sawtooth</option>
         </select>
-        <label for="volume" style="margin-left:8px">Vol</label>
+        <label for="volume" class="transport-label">Vol</label>
         <input id="volume" type="range" min="0" max="1" step="0.01" value="0.3" />
       </div>
     </section>
 
-    <div id="error" class="alert" style="display:none"></div>
+    <div id="error" class="alert"></div>
 
     <div id="neumes-svg-container">
-      <div style="padding:16px; color: var(--muted);">Upload a MIDI file to see the rendering here.</div>
+      <div class="placeholder muted">Upload a MIDI file to see the rendering here.</div>
     </div>
 
     <details>
@@ -296,7 +276,7 @@
     mono = toMonophonic(selTrack.notes, policy);
     groups = groupNeumes(mono, parsed.ticksPerBeat);
     centerPitch = computePitchCenter(mono);
-    if (groups.length === 0){ svgContainer.innerHTML = '<div style="padding:16px;color:#666">No melodic content detected on this track.</div>'; dlBtn.disabled = true; playBtn.disabled = true; stopBtn.disabled = true; return; }
+    if (groups.length === 0){ svgContainer.innerHTML = '<div class="placeholder muted">No melodic content detected on this track.</div>'; dlBtn.disabled = true; playBtn.disabled = true; stopBtn.disabled = true; return; }
     renderInfo = renderNeumesSVG({ container: svgContainer, groups, centerPitch, options: { labelNeumes } });
     dlBtn.disabled = false; playBtn.disabled = false; stopBtn.disabled = false;
 
@@ -413,7 +393,7 @@
 
   // Event wiring
   fileInput.addEventListener('change', ()=>{
-    setError(''); dlBtn.disabled = true; svgContainer.innerHTML='<div style="padding:16px;color:#666">Parsing…</div>';
+    setError(''); dlBtn.disabled = true; svgContainer.innerHTML='<div class="placeholder muted">Parsing…</div>';
     const f = fileInput.files && fileInput.files[0];
     if (!f){ setError('No file selected'); svgContainer.innerHTML=''; return; }
     const reader = new FileReader();

@@ -4,26 +4,10 @@
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width,initial-scale=1" />
 <title>Medieval Border Generator — Complete Styles</title>
-<style>
-  :root{--paper:#f6f1e6;--card:#fff;--ink:#121212;--fill:#ffffff}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--paper);font:14px/1.25 ui-sans-serif,system-ui,Segoe UI,Roboto,Helvetica,Arial;color:#222}
-  header{position:sticky;top:0;z-index:2;background:#fff9;border-bottom:1px solid #ddd;padding:12px;display:flex;gap:10px;flex-wrap:wrap;align-items:end}
-  header h1{font-size:16px;margin:0 12px 0 0}
-  label{display:inline-grid;gap:6px;font-size:12px}
-  input,select,button{padding:8px 10px;border:1px solid #bbb;border-radius:8px;background:#fff}
-  button{cursor:pointer}
-  main{display:grid;grid-template-columns:340px 1fr;gap:12px;padding:12px}
-  .panel{background:var(--card);border:1px solid #ddd;border-radius:12px;padding:12px}
-  .tile{width:100%}
-  .preview{height:92px;width:100%;border-radius:10px;display:flex;align-items:center;justify-content:center;background:repeating-linear-gradient(90deg,#f7f3ea,#f7f3ea 60px,#efe9dc 60px,#efe9dc 120px);overflow:hidden}
-  .strip{height:64px}
-  .muted{opacity:.7}
-  .swatch{display:inline-flex;gap:6px;align-items:center}
-  .swatch input{width:40px;height:34px;padding:0;border-radius:6px}
-</style>
+<link rel="stylesheet" href="theme.css">
+
 </head>
-<body>
+<body class="tool-medieval-border-generator-geometric-tiling-v-2">
   <header>
     <h1>Medieval Border Generator — <em>Complete Styles</em></h1>
     <label>Seed
@@ -60,8 +44,8 @@
     <section class="panel">
       <strong>Preview (repeating the tile)</strong>
       <div class="preview"><canvas id="strip1" class="strip" width="2000" height="64"></canvas></div>
-      <div class="preview" style="margin-top:8px"><canvas id="strip2" class="strip" width="2000" height="64"></canvas></div>
-      <div class="preview" style="margin-top:8px"><canvas id="strip3" class="strip" width="2000" height="64"></canvas></div>
+      <div class="preview"><canvas id="strip2" class="strip" width="2000" height="64"></canvas></div>
+      <div class="preview"><canvas id="strip3" class="strip" width="2000" height="64"></canvas></div>
     </section>
   </main>
 
