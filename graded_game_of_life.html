@@ -3,10 +3,94 @@
 <head>
   <meta charset="UTF-8">
   <title>Graded Game of Life</title>
-  <link rel="stylesheet" href="theme.css">
-
+  <style>
+    :root {
+      --bg: #121212;
+      --panel: #1f1f1f;
+      --accent: #00ffe7;
+      --text: #f0f0f0;
+      --slider-bg: #333;
+      --slider-thumb: var(--accent);
+      --font: 'Segoe UI', sans-serif;
+    }
+    body {
+      margin: 0;
+      background: var(--bg);
+      font-family: var(--font);
+      color: var(--text);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+    canvas {
+      background: black;
+      cursor: crosshair;
+      box-shadow: 0 0 20px rgba(0,0,0,0.8);
+      margin: 1.5rem 0;
+      border-radius: 8px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+      gap: 1.5rem;
+      width: 95%;
+      max-width: 1200px;
+      background: var(--panel);
+      padding: 2rem;
+      border-radius: 12px;
+      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+    }
+    h4 {
+      color: var(--accent);
+      margin-top: 0;
+      font-weight: 500;
+      font-size: 1.1rem;
+    }
+    .control-group {
+      margin-bottom: 1rem;
+    }
+    label {
+      font-size: 0.9rem;
+      margin-bottom: 0.3rem;
+      display: block;
+    }
+    input[type="range"] {
+      width: 100%;
+      background-color: var(--slider-bg);
+      accent-color: var(--slider-thumb);
+    }
+    input[type="text"], button {
+      padding: 0.4rem 0.6rem;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      font-family: var(--font);
+    }
+    input[type="text"] {
+      background: #333;
+      color: var(--text);
+      width: 300px;
+    }
+    button {
+      background: var(--accent);
+      color: #000;
+      font-weight: bold;
+      margin: 0 0.5rem 0.5rem 0;
+      cursor: pointer;
+      transition: background 0.3s;
+    }
+    button:hover {
+      background: #00ccbb;
+    }
+    .button-row {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+  </style>
 </head>
-<body class="tool-graded-game-of-life">
+<body>
   <div class="controls">
     <div>
       <h4>Birth</h4>
@@ -59,7 +143,7 @@
     </div>
   </div>
 
-  <canvas id="lifeCanvas" width="400" height="400"></canvas>
+  <canvas id="lifeCanvas" width="400" height="400" style="width: 800px; height: 800px; image-rendering: pixelated;"></canvas>
   <div class="button-row">
     <button id="togglePlay">Pause</button>
     <button id="clearButton">Clear</button>

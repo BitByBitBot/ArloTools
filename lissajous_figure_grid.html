@@ -3,10 +3,82 @@
 <head>
   <meta charset="UTF-8" />
   <title>Lissajous Figure Table</title>
-  <link rel="stylesheet" href="theme.css">
-
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      font-family: sans-serif;
+      background: #f0f0f0;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      flex-direction: row;
+    }
+    #sidebar {
+      width: 200px;
+      background: #fff;
+      padding: 1rem;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      gap: 1rem;
+    }
+    #table-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+    }
+    #lissajous-table {
+      border-collapse: collapse;
+      width: 90vmin;
+      height: 90vmin;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0;
+      background: #fff;
+    }
+    th {
+      background: #e0e0e0;
+      font-size: 0.6rem;
+      text-align: center;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      display: block;
+    }
+    h1 {
+      margin: 0 0 1rem 0;
+      font-size: 1.1rem;
+    }
+    th.corner {
+      width: 2em;
+      height: 2em;
+      min-width: 2em;
+      min-height: 2em;
+      padding: 0;
+    }
+    th.row-header {
+      width: 2em;
+      text-align: center;
+    }
+    label {
+      font-size: 0.9rem;
+      text-align: center;
+    }
+  </style>
 </head>
-<body class="tool-lissajous-figure-grid">
+<body>
   <div id="table-container">
     <table id="lissajous-table"></table>
   </div>
