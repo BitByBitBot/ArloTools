@@ -4,10 +4,53 @@
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Recursive Vector Fractal Lab — Standalone</title>
-  <link rel="stylesheet" href="theme.css">
-
+  <style>
+    :root { --bg: #ffffff; --fg: #111; --panel: #fff; --border:#e5e7eb; --indigo:#6366f1; }
+    html,body{ height:100%; margin:0; font:14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color: var(--fg); }
+    .app{ display:flex; flex-direction:column; height:100%; }
+    header{ position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:.5rem; padding:.5rem 1rem; background:rgba(255,255,255,.7); backdrop-filter: blur(6px); border-bottom:1px solid var(--border); }
+    h1{ font-size:18px; font-weight:600; margin:0; }
+    .spacer{ flex:1; }
+    .btn{ font-size:13px; padding:.25rem .5rem; border:1px solid var(--border); background:#fff; border-radius:12px; box-shadow: 0 1px 0 rgba(0,0,0,.04); cursor:pointer; }
+    .btn:hover{ background:#f8fafc; }
+    .btn.primary{ background:#4f46e5; border-color:#4338ca; color:#fff; }
+    .btn.danger{ background:#fef2f2; color:#dc2626; }
+    .btn.active{ background:#4f46e5; color:#fff; border-color:#4338ca; }
+    .grid{ display:grid; grid-template-columns: 1fr 320px; min-height:0; flex:1; }
+    .left{ position:relative; background:var(--bg); }
+    .wrap{ position:absolute; inset:0; }
+    canvas, svg.overlay{ position:absolute; inset:0; display:block; }
+    .right{ border-left:1px solid var(--border); background:var(--panel); overflow:auto; }
+    section{ padding:12px; border-bottom:1px solid var(--border); }
+    .section-title{ font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6b7280; margin:0 0 8px; }
+    .row{ display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.25rem 0; }
+    .row input[type="number"]{ width:90px; }
+    .cols2{ display:grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap:.5rem; font-size:13px; }
+    .muted{ color:#6b7280; font-size:12px; }
+    .divider{ width:1px; height:24px; background:var(--border); margin:0 .5rem; }
+    .shape-card{ border:1px solid var(--border); border-radius:12px; padding:8px; box-shadow:0 1px 0 rgba(0,0,0,.04); }
+    .ring{ outline: 2px solid #4f46e5; }
+    .controls{ display:flex; gap:.5rem; }
+    input[type="range"]{ width:160px; }
+    label.inline{ display:flex; align-items:center; gap:.25rem; font-size:13px; }
+    .kbd{ font-family: ui-monospace, Menlo, Consolas, monospace; padding:0 4px; border:1px solid var(--border); border-radius:4px; background:#f8fafc; }
+    /* Responsive tweaks */
+    .right{ width: clamp(260px, 30vw, 380px); z-index: 11; }
+    .backdrop{ display:none; position:fixed; inset:0; background:rgba(0,0,0,.12); z-index: 9; }
+    header{ gap:.5rem; }
+    @media (max-width: 900px){
+      .grid{ grid-template-columns: 1fr; }
+      header{ flex-wrap: wrap; }
+      input[type="range"]{ width:100%; }
+      .divider{ display:none; }
+      .right{ position:fixed; top: var(--hdr,56px); right:0; bottom:0; width:min(100vw, 360px); transform: translateX(100%); transition: transform .25s ease; box-shadow: -8px 0 16px rgba(0,0,0,.08); }
+      body.panel-open .right{ transform: translateX(0); }
+      body.panel-open .backdrop{ display:block; }
+      .left{ min-height: calc(100vh - var(--hdr,56px)); }
+    }
+  </style>
 </head>
-<body class="tool-recursive-vector-fractal-lab-standalone-html-2">
+<body>
 <div class="app">
   <header>
     <h1>Recursive Vector Fractal Lab</h1>
@@ -25,7 +68,7 @@
 
   <div class="grid">
     <div id="drawer-backdrop" class="backdrop"></div>
-    <div class="left" id="left">
+    <div class="left" id="left" style="background: var(--bg)">
       <div class="wrap" id="wrap">
         <canvas id="canvas"></canvas>
         <svg class="overlay" id="overlay"></svg>
@@ -45,14 +88,14 @@
 
       <section>
         <h2 class="section-title">Transforms</h2>
-        <button id="add-transform" class="btn primary btn-stack">Add Transform</button>
+        <button id="add-transform" class="btn primary" style="margin-bottom:6px">Add Transform</button>
         <div id="transforms"></div>
       </section>
 
       <section>
         <h2 class="section-title">Shapes</h2>
         <div id="shapes"></div>
-        <div class="muted" id="no-shapes">No shapes yet. Use the toolbar, or hold <span class="kbd">R</span>/<span class="kbd">C</span> then drag on canvas.</div>
+        <div class="muted" id="no-shapes" style="display:none">No shapes yet. Use the toolbar, or hold <span class="kbd">R</span>/<span class="kbd">C</span> then drag on canvas.</div>
       </section>
 
       <section>
@@ -60,21 +103,21 @@
         <div class="cols2">
           <label class="inline">BG <input id="bg" type="color" value="#ffffff"></label>
           <button id="center" class="btn">Center / 100%</button>
-          <label class="inline full-span"><input id="grid2" type="checkbox" checked> Show grid</label>
-          <label class="inline full-span"><input id="snap2" type="checkbox"> Snap to integer</label>
-          <div class="muted full-span">Zoom: <span id="zoomlabel">1.00</span> · Pan: <span id="panlabel">0, 0</span></div>
+          <label class="inline" style="grid-column:1 / -1"><input id="grid2" type="checkbox" checked> Show grid</label>
+          <label class="inline" style="grid-column:1 / -1"><input id="snap2" type="checkbox"> Snap to integer</label>
+          <div class="muted" style="grid-column:1 / -1">Zoom: <span id="zoomlabel">1.00</span> · Pan: <span id="panlabel">0, 0</span></div>
         </div>
       </section>
 
       <section>
         <h2 class="section-title">I/O</h2>
         <div class="controls">
-          <button id="export-png" class="btn success">Export PNG</button>
-          <button id="export-json" class="btn dark">Export JSON</button>
-          <label class="btn file-input">Import JSON <input id="import-json" type="file" accept="application/json" hidden></label>
+          <button id="export-png" class="btn" style="background:#059669;color:#fff;border-color:#047857">Export PNG</button>
+          <button id="export-json" class="btn" style="background:#111;color:#fff;border-color:#000">Export JSON</button>
+          <label class="btn" style="cursor:pointer">Import JSON <input id="import-json" type="file" accept="application/json" hidden></label>
           <button id="clear" class="btn danger">Clear</button>
         </div>
-        <p class="muted tips">Tips: Hold <b>R</b> or <b>C</b> and drag in Select to create shapes. Middle-mouse or hold Space + drag to pan. Ctrl/Cmd + Scroll to zoom. Arrow keys nudge selected shape. Enter to close polygon. Shift + drag on selected = rotate.</p>
+        <p class="muted" style="margin-top:8px">Tips: Hold <b>R</b> or <b>C</b> and drag in Select to create shapes. Middle-mouse or hold Space + drag to pan. Ctrl/Cmd + Scroll to zoom. Arrow keys nudge selected shape. Enter to close polygon. Shift + drag on selected = rotate.</p>
       </section>
     </div>
   </div>
@@ -505,7 +548,7 @@ function renderTransforms(){
   affines.forEach((A, i)=>{
     const el = document.createElement('div'); el.className='shape-card';
     el.innerHTML = `
-      <div class="row row-compact"><div class="muted">Branch ${i+1}</div>
+      <div class="row" style="margin-bottom:4px"><div class="muted">Branch ${i+1}</div>
         <div class="controls">
           <button class="btn" data-act="clone">Clone</button>
           <button class="btn danger" data-act="delete">Delete</button>
@@ -538,7 +581,7 @@ function renderShapes(){
           <button class="btn danger" data-act="delete">Delete</button>
         </div>
       </div>
-      <div class="cols2 cols2-spaced">
+      <div class="cols2" style="margin-top:4px">
         <label class="inline">Stroke <input type="color" data-k="stroke" value="${sh.stroke||'#111111'}"></label>
         <label class="inline">Fill <input type="color" data-k="fill" value="${sh.fill||'#000000'}"></label>
         <label class="inline">Width <input type="number" class="w-20" step="0.2" data-k="strokeWidth" value="${sh.strokeWidth||1}"></label>

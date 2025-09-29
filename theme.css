@@ -1,1129 +1,238 @@
-/*
-  Arlo Tools brutalist theme
-  -------------------------------------------------------------------
-  A single monochrome-forward palette shared across every tool.
-  Layout rules stay tool-specific, but colors, borders, and typography
-  draw from the same set of variables so each experiment feels like it
-  belongs to one family.
-*/
+/* theme.css - Extended cohesive style sheet */
 
-:root {
-  color-scheme: light;
-  --arlo-bg: #ffffff;
-  --arlo-panel: #ffffff;
-  --arlo-panel-strong: #f4f4f4;
-  --arlo-ink: #0a0a0a;
-  --arlo-muted: #5f5f5f;
-  --arlo-border: #000000;
-  --arlo-shadow: transparent;
-  --arlo-accent: #ff0054;
-  --arlo-accent-alt: #0096ff;
-  --arlo-focus: var(--arlo-accent-alt);
-
-}
-
+/* Global reset for consistency across browsers */
 *, *::before, *::after {
   box-sizing: border-box;
-}
-
-.sr-only {
-  position: absolute;
-  width: 1px;
-  height: 1px;
+  margin: 0;
   padding: 0;
-  margin: -1px;
-  overflow: hidden;
-  clip: rect(0, 0, 0, 0);
-  white-space: nowrap;
-  border: 0;
 }
 
 html, body {
   height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+:root {
+  color-scheme: light;
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-hover: #f0f0f0;
+  --panel-active: #eaeaea;
+  --accent: #000000;
+  --text: #000000;
+  --muted: #444444;
+  --border: #000000;
+  --divider: #cccccc;
+  font-family: "Space Mono", "IBM Plex Mono", "Courier New", monospace;
+  line-height: 1.4;
 }
 
 body {
-  margin: 0;
-  background: var(--arlo-bg);
-  color: var(--arlo-ink);
-  font-family: "Inter", "Avenir Next", "Helvetica Neue", Arial, sans-serif;
-  letter-spacing: 0.01em;
-  line-height: 1.5;
-  -webkit-font-smoothing: antialiased;
-}
-
-h1, h2, h3, h4, h5, h6 {
-  margin: 0 0 1rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-}
-
-p, ul, ol {
-  margin: 0 0 1rem;
-}
-
-ul, ol {
-  padding-left: 1.5rem;
-}
-
-a {
-  color: var(--arlo-accent);
-  text-decoration: none;
-  border-bottom: 2px solid currentColor;
-}
-
-a:hover {
-  background: var(--arlo-panel-strong);
-}
-
-code, pre {
-  font-family: "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
-  background: var(--arlo-panel-strong);
-  border: 2px solid var(--arlo-border);
-  padding: 0.15rem 0.35rem;
-}
-
-.kbd {
-  display: inline-block;
-  padding: 0.15rem 0.4rem;
-  margin: 0 0.15rem;
-  border: 2px solid var(--arlo-border);
-  background: var(--arlo-panel);
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-button,
-input[type="button"],
-input[type="submit"],
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 0.35rem;
-  padding: 0.55rem 0.9rem;
-  font: inherit;
-  font-weight: 600;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--arlo-ink);
-  background: var(--arlo-panel);
-  border: 3px solid var(--arlo-border);
-  box-shadow: none;
-  cursor: pointer;
-  transition: background 0.15s ease, border-color 0.15s ease;
-
-}
-
-button:hover,
-input[type="button"]:hover,
-input[type="submit"]:hover,
-.btn:hover {
-  background: var(--arlo-panel-strong);
-  border-color: var(--arlo-accent);
-
-}
-
-button:focus-visible,
-input:focus-visible,
-select:focus-visible,
-textarea:focus-visible,
-.btn:focus-visible {
-  outline: 3px solid var(--arlo-focus);
-  outline-offset: 2px;
-}
-
-button:disabled,
-input:disabled,
-select:disabled,
-textarea:disabled,
-.btn[disabled] {
-  opacity: 0.6;
-  cursor: not-allowed;
-  box-shadow: none;
-}
-
-input,
-select,
-textarea {
-  font: inherit;
-  letter-spacing: 0.02em;
-  background: var(--arlo-panel);
-  color: var(--arlo-ink);
-  border: 3px solid var(--arlo-border);
-  padding: 0.4rem 0.6rem;
-  border-radius: 0;
-  min-width: 3rem;
-  box-shadow: none;
-
-}
-
-input[type="range"] {
-  width: 100%;
-  min-width: 120px;
-  background: transparent;
-  box-shadow: none;
-  accent-color: var(--arlo-ink);
-}
-
-input[type="color"] {
-  padding: 0.1rem;
-  height: 2.25rem;
-}
-
-input[type="checkbox"],
-input[type="radio"] {
-  width: 1.1rem;
-  height: 1.1rem;
-  margin: 0 0.4rem 0 0;
-  vertical-align: middle;
-  accent-color: var(--arlo-ink);
-  box-shadow: none;
-  border: 2px solid var(--arlo-border);
-}
-
-label {
-  font-size: 0.9rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-  color: var(--arlo-muted);
   display: flex;
-  align-items: center;
-  gap: 0.6rem;
 }
 
-label.inline {
-  display: inline-flex;
-}
-
-.muted,
-label .muted,
-.muted span {
-  color: var(--arlo-muted);
-  font-size: 0.85rem;
-  letter-spacing: 0.05em;
-  text-transform: uppercase;
-}
-
-canvas,
-svg,
-video {
-  border: 2px solid var(--arlo-border);
-  background: var(--arlo-panel);
-  box-shadow: 10px 10px 0 var(--arlo-shadow);
-  max-width: 100%;
-}
-
-table {
-  border-collapse: collapse;
-  width: 100%;
-  background: var(--arlo-panel);
-  border: 2px solid var(--arlo-border);
-  box-shadow: 8px 8px 0 var(--arlo-shadow);
-}
-
-table th,
-table td {
-  padding: 0.6rem;
-  border: 2px solid var(--arlo-border);
-  text-align: center;
-}
-
-table th {
-  background: var(--arlo-panel-strong);
-  font-weight: 600;
-}
-
-.controls,
-.toolbar,
-.panel,
-.group,
-section,
-aside,
-legend,
-fieldset,
-.details-panel,
-.sidebar,
-.info-box,
-header,
-footer {
-  background: var(--arlo-panel);
-  border: 2px solid var(--arlo-border);
-  box-shadow: 12px 12px 0 var(--arlo-shadow);
-  padding: 1.25rem;
-}
-
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1.5rem;
-  align-items: flex-start;
-}
-
-.control-group {
+/* Sidebar */
+.sidebar {
+  width: 320px;
+  max-width: 100vw;
+  transition: all 0.3s ease;
+  background: var(--bg);
+  border-right: 2px solid var(--border);
+  padding: 20px 26px 32px;
   display: flex;
   flex-direction: column;
-  gap: 0.6rem;
-  min-width: 180px;
-}
-
-.button-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  align-items: center;
-  background: var(--arlo-panel);
-  border: 2px solid var(--arlo-border);
-  box-shadow: 8px 8px 0 var(--arlo-shadow);
-  padding: 0.75rem 1rem;
-}
-
-.wrap {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.card {
-  display: flex;
-  flex-direction: column;
-  gap: 0.6rem;
-  background: var(--arlo-panel-strong);
-  border: 2px solid var(--arlo-border);
-  padding: 1rem;
-  box-shadow: 8px 8px 0 var(--arlo-shadow);
-}
-
-.alert {
-  background: var(--arlo-panel-strong);
-  border: 2px solid var(--arlo-border);
-  padding: 0.75rem 1rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-}
-
-.placeholder {
-  border: 2px dashed var(--arlo-border);
-  padding: 2rem;
-  text-align: center;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: var(--arlo-muted);
-}
-
-.spacer {
-  flex: 1 1 auto;
-}
-
-.transport-label {
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--arlo-muted);
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  padding: 0.25rem 0.65rem;
-  border: 2px solid var(--arlo-border);
-  background: var(--arlo-panel);
-  font-size: 0.75rem;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-.badge.pass {
-  background: var(--arlo-panel-strong);
-}
-
-.badge.fail {
-  background: var(--arlo-bg);
-}
-
-.pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.4rem;
-  padding: 0.25rem 0.6rem;
-  border: 2px solid var(--arlo-border);
-  background: var(--arlo-panel-strong);
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.legend {
-  margin: 1rem 0;
-}
-
-details {
-  background: var(--arlo-panel);
-  border: 2px solid var(--arlo-border);
-  box-shadow: 10px 10px 0 var(--arlo-shadow);
-  padding: 1rem 1.25rem;
-}
-
-details > summary {
-  cursor: pointer;
-  font-weight: 700;
-  text-transform: uppercase;
-  letter-spacing: 0.12em;
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-details > summary::-webkit-details-marker {
-  display: none;
-}
-
-details > summary::before {
-  content: "▸";
-  display: inline-block;
-  transition: transform 0.2s ease;
-}
-
-details[open] > summary::before {
-  transform: rotate(90deg);
-}
-
-fieldset {
-  border: 2px solid var(--arlo-border);
-  margin: 0 0 1rem;
-}
-
-img {
-  max-width: 100%;
-  border: 2px solid var(--arlo-border);
-  box-shadow: 8px 8px 0 var(--arlo-shadow);
-}
-
-/* ---------- Hub (index.html) ---------- */
-
-body.tool-index {
-  display: grid;
-  grid-template-columns: minmax(220px, 280px) 1fr;
-  min-height: 100vh;
-  background: var(--arlo-bg);
-  color: var(--arlo-ink);
-
-}
-
-body.tool-index aside.sidebar {
-  position: sticky;
-  top: 0;
-  align-self: flex-start;
-  display: flex;
-  flex-direction: column;
-  gap: 1.75rem;
-  padding: 2.5rem 1.75rem;
-  border-right: 4px solid var(--arlo-border);
-  background: var(--arlo-bg);
-}
-
-body.tool-index aside.sidebar .brand {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.2rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 4px solid var(--arlo-border);
-}
-
-body.tool-index aside.sidebar .mark {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-width: 3.1rem;
-  min-height: 3.1rem;
-  font-weight: 700;
-  letter-spacing: 0.18em;
-  border: 4px solid var(--arlo-border);
-  background: var(--arlo-bg);
-}
-
-body.tool-index aside.sidebar .brand h1 {
-  margin: 0;
-  font-size: 1.05rem;
-  letter-spacing: 0.2em;
-}
-
-body.tool-index aside.sidebar .brand p {
-  margin: 0.35rem 0 0;
-  max-width: 18ch;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--arlo-muted);
-}
-
-body.tool-index .search-wrapper {
-  display: flex;
-  align-items: center;
-  gap: 0.6rem;
-  padding-top: 1.25rem;
-  border-top: 4px solid var(--arlo-border);
-}
-
-body.tool-index .search-wrapper svg {
-  width: 1.2rem;
-  height: 1.2rem;
-  fill: var(--arlo-ink);
-}
-
-body.tool-index input[type="search"] {
-  flex: 1;
-  width: 100%;
-  padding: 0.55rem 0.75rem;
-  border-width: 3px;
-  box-shadow: none;
-}
-
-body.tool-index nav {
-  flex: 1;
-  display: flex;
-  min-height: 0;
-  overflow-y: auto;
-}
-
-body.tool-index #tool-list {
-  list-style: none;
-  padding: 1.25rem 0 0;
-  margin: 0;
-  display: flex;
-  flex-direction: column;
-  gap: 0.65rem;
-  width: 100%;
-  flex: 1;
-  border-top: 4px solid var(--arlo-border);
-}
-
-body.tool-index #tool-list li {
-  margin: 0;
-
-}
-
-body.tool-index #tool-list button {
-  justify-content: flex-start;
-  width: 100%;
-  padding: 0.65rem 0.75rem;
-  border-width: 3px;
-  background: var(--arlo-bg);
-  color: var(--arlo-ink);
-  letter-spacing: 0.1em;
-
-}
-
-body.tool-index #tool-list button span {
-  flex: 1;
-  text-align: left;
-}
-
-body.tool-index #tool-list button.active {
-  border-color: var(--arlo-border);
-  background: var(--arlo-panel);
-  box-shadow: 6px 6px 0 var(--arlo-border);
-}
-
-body.tool-index #tool-list button:not(.active):hover {
-  background: var(--arlo-panel-strong);
-}
-
-body.tool-index main {
-  padding: 2.5rem 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 2rem;
-  background: var(--arlo-bg);
-  border-left: 4px solid var(--arlo-border);
-
-}
-
-body.tool-index .toolbar {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-  gap: 1rem;
-  border-bottom: 4px solid var(--arlo-border);
-  padding-bottom: 1.5rem;
-}
-
-body.tool-index .toolbar a {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.45rem 0.8rem;
-  border: 3px solid var(--arlo-border);
-  background: var(--arlo-bg);
-  color: var(--arlo-ink);
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-
-body.tool-index .toolbar a.disabled {
-  opacity: 0.45;
-  pointer-events: none;
-  color: var(--arlo-muted);
-
-}
-
-body.tool-index .frame-container {
-  flex: 1;
-  display: flex;
-  border: 4px solid var(--arlo-border);
-  background: var(--arlo-bg);
-
-}
-
-body.tool-index iframe {
-  border: none;
-  flex: 1;
-  width: 100%;
-  min-height: 70vh;
-  background: var(--arlo-bg);
-
-}
-
-@media (max-width: 960px) {
-  body.tool-index {
-    grid-template-columns: 1fr;
-  }
-
-  body.tool-index aside.sidebar {
-    position: static;
-    top: auto;
-    order: -1;
-    border-right: none;
-    border-bottom: 4px solid var(--arlo-border);
-  }
-
-  body.tool-index nav {
-    max-height: 40vh;
-    overflow-y: auto;
-
-  }
-
-  body.tool-index main {
-    border-left: none;
-    border-top: 4px solid var(--arlo-border);
-
-  }
-}
-
-/* ---------- Tool-specific layout rules ---------- */
-
-body[class^="tool-"]:not(.tool-index) {
-  padding: 2rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-body[class^="tool-"] > script {
-  display: none;
-}
-
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html header {
-  position: sticky;
-  top: 1.5rem;
+  gap: 20px;
+  position: relative;
   z-index: 10;
 }
 
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .bar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem 1.5rem;
-  align-items: flex-end;
+.sidebar h1 {
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--divider);
 }
 
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .title {
-  font-size: 1rem;
-  letter-spacing: 0.12em;
-  font-weight: 700;
-}
-
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .controls {
-  gap: 1rem;
-}
-
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .controls label {
-  flex-direction: column;
-  align-items: flex-start;
-  color: var(--arlo-ink);
-}
-
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .controls input,
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .controls select {
-  width: 140px;
-}
-
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .progress-wrap {
-  margin-top: 1rem;
-  height: 0.6rem;
-  background: var(--arlo-panel-strong);
-  border: 2px solid var(--arlo-border);
-  box-shadow: 4px 4px 0 var(--arlo-shadow);
-}
-
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .progress {
-  height: 100%;
-  width: 0;
-  background: var(--arlo-ink);
-  transition: width 0.2s ease;
-}
-
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html main {
-  display: grid;
-  gap: 1.5rem;
-}
-
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html #view3d,
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html #stage2d {
-  min-height: 480px;
-  background: var(--arlo-panel);
-  border: 2px solid var(--arlo-border);
-  box-shadow: 14px 14px 0 var(--arlo-shadow);
-  position: relative;
-}
-
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html #stage2d {
+.sidebar.hidden {
   display: none;
 }
 
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .legend .row {
+/* Main wrapper */
+.main-wrapper {
+  flex: 1;
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.6rem;
-}
-
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html footer {
-  font-size: 0.85rem;
-  color: var(--arlo-muted);
-}
-
-body.tool-3-d-color-space-organizer-collapsible-legend-updated-html .tests {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
-  margin-top: 0.75rem;
-}
-
-/* Audio spectrogram */
-
-body.tool-audio-spectrogram-tool {
-  align-items: center;
-  text-align: center;
-}
-
-body.tool-audio-spectrogram-tool #sidebar {
-  position: fixed;
-  top: 2rem;
-  left: 2rem;
-  bottom: 2rem;
-  width: min(320px, 85vw);
-  overflow-y: auto;
-  display: none;
   flex-direction: column;
-  gap: 1rem;
-  background: var(--arlo-panel);
-  border: 2px solid var(--arlo-border);
-  box-shadow: 12px 12px 0 var(--arlo-shadow);
-  text-align: left;
-  padding: 1.5rem;
-  z-index: 20;
-}
-
-body.tool-audio-spectrogram-tool .sidebar-close {
-  align-self: flex-end;
-}
-
-body.tool-audio-spectrogram-tool .help-button {
-  position: fixed;
-  top: 1.5rem;
-  left: 1.5rem;
-  z-index: 15;
-}
-
-body.tool-audio-spectrogram-tool canvas {
-  margin-top: 1rem;
-  width: min(960px, 95vw);
-  height: auto;
-}
-
-/* Brutalist mind map */
-
-body.tool-brutalist-mind-map-scaled {
-  display: block;
-  padding: 0;
-  overflow: hidden;
-}
-
-body.tool-brutalist-mind-map-scaled #ui {
-  position: fixed;
-  top: 1.5rem;
-  left: 1.5rem;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  background: var(--arlo-panel);
-  border: 2px solid var(--arlo-border);
-  box-shadow: 12px 12px 0 var(--arlo-shadow);
-  z-index: 20;
-}
-
-body.tool-brutalist-mind-map-scaled canvas {
-  display: block;
-  width: 100vw;
   height: 100vh;
-  box-shadow: none;
-  border: none;
-  background: var(--arlo-bg);
+  width: 100%;
 }
 
-/* Chisel-tip pen */
-
-body.tool-chisel-tip-pen-drawing-tool-standalone-html {
-  display: block;
-  padding: 0;
+/* Search */
+.search-wrapper {
+  position: relative;
 }
 
-body.tool-chisel-tip-pen-drawing-tool-standalone-html .app {
+.search-wrapper input {
+  width: 100%;
+  padding: 12px 16px 12px 48px;
+  border: 2px solid var(--border);
+  background: var(--panel);
+  color: inherit;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.search-wrapper svg {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+  fill: var(--border);
+  pointer-events: none;
+}
+
+/* Tool list */
+#tool-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
   display: grid;
-  grid-template-columns: minmax(280px, 360px) 1fr;
-  grid-template-rows: auto 1fr;
-  min-height: 100vh;
+  gap: 14px;
 }
 
-body.tool-chisel-tip-pen-drawing-tool-standalone-html header {
-  grid-column: 1 / -1;
+.tool-button {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid var(--border);
+  background: var(--panel);
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tool-button.active {
+  background: var(--panel-active);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+/* Toolbar */
+.toolbar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  position: sticky;
+  padding: 0 12px;
+  height: 40px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  font-size: 0.9rem;
+  font-weight: bold;
+  gap: 12px;
+  position: relative;
+}
+
+#sidebar-toggle {
+  width: 40px;
+  height: 40px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1rem;
+  position: absolute;
   top: 0;
+  left: 0;
   z-index: 20;
 }
 
-body.tool-chisel-tip-pen-drawing-tool-standalone-html header h1 {
-  margin: 0;
-  font-size: 1rem;
-}
-
-body.tool-chisel-tip-pen-drawing-tool-standalone-html .toolbar {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-}
-
-body.tool-chisel-tip-pen-drawing-tool-standalone-html .side {
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  border-right: 2px solid var(--arlo-border);
-  box-shadow: 12px 0 0 var(--arlo-shadow);
-  background: var(--arlo-panel);
-}
-
-body.tool-chisel-tip-pen-drawing-tool-standalone-html .group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.75rem;
-  background: var(--arlo-panel-strong);
-  border: 2px solid var(--arlo-border);
-  padding: 1rem;
-  box-shadow: 8px 8px 0 var(--arlo-shadow);
-}
-
-body.tool-chisel-tip-pen-drawing-tool-standalone-html .group h3 {
-  margin: 0;
-  font-size: 0.9rem;
-}
-
-body.tool-chisel-tip-pen-drawing-tool-standalone-html .row {
-  display: flex;
-  gap: 0.75rem;
-  flex-wrap: wrap;
-  align-items: center;
-}
-
-body.tool-chisel-tip-pen-drawing-tool-standalone-html .row-spaced {
-  justify-content: space-between;
-}
-
-body.tool-chisel-tip-pen-drawing-tool-standalone-html .help {
-  font-size: 0.75rem;
-  text-transform: uppercase;
-  letter-spacing: 0.08em;
-  color: var(--arlo-muted);
-}
-
-body.tool-chisel-tip-pen-drawing-tool-standalone-html .swatch {
-  width: 36px;
-  height: 36px;
-  border: 2px solid var(--arlo-border);
-  box-shadow: 6px 6px 0 var(--arlo-shadow);
-}
-
-body.tool-chisel-tip-pen-drawing-tool-standalone-html canvas {
-  width: 100%;
-  height: 100%;
-  border: none;
-  box-shadow: none;
-}
-
-body.tool-chisel-tip-pen-drawing-tool-standalone-html .app main,
-body.tool-chisel-tip-pen-drawing-tool-standalone-html .app .canvas-wrap {
-  position: relative;
-  background: var(--arlo-bg);
-}
-
-/* Graded Game of Life */
-
-body.tool-graded-game-of-life {
-  align-items: center;
-}
-
-body.tool-graded-game-of-life canvas {
-  width: min(90vw, 640px);
-  height: auto;
-}
-
-body.tool-graded-game-of-life .controls {
-  width: min(90vw, 960px);
-  justify-content: space-between;
-}
-
-body.tool-graded-game-of-life .controls > div {
-  flex: 1;
-  min-width: 220px;
-}
-
-body.tool-graded-game-of-life h4 {
-  margin-bottom: 0.5rem;
-}
-
-/* Less circle-centric fractal */
-
-body.tool-less-circle-centric-fractal-1 {
-  align-items: center;
-}
-
-body.tool-less-circle-centric-fractal-1 canvas {
-  width: min(95vw, 820px);
-  height: auto;
-}
-
-/* Lissajous grid */
-
-body.tool-lissajous-figure-grid {
-  display: grid;
-  gap: 1.5rem;
-}
-
-body.tool-lissajous-figure-grid #table-container {
-  overflow: auto;
-  border: 2px solid var(--arlo-border);
-  box-shadow: 14px 14px 0 var(--arlo-shadow);
-  background: var(--arlo-panel);
-}
-
-body.tool-lissajous-figure-grid #sidebar {
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  max-width: 320px;
-}
-
-body.tool-lissajous-figure-grid #sidebar button {
-  width: fit-content;
-}
-
-/* Medieval border generator */
-
-body.tool-medieval-border-generator-geometric-tiling-v-2 .controls {
-  width: min(90vw, 1024px);
-}
-
-body.tool-medieval-border-generator-geometric-tiling-v-2 canvas {
-  width: min(95vw, 960px);
-  height: auto;
-}
-
-/* MIDI to neumes */
-
-body.tool-midi-neumes-converter-single-file-html {
-  gap: 1rem;
-}
-
-body.tool-midi-neumes-converter-single-file-html textarea {
-  width: min(90vw, 720px);
-  min-height: 200px;
-}
-
-body.tool-midi-neumes-converter-single-file-html .controls {
-  width: min(90vw, 720px);
-}
-
-/* Particle tree */
-
-body.tool-particle-tree-zoom-scroll {
-  align-items: center;
-}
-
-body.tool-particle-tree-zoom-scroll canvas {
-  width: min(95vw, 960px);
-  height: auto;
-}
-
-/* Pixel row glitcher */
-
-body.tool-pixel-row-glitcher {
-  align-items: center;
-}
-
-body.tool-pixel-row-glitcher canvas {
-  width: min(95vw, 960px);
-  height: auto;
-}
-
-/* Random I Heart */
-
-body.tool-random-i-heart {
-  align-items: center;
-}
-
-body.tool-random-i-heart canvas {
-  width: min(90vw, 640px);
-  height: auto;
-}
-
-/* Recursive vector fractal lab */
-
-body.tool-recursive-vector-fractal-lab-standalone-html-2 {
-  display: block;
-  padding: 0;
-}
-
-body.tool-recursive-vector-fractal-lab-standalone-html-2 .app {
-  display: grid;
-  grid-template-columns: minmax(260px, 320px) 1fr;
-  grid-template-rows: auto 1fr;
-  min-height: 100vh;
-}
-
-body.tool-recursive-vector-fractal-lab-standalone-html-2 header {
-  grid-column: 1 / -1;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 0.75rem;
-  align-items: center;
-  position: sticky;
-  top: 0;
-  z-index: 15;
-}
-
-body.tool-recursive-vector-fractal-lab-standalone-html-2 header .spacer {
+.toolbar #tool-name {
+  margin-left: 52px;
   flex: 1;
 }
 
-body.tool-recursive-vector-fractal-lab-standalone-html-2 .grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) 320px;
+/* Frame */
+.frame-container {
+  flex: 1;
   position: relative;
+  overflow: hidden;
+  background: var(--panel);
+  border: 2px solid var(--border);
 }
 
-body.tool-recursive-vector-fractal-lab-standalone-html-2 .left {
-  position: relative;
-  background: var(--arlo-bg);
-}
-
-body.tool-recursive-vector-fractal-lab-standalone-html-2 .wrap {
-  position: relative;
+iframe {
   width: 100%;
   height: 100%;
-}
-
-body.tool-recursive-vector-fractal-lab-standalone-html-2 canvas,
-body.tool-recursive-vector-fractal-lab-standalone-html-2 .overlay {
   border: none;
-  box-shadow: none;
+  background: var(--panel);
 }
 
-body.tool-recursive-vector-fractal-lab-standalone-html-2 .right {
-  background: var(--arlo-panel);
-  border-left: 2px solid var(--arlo-border);
-  padding: 1.5rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-  max-height: calc(100vh - 4rem);
-  overflow-y: auto;
+/* Extra elements for flexibility */
+h2, h3, h4, h5, h6 {
+  font-weight: bold;
+  margin: 16px 0 8px;
+  border-bottom: 1px solid var(--divider);
 }
 
-body.tool-recursive-vector-fractal-lab-standalone-html-2 section {
-  background: var(--arlo-panel-strong);
-  border: 2px solid var(--arlo-border);
-  padding: 1rem;
-  box-shadow: 8px 8px 0 var(--arlo-shadow);
+p {
+  margin: 0 0 12px;
 }
 
-body.tool-recursive-vector-fractal-lab-standalone-html-2 .row {
-  display: flex;
-  gap: 0.75rem;
-  align-items: center;
-  justify-content: space-between;
+a {
+  color: var(--accent);
+  text-decoration: underline;
 }
 
-body.tool-recursive-vector-fractal-lab-standalone-html-2 .cols2 {
-  display: grid;
-  gap: 0.75rem;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+a:hover {
+  background: var(--panel-hover);
 }
 
-body.tool-recursive-vector-fractal-lab-standalone-html-2 .full-span {
-  grid-column: 1 / -1;
+ul, ol {
+  margin: 12px 0;
+  padding-left: 24px;
 }
 
-/* Spectrogram glitch posteffects */
-
-body.tool-spectrogram-glitch-posteffects-1 {
-  align-items: center;
+code, pre {
+  font-family: monospace;
+  background: var(--panel-active);
+  padding: 2px 4px;
+  border: 1px solid var(--border);
 }
 
-body.tool-spectrogram-glitch-posteffects-1 canvas {
-  width: min(95vw, 960px);
-  height: auto;
+button {
+  font-family: inherit;
+  border: 2px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  cursor: pointer;
 }
 
-/* Square tiling tool */
-
-body.tool-square-tiling-tool-svg-import-export .controls {
-  width: min(90vw, 960px);
+button:hover {
+  background: var(--panel-hover);
 }
 
-body.tool-square-tiling-tool-svg-import-export canvas {
-  width: min(95vw, 960px);
-  height: auto;
+input, textarea, select {
+  font-family: inherit;
+  border: 2px solid var(--border);
+  background: var(--panel);
+  color: var(--text);
+  padding: 6px 8px;
 }
 
-@media (max-width: 840px) {
-  body.tool-chisel-tip-pen-drawing-tool-standalone-html .app,
-  body.tool-recursive-vector-fractal-lab-standalone-html-2 .app {
-    grid-template-columns: 1fr;
-  }
-
-  body.tool-chisel-tip-pen-drawing-tool-standalone-html .side,
-  body.tool-recursive-vector-fractal-lab-standalone-html-2 .right {
-    position: static;
-    max-height: none;
-  }
-
-  body.tool-recursive-vector-fractal-lab-standalone-html-2 .grid {
-    grid-template-columns: 1fr;
-  }
+blockquote {
+  border-left: 4px solid var(--accent);
+  margin: 12px 0;
+  padding-left: 12px;
+  color: var(--muted);
 }
 
-
+hr {
+  border: none;
+  border-top: 2px solid var(--divider);
+  margin: 20px 0;
+}
