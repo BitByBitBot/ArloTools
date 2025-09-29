@@ -373,8 +373,13 @@
 
       if (visibleButtons === 0) {
         iframe.hidden = true;
+        iframe.removeAttribute("src");
         toolName.textContent = "No tools match";
         openNewTab.href = "#";
+        if (activeButton) {
+          activeButton.classList.remove("active");
+          activeButton.setAttribute("aria-selected", "false");
+        }
         activeButton = null;
         return;
       }
