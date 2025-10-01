@@ -296,12 +296,113 @@
         }
       };
 
-      const fetchToolFiles = async () => {
-        const manifestFiles = await fetchManifest();
-        if (Array.isArray(manifestFiles) && manifestFiles.length) {
-          return manifestFiles;
+      const getConfig = () => {
+        const globalConfig = window.ARLO_TOOLS_CONFIG || {};
+        const dataset = document.body?.dataset || {};
+        const normaliseList = (value) => {
+          if (!value) return [];
+          if (Array.isArray(value)) return value;
+          if (typeof value === "string") {
+            return value
+              .split(",")
+              .map((item) => item.trim())
+              .filter(Boolean);
+          }
+          return [];
+        };
+
+        return {
+          githubOwner: globalConfig.githubOwner || dataset.githubOwner || "",
+          githubRepo: globalConfig.githubRepo || dataset.githubRepo || "",
+          githubBranch: globalConfig.githubBranch || dataset.githubBranch || "",
+          githubBranches: normaliseList(globalConfig.githubBranches || dataset.githubBranches),
+          githubToken: globalConfig.githubToken || "",
+          disableGitHubLookup: Boolean(globalConfig.disableGitHubLookup || dataset.disableGithubLookup)
+        };
+      };
+
+      const inferGitHubProject = () => {
+        const { hostname, pathname } = window.location;
+        if (!hostname.endsWith(".github.io")) return { owner: "", repoCandidates: [] };
+
+        const owner = hostname.replace(/\.github\.io$/i, "");
+        const pathSegments = pathname.replace(/^\/+/, "").split("/").filter(Boolean);
+        const repoCandidates = [];
+
+        if (pathSegments.length) {
+          repoCandidates.push(pathSegments[0]);
         }
 
+        repoCandidates.push(`${owner}.github.io`);
+
+        return { owner, repoCandidates };
+      };
+
+      const fetchGitHubListing = async () => {
+        const config = getConfig();
+        if (config.disableGitHubLookup) return [];
+
+        let owner = config.githubOwner;
+        let repo = config.githubRepo;
+
+        const inferred = inferGitHubProject();
+        if (!owner && inferred.owner) owner = inferred.owner;
+
+        const repoCandidates = new Set();
+        if (repo) repoCandidates.add(repo);
+        if (inferred.repoCandidates) {
+          inferred.repoCandidates.forEach((candidate) => {
+            if (candidate) repoCandidates.add(candidate);
+          });
+        }
+
+        if (!owner || !repoCandidates.size) return [];
+
+        const branches = Array.from(new Set([
+          config.githubBranch,
+          ...(config.githubBranches || []),
+          "main",
+          "master"
+        ].filter(Boolean)));
+
+        const headers = {
+          Accept: "application/vnd.github+json"
+        };
+
+        if (config.githubToken) {
+          headers.Authorization = `Bearer ${config.githubToken}`;
+        }
+
+        const directory = TOOL_DIRECTORY.replace(/\/+$/, "");
+
+        for (const repoCandidate of repoCandidates) {
+          for (const branch of branches) {
+            const url = `https://api.github.com/repos/${owner}/${repoCandidate}/contents/${directory}?ref=${encodeURIComponent(branch)}`;
+            try {
+              const response = await fetch(url, { headers, cache: "no-cache" });
+              if (!response.ok) {
+                if (response.status === 404) {
+                  continue;
+                }
+                console.warn(`GitHub lookup failed (${response.status}): ${await response.text()}`);
+                continue;
+              }
+              const data = await response.json();
+              if (!Array.isArray(data)) continue;
+              return data
+                .filter((entry) => entry?.type === "file")
+                .map((entry) => entry.name)
+                .filter((name) => typeof name === "string" && name.toLowerCase().endsWith(".html"));
+            } catch (error) {
+              console.warn("Unable to query GitHub API:", error);
+            }
+          }
+        }
+
+        return [];
+      };
+
+      const fetchDirectoryListing = async () => {
         try {
           const response = await fetch(TOOL_DIRECTORY, { cache: "no-cache" });
           if (!response.ok) throw new Error(`Unable to list tools: ${response.status}`);
@@ -315,17 +416,49 @@
           const markup = await response.text();
           return parseDirectoryListing(markup);
         } catch (error) {
-          console.error(error);
+          console.warn("Directory listing lookup failed:", error);
           return [];
         }
+      };
+
+      const fetchToolFiles = async () => {
+        const manifestFiles = await fetchManifest();
+        if (Array.isArray(manifestFiles) && manifestFiles.length) {
+          return manifestFiles;
+        }
+
+        const directoryFiles = await fetchDirectoryListing();
+        if (Array.isArray(directoryFiles) && directoryFiles.length) {
+          return directoryFiles;
+        }
+
+        const githubFiles = await fetchGitHubListing();
+        if (Array.isArray(githubFiles) && githubFiles.length) {
+          return githubFiles;
+        }
+
+        return [];
       };
 
       const renderTools = (toolFiles) => {
         toolList.innerHTML = "";
         if (!toolFiles.length) {
-          console.warn("No tools detected. Ensure your server exposes a directory listing for the tools folder or provide a manifest at tools/manifest.json.");
-          const emptyState = document.createElement("p");
-          emptyState.textContent = "No tools found in the tools folder.";
+          console.warn("No tools detected. Ensure your server exposes a directory listing for the tools folder, set ARLO_TOOLS_CONFIG with GitHub details, or provide a manifest at tools/manifest.json.");
+          const emptyState = document.createElement("div");
+          emptyState.style.display = "flex";
+          emptyState.style.flexDirection = "column";
+          emptyState.style.gap = "0.75rem";
+
+          const message = document.createElement("p");
+          message.textContent = "No tools found in the tools folder.";
+
+          const hint = document.createElement("p");
+          hint.style.fontSize = "0.8rem";
+          hint.style.lineHeight = "1.4";
+          hint.textContent = "If you're hosting ArloTools on GitHub Pages, expose the repository owner/repo via ARLO_TOOLS_CONFIG or data attributes so the index can query the GitHub API automatically.";
+
+          emptyState.appendChild(message);
+          emptyState.appendChild(hint);
           toolList.appendChild(emptyState);
           iframe.hidden = true;
           toolName.textContent = "Choose a tool";
