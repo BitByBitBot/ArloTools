@@ -4,7 +4,7 @@
   <meta charset="UTF-8">
   <title>ArloTools</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <link rel="stylesheet" href="theme.css">
+  <link rel="stylesheet" href="../theme.css">
   <style>
     /* Global reset for consistency across browsers */
     *, *::before, *::after {
@@ -252,7 +252,7 @@
         if (!doc) return;
         const link = doc.createElement("link");
         link.rel = "stylesheet";
-        link.href = "theme.css";
+        link.href = "../theme.css";
         doc.head.appendChild(link);
       };
 
