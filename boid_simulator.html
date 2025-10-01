@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Boid Simulator</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #fff;
+      color: #000;
+      font-family: sans-serif;
+    }
+    canvas {
+      border: 1px solid #ccc;
+      margin-top: 10px;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+      width: 90%;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+    }
+    input[type="range"] {
+      width: 100%;
+    }
+  </style>
+</head>
+<body>
+  <h1>Boid Simulator</h1>
+  <canvas id="boidCanvas" width="800" height="600"></canvas>
+
+  <div class="controls">
+    <label>Boid Count <input id="boidCount" type="range" min="10" max="1000" value="100"></label>
+    <label>Max Speed <input id="maxSpeed" type="range" min="1" max="10" value="4" step="0.1"></label>
+    <label>Alignment <input id="alignSlider" type="range" min="0" max="2" step="0.1" value="1"></label>
+    <label>Cohesion <input id="cohesionSlider" type="range" min="0" max="2" step="0.1" value="1"></label>
+    <label>Separation <input id="separationSlider" type="range" min="0" max="2" step="0.1" value="1.5"></label>
+    <label>Vision Radius <input id="visionSlider" type="range" min="10" max="200" step="1" value="50"></label>
+    <label>Boid Size <input id="scaleSlider" type="range" min="1" max="10" value="4" step="0.1"></label>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('boidCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let boids = [];
+
+    const sliders = {
+      boidCount: document.getElementById('boidCount'),
+      maxSpeed: document.getElementById('maxSpeed'),
+      alignment: document.getElementById('alignSlider'),
+      cohesion: document.getElementById('cohesionSlider'),
+      separation: document.getElementById('separationSlider'),
+      vision: document.getElementById('visionSlider'),
+      scale: document.getElementById('scaleSlider')
+    };
+
+    class Boid {
+      constructor() {
+        this.position = {
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height
+        };
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 2 + 1;
+        this.velocity = {
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed
+        };
+        this.acceleration = { x: 0, y: 0 };
+        this.maxForce = 0.05;
+      }
+
+      edges() {
+        if (this.position.x > canvas.width) this.position.x = 0;
+        if (this.position.x < 0) this.position.x = canvas.width;
+        if (this.position.y > canvas.height) this.position.y = 0;
+        if (this.position.y < 0) this.position.y = canvas.height;
+      }
+
+      steer(target) {
+        let steer = {
+          x: target.x - this.velocity.x,
+          y: target.y - this.velocity.y
+        };
+        return limit(steer, this.maxForce);
+      }
+
+      align(boids) {
+        let avg = { x: 0, y: 0 };
+        let count = 0;
+        for (let other of boids) {
+          const d = distance(this.position, other.position);
+          if (other !== this && d < sliders.vision.value) {
+            avg.x += other.velocity.x;
+            avg.y += other.velocity.y;
+            count++;
+          }
+        }
+        if (count > 0) {
+          avg.x /= count;
+          avg.y /= count;
+          return this.steer(avg);
+        }
+        return { x: 0, y: 0 };
+      }
+
+      cohesion(boids) {
+        let center = { x: 0, y: 0 };
+        let count = 0;
+        for (let other of boids) {
+          const d = distance(this.position, other.position);
+          if (other !== this && d < sliders.vision.value) {
+            center.x += other.position.x;
+            center.y += other.position.y;
+            count++;
+          }
+        }
+        if (count > 0) {
+          center.x /= count;
+          center.y /= count;
+          return this.steer({
+            x: center.x - this.position.x,
+            y: center.y - this.position.y
+          });
+        }
+        return { x: 0, y: 0 };
+      }
+
+      separation(boids) {
+        let avoid = { x: 0, y: 0 };
+        let count = 0;
+        for (let other of boids) {
+          const d = distance(this.position, other.position);
+          if (other !== this && d < sliders.vision.value / 2) {
+            avoid.x += this.position.x - other.position.x;
+            avoid.y += this.position.y - other.position.y;
+            count++;
+          }
+        }
+        if (count > 0) {
+          avoid.x /= count;
+          avoid.y /= count;
+          return this.steer(avoid);
+        }
+        return { x: 0, y: 0 };
+      }
+
+      update(boids) {
+        let alignment = this.align(boids);
+        let cohesion = this.cohesion(boids);
+        let separation = this.separation(boids);
+
+        this.acceleration.x = alignment.x * sliders.alignment.value +
+                              cohesion.x * sliders.cohesion.value +
+                              separation.x * sliders.separation.value;
+        this.acceleration.y = alignment.y * sliders.alignment.value +
+                              cohesion.y * sliders.cohesion.value +
+                              separation.y * sliders.separation.value;
+
+        this.velocity.x += this.acceleration.x;
+        this.velocity.y += this.acceleration.y;
+        this.velocity = limit(this.velocity, parseFloat(sliders.maxSpeed.value));
+
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+
+        this.edges();
+      }
+
+      draw() {
+        const radius = parseFloat(sliders.scale.value);
+        ctx.beginPath();
+        ctx.arc(this.position.x, this.position.y, radius, 0, Math.PI * 2);
+        ctx.fillStyle = 'black';
+        ctx.fill();
+      }
+    }
+
+    function distance(a, b) {
+      return Math.hypot(a.x - b.x, a.y - b.y);
+    }
+
+    function limit(vector, max) {
+      const mag = Math.hypot(vector.x, vector.y);
+      if (mag > max) {
+        vector.x = (vector.x / mag) * max;
+        vector.y = (vector.y / mag) * max;
+      }
+      return vector;
+    }
+
+    function updateBoids() {
+      boids = Array.from({ length: sliders.boidCount.value }, () => new Boid());
+    }
+
+    function animate() {
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      for (let boid of boids) {
+        boid.update(boids);
+        boid.draw();
+      }
+      requestAnimationFrame(animate);
+    }
+
+    for (let key in sliders) {
+      sliders[key].addEventListener('input', updateBoids);
+    }
+
+    updateBoids();
+    animate();
+  </script>
+</body>
+</html>

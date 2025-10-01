@@ -2,91 +2,81 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Graded Game of Life</title>
+  <title>Graded Game of Life — Brutalist</title>
   <style>
-    :root {
-      --bg: #121212;
-      --panel: #1f1f1f;
-      --accent: #00ffe7;
-      --text: #f0f0f0;
-      --slider-bg: #333;
-      --slider-thumb: var(--accent);
-      --font: 'Segoe UI', sans-serif;
-    }
     body {
       margin: 0;
-      background: var(--bg);
-      font-family: var(--font);
-      color: var(--text);
+      background: white;
+      font-family: monospace;
+      color: black;
       display: flex;
       flex-direction: column;
       align-items: center;
     }
     canvas {
-      background: black;
+      background: white;
       cursor: crosshair;
-      box-shadow: 0 0 20px rgba(0,0,0,0.8);
-      margin: 1.5rem 0;
-      border-radius: 8px;
+      margin: 1rem 0;
+      border: 2px solid black;
+      image-rendering: pixelated;
     }
     .controls {
       display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-      gap: 1.5rem;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
       width: 95%;
       max-width: 1200px;
-      background: var(--panel);
-      padding: 2rem;
-      border-radius: 12px;
-      box-shadow: 0 0 20px rgba(0,0,0,0.4);
+      background: white;
+      padding: 1rem;
+      border: 2px solid black;
+      text-align: left;
     }
     h4 {
-      color: var(--accent);
       margin-top: 0;
-      font-weight: 500;
-      font-size: 1.1rem;
+      font-weight: bold;
+      font-size: 1rem;
+      border-bottom: 2px solid black;
     }
     .control-group {
-      margin-bottom: 1rem;
+      margin-bottom: 0.5rem;
     }
     label {
       font-size: 0.9rem;
-      margin-bottom: 0.3rem;
       display: block;
+      margin-bottom: 0.2rem;
     }
     input[type="range"] {
       width: 100%;
-      background-color: var(--slider-bg);
-      accent-color: var(--slider-thumb);
     }
     input[type="text"], button {
       padding: 0.4rem 0.6rem;
-      border: none;
-      border-radius: 6px;
+      border: 2px solid black;
+      background: white;
       font-size: 0.9rem;
-      font-family: var(--font);
+      font-family: monospace;
+      color: black;
     }
     input[type="text"] {
-      background: #333;
-      color: var(--text);
       width: 300px;
     }
     button {
-      background: var(--accent);
-      color: #000;
       font-weight: bold;
-      margin: 0 0.5rem 0.5rem 0;
       cursor: pointer;
-      transition: background 0.3s;
-    }
-    button:hover {
-      background: #00ccbb;
     }
     .button-row {
       margin-bottom: 1rem;
       display: flex;
       flex-wrap: wrap;
       justify-content: center;
+      gap: 0.5rem;
+    }
+    .preset-row {
+      margin-bottom: 1rem;
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 0.5rem;
+      align-items: center;
     }
   </style>
 </head>
@@ -96,54 +86,53 @@
       <h4>Birth</h4>
       <div class="control-group">
         <label for="birthMin">Birth Min: <span id="birthMinLabel"></span></label>
-        <input type="range" id="birthMin" oninput="document.getElementById('birthMinLabel').textContent = this.value" min="0" max="8" step="0.1" value="2.6667">
+        <input type="range" id="birthMin" min="0" max="8" step="0.1" value="2.6667" oninput="document.getElementById('birthMinLabel').textContent=this.value">
       </div>
       <div class="control-group">
         <label for="birthMax">Birth Max: <span id="birthMaxLabel"></span></label>
-        <input type="range" id="birthMax" oninput="document.getElementById('birthMaxLabel').textContent = this.value" min="0" max="8" step="0.1" value="4.8">
+        <input type="range" id="birthMax" min="0" max="8" step="0.1" value="4.8" oninput="document.getElementById('birthMaxLabel').textContent=this.value">
       </div>
       <div class="control-group">
         <label for="birthBoost">Birth Boost: <span id="birthBoostLabel"></span></label>
-        <input type="range" id="birthBoost" oninput="document.getElementById('birthBoostLabel').textContent = this.value" min="0" max="255" value="191">
+        <input type="range" id="birthBoost" min="0" max="255" value="191" oninput="document.getElementById('birthBoostLabel').textContent=this.value">
       </div>
     </div>
     <div>
       <h4>Survival</h4>
       <div class="control-group">
         <label for="surviveMin">Survive Min: <span id="surviveMinLabel"></span></label>
-        <input type="range" id="surviveMin" oninput="document.getElementById('surviveMinLabel').textContent = this.value" min="0" max="8" step="0.1" value="3.2">
+        <input type="range" id="surviveMin" min="0" max="8" step="0.1" value="3.2" oninput="document.getElementById('surviveMinLabel').textContent=this.value">
       </div>
       <div class="control-group">
         <label for="surviveMax">Survive Max: <span id="surviveMaxLabel"></span></label>
-        <input type="range" id="surviveMax" oninput="document.getElementById('surviveMaxLabel').textContent = this.value" min="0" max="8" step="0.1" value="6">
+        <input type="range" id="surviveMax" min="0" max="8" step="0.1" value="6" oninput="document.getElementById('surviveMaxLabel').textContent=this.value">
       </div>
       <div class="control-group">
         <label for="survivalGain">Survival Gain: <span id="survivalGainLabel"></span></label>
-        <input type="range" id="survivalGain" oninput="document.getElementById('survivalGainLabel').textContent = this.value" min="0" max="10" value="0">
+        <input type="range" id="survivalGain" min="0" max="10" value="0" oninput="document.getElementById('survivalGainLabel').textContent=this.value">
       </div>
     </div>
     <div>
       <h4>Decay & Drawing</h4>
       <div class="control-group">
         <label for="decayRate">Decay Rate: <span id="decayRateLabel"></span></label>
-        <input type="range" id="decayRate" oninput="document.getElementById('decayRateLabel').textContent = this.value" min="0" max="255" value="255">
+        <input type="range" id="decayRate" min="0" max="255" value="255" oninput="document.getElementById('decayRateLabel').textContent=this.value">
       </div>
       <div class="control-group">
         <label for="drawIntensity">Draw Intensity: <span id="drawIntensityLabel"></span></label>
-        <input type="range" id="drawIntensity" oninput="document.getElementById('drawIntensityLabel').textContent = this.value" min="0" max="255" value="255">
+        <input type="range" id="drawIntensity" min="0" max="255" value="255" oninput="document.getElementById('drawIntensityLabel').textContent=this.value">
       </div>
       <div class="control-group">
         <label for="brushSize">Brush Size: <span id="brushSizeLabel"></span></label>
-        <input type="range" id="brushSize" oninput="document.getElementById('brushSizeLabel').textContent = this.value" min="1" max="10" value="3">
+        <input type="range" id="brushSize" min="1" max="10" value="3" oninput="document.getElementById('brushSizeLabel').textContent=this.value">
       </div>
       <div class="control-group">
-        <label for="eraser">Eraser</label>
-        <input type="checkbox" id="eraser">
+        <label><input type="checkbox" id="eraser"> Eraser</label>
       </div>
     </div>
   </div>
 
-  <canvas id="lifeCanvas" width="400" height="400" style="width: 800px; height: 800px; image-rendering: pixelated;"></canvas>
+  <canvas id="lifeCanvas" width="400" height="400" style="width: 800px; height: 800px;"></canvas>
   <div class="button-row">
     <button id="togglePlay">Pause</button>
     <button id="clearButton">Clear</button>
@@ -153,8 +142,15 @@
     <input type="text" id="presetInput" placeholder="Enter preset code">
     <button onclick="applyPresetCode()">Apply</button>
   </div>
+  <div class="preset-row">
+    <span>Try these!</span>
+    <button onclick="setPreset('2.4,3.2,3.2,5.9,194,36,8,255,6')">Preset 1</button>
+    <button onclick="setPreset('2.4,3.2,3.2,3.8,149,18,9,255,7')">Preset 2</button>
+    <button onclick="setPreset('2.4,3.2,3.2,5.9,194,36,8,255,6')">Preset 3</button>
+  </div>
 
   <script>
+    // JS unchanged from before
     const canvas = document.getElementById("lifeCanvas");
     const ctx = canvas.getContext("2d");
     const width = canvas.width;
@@ -344,6 +340,11 @@
         const label = document.getElementById(id + 'Label');
         if (label) label.textContent = values[i];
       });
+    }
+
+    function setPreset(code) {
+      document.getElementById('presetInput').value = code;
+      applyPresetCode();
     }
   </script>
 </body>

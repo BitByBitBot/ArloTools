@@ -5,26 +5,64 @@
   <title>Audio Spectrogram Viewer</title>
   <style>
     body {
-      background: #111;
-      color: white;
-      font-family: sans-serif;
+      background: white;
+      color: black;
+      font-family: monospace;
       text-align: center;
     }
     canvas {
-      background: black;
+      background: white;
       margin: 10px 0;
-      border: 1px solid #444;
+      border: 2px solid black;
       image-rendering: pixelated;
     }
-    input[type="file"] {
+    input[type="file"], button {
       margin-top: 10px;
+      border: 2px solid black;
+      background: white;
+      color: black;
+      font-family: monospace;
+      padding: 0.4em 0.8em;
+      cursor: pointer;
+    }
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 280px;
+      background: white;
+      color: black;
+      border-right: 2px solid black;
+      padding: 1em;
+      font-family: monospace;
+      font-size: 0.9em;
+      text-align: left;
+      overflow-y: auto;
+      display: none;
+      z-index: 10;
+    }
+    #sidebar button {
+      float: right;
+    }
+    h1, h2 {
+      border-bottom: 2px solid black;
+      padding-bottom: 0.2em;
+    }
+    ol, p, li {
+      margin: 0.5em 0;
+    }
+    code {
+      background: #eee;
+      padding: 0.1em 0.3em;
+      border: 1px solid black;
     }
   </style>
 </head>
 <body>
-  <div id="sidebar" style="position: fixed; top: 0; left: 0; bottom: 0; width: 280px; background: #222; color: #ccc; padding: 1em; font-size: 0.9em; font-family: sans-serif; text-align: left; overflow-y: auto; display: none; z-index: 10;">
-    <button onclick="document.getElementById('sidebar').style.display='none'" style="float: right; margin-bottom: 0.5em; background: #444; color: white; border: none; padding: 0.3em 0.6em; cursor: pointer;">×</button>
-    <h2 style="margin-top: 2em;">Instructions</h2>
+  <div id="sidebar">
+    <button onclick="document.getElementById('sidebar').style.display='none'">×</button>
+    <h2>Instructions</h2>
     <ol>
       <li>Upload an audio file using the file input.</li>
       <li>The spectrogram will render the full audio length.</li>
@@ -32,11 +70,10 @@
       <li>Hold <code>Option</code> (or <code>Alt</code>) and drag the selection to duplicate it.</li>
       <li>Click <em>Resynthesize Audio</em> to play the modified audio.</li>
     </ol>
-    <p style="margin-top: 1em; font-style: italic;">Time runs left to right. Frequencies are low at the bottom, high at the top.</p>
+    <p><em>Time runs left to right. Frequencies are low at the bottom, high at the top.</em></p>
   </div>
-  <button onclick="document.getElementById('sidebar').style.display='block'" style="position: fixed; top: 10px; left: 10px; z-index: 11; background: #444; color: white; border: none; padding: 0.4em 0.8em; cursor: pointer;">❔ Help</button>
+  <button onclick="document.getElementById('sidebar').style.display='block'" style="position: fixed; top: 10px; left: 10px; z-index: 11;">❔ Help</button>
   <h1>Audio Spectrogram Viewer</h1>
-  
   <input type="file" id="audioFile" accept="audio/*"><br>
   <canvas id="spectrogram" width="1024" height="256"></canvas><br>
   <button id="resynthesize">Resynthesize Audio from Image</button>
@@ -48,9 +85,9 @@
     const resynthesizeButton = document.getElementById('resynthesize');
 
     let spectrogramData = [];
-let frameSize = 512;
-let hopSize = 256;
-let channelData = []; // needed globally
+    let frameSize = 512;
+    let hopSize = 256;
+    let channelData = [];
     let isRenderingAudio = false;
     let isSelecting = false;
     let isDragging = false;
@@ -190,7 +227,6 @@ let channelData = []; // needed globally
       const arrayBuffer = await file.arrayBuffer();
       const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
 
-      // already declared globally
       const width = canvas.width;
       const height = canvas.height;
       const sampleRate = audioCtx.sampleRate;
@@ -201,9 +237,6 @@ let channelData = []; // needed globally
 
       const minFreq = 20;
       const maxFreq = 20000;
-      const targetFreqs = new Array(height).fill(0).map((_, i) => {
-        return minFreq + ((maxFreq - minFreq) * i) / (height - 1);
-      });
 
       function goertzel(samples, freq, sampleRate) {
         const N = samples.length;

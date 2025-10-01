@@ -2,35 +2,88 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Row and Column Glitch Image Processor</title>
+  <title>Row & Column Glitcher — Brutalist</title>
   <style>
     body {
-      background: #111;
-      color: white;
-      font-family: sans-serif;
-      text-align: center;
-      padding: 20px;
+      margin: 0;
+      background: white;
+      color: black;
+      font-family: monospace;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
-    canvas {
-      border: 1px solid #444;
+    h1 {
+      font-size: 1.4rem;
+      border-bottom: 2px solid black;
+      padding: 0.5rem;
+      margin: 0;
+      text-align: center;
+    }
+    main {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+    .controls {
+      border-right: 2px solid black;
+      border-top: 2px solid black;
+      border-bottom: 2px solid black;
+      padding: 1rem;
+      width: 250px;
+      box-sizing: border-box;
+      text-align: left;
+    }
+    label {
       display: block;
-      margin: 1rem auto;
+      margin: 1rem 0 0.2rem 0;
+      font-weight: bold;
+    }
+    input[type="file"], input[type="range"] {
+      border: 2px solid black;
+      background: white;
+      color: black;
+      font-family: monospace;
+      padding: 0.3rem;
+      margin-bottom: 1rem;
+      width: 100%;
+      box-sizing: border-box;
     }
     input[type="range"] {
-      width: 300px;
+      width: 100%;
+    }
+    .canvas-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      background: white;
+    }
+    canvas {
+      border: 2px solid black;
+      image-rendering: pixelated;
+      max-width: 100%;
+      max-height: 100%;
     }
   </style>
 </head>
 <body>
-  <h1>Row and Column Glitch Image Processor</h1>
-  <input type="file" id="imageLoader" accept="image/*" />
-  <br><br>
-  <label for="shiftSlider">Horizontal Row Shift: </label>
-  <input type="range" id="shiftSlider" min="-100" max="100" value="0" />
-  <br><br>
-  <label for="vShiftSlider">Vertical Column Shift: </label>
-  <input type="range" id="vShiftSlider" min="-100" max="100" value="0" />
-  <canvas id="glitchCanvas"></canvas>
+  <h1>Row & Column Glitcher</h1>
+  <main>
+    <div class="controls">
+      <label for="imageLoader">Load Image:</label>
+      <input type="file" id="imageLoader" accept="image/*" />
+
+      <label for="shiftSlider">Horizontal Row Shift:</label>
+      <input type="range" id="shiftSlider" min="-100" max="100" value="0" />
+
+      <label for="vShiftSlider">Vertical Column Shift:</label>
+      <input type="range" id="vShiftSlider" min="-100" max="100" value="0" />
+    </div>
+    <div class="canvas-container">
+      <canvas id="glitchCanvas"></canvas>
+    </div>
+  </main>
 
   <script>
     const imageLoader = document.getElementById('imageLoader');
