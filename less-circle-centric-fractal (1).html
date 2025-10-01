@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dynamic Sine Wave Fractal Maker</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      font-family: Arial, sans-serif;
+    }
+
+    canvas {
+      border: 1px solid black;
+      margin: 20px 0;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      justify-content: center;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+    }
+
+    .control-group label {
+      margin-bottom: 5px;
+    }
+  </style>
+</head>
+<body>
+  <h1>Dynamic Sine Wave Fractal Maker</h1>
+  <canvas id="fractalCanvas" width="800" height="600"></canvas>
+  <div class="controls">
+    <div class="control-group">
+      <label for="baseAmplitude">Base Amplitude</label>
+      <input type="range" id="baseAmplitude" min="10" max="300" value="100">
+    </div>
+    <div class="control-group">
+      <label for="baseFrequency">Base Frequency</label>
+      <input type="range" id="baseFrequency" min="1" max="10" value="3">
+    </div>
+    <div class="control-group">
+      <label for="recursionDepth">Recursion Depth</label>
+      <input type="number" id="recursionDepth" min="1" max="10" value="4">
+    </div>
+    <div class="control-group">
+      <label for="shape">Shape</label>
+      <select id="shape">
+        <option value="polygon">Polygon</option>
+        <option value="spiral">Spiral</option>
+        <option value="wave">Wave</option>
+      </select>
+    </div>
+    <div class="control-group">
+      <label for="color">Color</label>
+      <input type="color" id="color" value="#0000ff">
+    </div>
+  </div>
+  <script>
+    const canvas = document.getElementById('fractalCanvas');
+    const ctx = canvas.getContext('2d');
+
+    const baseAmplitudeInput = document.getElementById('baseAmplitude');
+    const baseFrequencyInput = document.getElementById('baseFrequency');
+    const recursionDepthInput = document.getElementById('recursionDepth');
+    const shapeInput = document.getElementById('shape');
+    const colorInput = document.getElementById('color');
+
+    function drawFractal(x, y, amplitude, frequency, depth, color, shapeType) {
+      if (depth === 0) return;
+
+      ctx.strokeStyle = color;
+      ctx.beginPath();
+
+      const points = shapeType === 'polygon' ? 6 : 100; // Hexagon or smooth curve
+      const step = (2 * Math.PI) / points;
+
+      for (let i = 0; i <= points; i++) {
+        const angle = i * step;
+
+        let xOffset, yOffset;
+        if (shapeType === 'polygon') {
+          xOffset = amplitude * Math.cos(angle);
+          yOffset = amplitude * Math.sin(angle);
+        } else if (shapeType === 'spiral') {
+          const spiralFactor = amplitude / 10;
+          xOffset = (amplitude + i * spiralFactor) * Math.cos(frequency * angle);
+          yOffset = (amplitude + i * spiralFactor) * Math.sin(frequency * angle);
+        } else if (shapeType === 'wave') {
+          xOffset = amplitude * Math.sin(frequency * angle);
+          yOffset = amplitude * Math.sin(frequency * angle / 2);
+        }
+
+        ctx.lineTo(x + xOffset, y + yOffset);
+
+        // Recursive fractal drawing
+        if (i % (points / 4) === 0 && depth > 1) {
+          const nextColor = adjustColorBrightness(color, -10 * depth);
+          drawFractal(x + xOffset, y + yOffset, amplitude * 0.5, frequency + 0.1, depth - 1, nextColor, shapeType);
+        }
+      }
+
+      ctx.closePath();
+      ctx.stroke();
+    }
+
+    function adjustColorBrightness(color, amount) {
+      let col = parseInt(color.slice(1), 16);
+      let r = (col >> 16) + amount;
+      let g = ((col >> 8) & 0x00ff) + amount;
+      let b = (col & 0x0000ff) + amount;
+
+      r = Math.min(255, Math.max(0, r));
+      g = Math.min(255, Math.max(0, g));
+      b = Math.min(255, Math.max(0, b));
+
+      return `#${(r << 16 | g << 8 | b).toString(16).padStart(6, '0')}`;
+    }
+
+    function render() {
+      const baseAmplitude = parseInt(baseAmplitudeInput.value, 10);
+      const baseFrequency = parseFloat(baseFrequencyInput.value, 10);
+      const depth = parseInt(recursionDepthInput.value, 10);
+      const color = colorInput.value;
+      const shapeType = shapeInput.value;
+
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      drawFractal(canvas.width / 2, canvas.height / 2, baseAmplitude, baseFrequency, depth, color, shapeType);
+    }
+
+    baseAmplitudeInput.addEventListener('input', render);
+    baseFrequencyInput.addEventListener('input', render);
+    recursionDepthInput.addEventListener('input', render);
+    shapeInput.addEventListener('change', render);
+    colorInput.addEventListener('input', render);
+
+    render(); // Initial render
+  </script>
+</body>
+</html>

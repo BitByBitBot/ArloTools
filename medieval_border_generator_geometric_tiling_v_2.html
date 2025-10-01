@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Medieval Border Generator — Brutalist (Tile Only)</title>
+<style>
+  body {margin:0;background:white;color:black;font-family:monospace;display:flex;flex-direction:column;height:100vh;}
+  header {border-bottom:2px solid black;border-top:2px solid black;padding:0.5rem;display:flex;flex-wrap:wrap;gap:1rem;align-items:flex-end;font-weight:bold;}
+  header h1 {font-size:1.2rem;margin:0;}
+  label {display:flex;flex-direction:column;font-size:0.9rem;}
+  input,select,button{border:2px solid black;background:white;color:black;font-family:monospace;padding:0.3rem;margin-top:0.2rem;}
+  button{cursor:pointer;font-weight:bold;}
+  main{flex:1;display:flex;flex-direction:column;border-top:2px solid black;}
+  .panel{border-bottom:2px solid black;padding:1rem;font-size:0.9rem;flex:1;}
+  .tile{border:2px solid black;width:100%;height:100%;background:white;image-rendering:pixelated;}
+  .diag{font-size:0.8rem;margin-left:auto}
+  footer{border-top:2px solid black;text-align:center;padding:0.5rem;font-size:0.8rem;}
+</style>
+</head>
+<body>
+  <header>
+    <h1>Medieval Border Generator</h1>
+    <label>Seed<input id="seed" value="carolingian-rose" /></label>
+    <label>Style<select id="style"></select></label>
+    <label>Grid Units<select id="units"></select></label>
+    <label>Unit Size (px)<input id="unitSize" type="number" value="16" min="8" step="2" /></label>
+    <label>Ink<input id="ink" type="color" value="#121212" /></label>
+    <label>Fill<input id="fill" type="color" value="#ffffff" /></label>
+    <button id="regen">Regenerate</button>
+    <button id="savePNG">Download PNG</button>
+    <button id="runTests" class="diag">Run Tests</button>
+  </header>
+  <main>
+    <section class="panel">
+      <strong>Seamless Tile</strong>
+      <canvas id="tile" class="tile" width="640" height="160"></canvas>
+    </section>
+  </main>
+  <footer>Tile-only view — previews removed</footer>
+<script>
+// ===== RNG & Utils =====
+function mulberry32(a){return function(){let t=a+=0x6D2B79F5;t=Math.imul(t^t>>>15,t|1);t^=t+Math.imul(t^t>>>7,t|61);return ((t^t>>>14)>>>0)/4294967296}}
+function strHash(s){let h=2166136261>>>0;for(let i=0;i<s.length;i++){h^=s.charCodeAt(i);h=Math.imul(h,16777619)}return h>>>0}
+function rng(seed){return mulberry32(strHash(seed))}
+function choice(r,arr){return arr[Math.floor(r()*arr.length)]}
+function divisors(n){const out=[];for(let k=2;k<=n;k++){if(n%k===0) out.push(k)}return out}
+
+// ===== Overlap framework (ensures seam over/under continuity) =====
+function drawOverlap(ctx,W,drawBack,drawFront){
+  [-W,0,W].forEach(s=>{ctx.save();ctx.translate(s,0);drawBack();ctx.restore();});
+  [-W,0,W].forEach(s=>{ctx.save();ctx.translate(s,0);drawFront();ctx.restore();});
+}
+
+// ===== Motifs (from original merge; overlap-aware) =====
+function rosetteChain(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const y=Math.round(H/2);
+  const R=Math.floor(Math.min(H*0.28,cell*0.35)); const lw=Math.max(1,Math.floor(u*0.12));
+  ctx.lineWidth=lw; ctx.strokeStyle=ink; ctx.fillStyle=fill;
+  drawOverlap(ctx,W,()=>{ // back: posts
+    for(let i=0;i<=reps;i++){const bx=Math.round(i*cell);ctx.beginPath();ctx.moveTo(bx,y-R*1.25);ctx.lineTo(bx,y+R*1.25);ctx.stroke();}
+  },()=>{ // front: rosettes
+    for(let i=0;i<reps;i++){
+      const cx=Math.round(i*cell+cell/2);
+      ctx.beginPath();ctx.arc(cx,y,R,0,Math.PI*2);ctx.fill();ctx.stroke();
+      for(let k=0;k<4;k++){const a=k*Math.PI/2;ctx.beginPath();ctx.arc(cx+Math.cos(a)*R,y+Math.sin(a)*R,Math.floor(R*0.65),0,Math.PI*2);ctx.stroke();}
+      ctx.beginPath();ctx.fillStyle=ink;ctx.arc(cx,y,Math.floor(R*0.4),0,Math.PI*2);ctx.fill();ctx.fillStyle=fill;
+    }
+  });
+}
+
+function guilloche(ctx,r,W,H,units,u,ink,fill){
+  const periods=choice(r,divisors(units).filter(d=>d%2===0));
+  const amp=Math.round(Math.min(H*0.30,u*5)); const N=units*24; const center=Math.round(H/2);
+  const lw=Math.max(1,Math.floor(u*0.15)); ctx.lineWidth=lw; ctx.strokeStyle=ink; ctx.fillStyle=fill;
+  drawOverlap(ctx,W,()=>{ // back: braided waves
+    for(let b=0;b<2;b++){
+      ctx.beginPath();
+      for(let i=0;i<=N;i++){const t=i/N, x=Math.round(t*W), y=Math.round(center+Math.sin((t*periods+b*0.5)*Math.PI*2)*amp); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
+    }
+  },()=>{ // front: medallions
+    const med=periods*2; const step=W/med; const R=Math.floor(Math.min(u*3,H*0.18));
+    for(let i=0;i<med;i++){const cx=Math.round(i*step+step/2); ctx.beginPath();ctx.arc(cx,center,R,0,Math.PI*2);ctx.fill();ctx.stroke(); ctx.beginPath();ctx.fillStyle=ink;ctx.arc(cx,center,Math.floor(R*0.42),0,Math.PI*2);ctx.fill();ctx.fillStyle=fill;}
+  });
+}
+
+function ogeeVine(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const mid=Math.round(H/2);
+  const a=Math.round(H*0.3/u)*u; const th=Math.max(1,Math.floor(u*0.14)); ctx.lineCap='round'; ctx.lineJoin='round';
+  drawOverlap(ctx,W,()=>{ // back: backbone
+    ctx.strokeStyle=ink; ctx.lineWidth=th;
+    for(let i=0;i<reps;i++){const x0=Math.round(i*cell), x1=Math.round((i+1)*cell), xm=Math.round((x0+x1)/2);
+      ctx.beginPath(); ctx.moveTo(x0,mid);
+      ctx.bezierCurveTo(x0+cell*0.25,mid-a,xm-cell*0.25,mid-a,xm,mid);
+      ctx.bezierCurveTo(xm+cell*0.25,mid+a,x1-cell*0.25,mid+a,x1,mid);
+      ctx.stroke();}
+  },()=>{ // front: leaves & buds
+    ctx.fillStyle=fill; ctx.strokeStyle=ink; ctx.lineWidth=th;
+    for(let i=0;i<reps;i++){const x0=Math.round(i*cell); const lw=Math.round(u*2.2), lh=Math.round(u*3.4);
+      [0.25,0.75].forEach(t=>{const x=Math.round(x0+t*cell); const up=t<0.5; const ly=mid+(up?-1:1)*Math.round(a*0.9);
+        ctx.beginPath(); ctx.ellipse(x,ly,lw,lh,0,0,Math.PI*2); ctx.fill(); ctx.stroke();
+        ctx.beginPath(); ctx.fillStyle=ink; ctx.arc(x,mid,Math.max(1,Math.floor(u*0.7)),0,Math.PI*2); ctx.fill(); ctx.fillStyle=fill;});}
+  });
+}
+
+function diamondsSpears(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const y=Math.round(H/2); const dH=Math.round(Math.min(H*0.6,u*6));
+  const lw=Math.max(1,Math.floor(u*0.13)); ctx.strokeStyle=ink;
+  drawOverlap(ctx,W,()=>{ // back: diamonds
+    ctx.lineWidth=lw; ctx.fillStyle=fill;
+    for(let i=0;i<reps;i++){const cx=Math.round(i*cell+cell/2); ctx.beginPath(); ctx.moveTo(cx,y-dH/2); ctx.lineTo(cx+cell/2,y); ctx.lineTo(cx,y+dH/2); ctx.lineTo(cx-cell/2,y); ctx.closePath(); ctx.fill(); ctx.stroke();}
+  },()=>{ // front: spears
+    ctx.lineWidth=lw; ctx.fillStyle=ink;
+    for(let i=0;i<reps-1;i++){const ax=Math.round((i+1)*cell); const s=Math.round(Math.min(cell*0.28,u*5)); ctx.beginPath(); ctx.moveTo(ax,y); ctx.lineTo(ax+s,y-dH*0.28); ctx.lineTo(ax+s*0.65,y); ctx.lineTo(ax+s,y+dH*0.28); ctx.closePath(); ctx.fill(); ctx.stroke();}
+  });
+}
+
+function cloverLinks(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const y=Math.round(H/2); const R=Math.round(Math.min(cell*0.32,H*0.26));
+  const lw=Math.max(1,Math.floor(u*0.14));
+  drawOverlap(ctx,W,()=>{ // back: link posts
+    ctx.lineWidth=lw; ctx.strokeStyle=ink; for(let i=0;i<=reps;i++){const bx=Math.round(i*cell); ctx.beginPath(); ctx.moveTo(bx,y-R*0.9); ctx.lineTo(bx,y+R*0.9); ctx.stroke();}
+  },()=>{ // front: clovers
+    ctx.lineWidth=lw; ctx.strokeStyle=ink; ctx.fillStyle=fill;
+    for(let i=0;i<reps;i++){const cx=Math.round(i*cell+cell/2); for(let k=0;k<4;k++){const ang=k*Math.PI/2; const px=cx+Math.round(Math.cos(ang)*R); const py=y+Math.round(Math.sin(ang)*R); ctx.beginPath(); ctx.arc(px,py,R,0,Math.PI*2); ctx.stroke();}
+      ctx.beginPath(); ctx.arc(cx,y,Math.floor(R*0.55),0,Math.PI*2); ctx.fill(); ctx.stroke();}
+  });
+}
+
+function beadCord(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const y=Math.round(H/2); const R=Math.round(Math.min(H*0.25,u*3));
+  const lw=Math.max(1,Math.floor(u*0.12));
+  drawOverlap(ctx,W,()=>{ // back: cords
+    ctx.lineWidth=lw; ctx.strokeStyle=ink; ctx.beginPath(); ctx.moveTo(0,Math.round(H*0.22)); ctx.lineTo(W,Math.round(H*0.22)); ctx.moveTo(0,Math.round(H*0.78)); ctx.lineTo(W,Math.round(H*0.78)); ctx.stroke();
+  },()=>{ // front: beads
+    ctx.lineWidth=lw; ctx.strokeStyle=ink; ctx.fillStyle=fill;
+    for(let i=0;i<reps;i++){const cx=Math.round(i*cell+cell/2); ctx.beginPath(); ctx.arc(cx,y,R,0,Math.PI*2); ctx.fill(); ctx.stroke(); ctx.beginPath(); ctx.fillStyle=ink; ctx.arc(cx,y,Math.floor(R*0.4),0,Math.PI*2); ctx.fill(); ctx.fillStyle=fill;}
+  });
+}
+
+function interlaceBands(ctx,r,W,H,units,u,ink,fill){
+  const periods=choice(r,divisors(units).filter(d=>d%2===0));
+  const amp=Math.round(Math.min(H*0.28,u*5)); const center=Math.round(H/2); const N=units*24;
+  const lwLight=Math.max(1,Math.floor(u*2.4)); const lwDark=Math.max(1,Math.floor(u*0.9)); ctx.lineCap='round'; ctx.lineJoin='round';
+  drawOverlap(ctx,W,()=>{ // back: light bands
+    ctx.strokeStyle=fill; ctx.lineWidth=lwLight; for(let b=0;b<3;b++){ctx.beginPath(); for(let i=0;i<=N;i++){const t=i/N, x=Math.round(t*W), y=Math.round(center+Math.sin(t*periods*2*Math.PI+b*(Math.PI*2/3))*amp); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();}
+  },()=>{ // front: dark edges
+    ctx.strokeStyle=ink; ctx.lineWidth=lwDark; for(let b=0;b<3;b++){ctx.beginPath(); for(let i=0;i<=N;i++){const t=i/N, x=Math.round(t*W), y=Math.round(center+Math.sin(t*periods*2*Math.PI+b*(Math.PI*2/3))*amp); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();}
+  });
+}
+
+function palmette(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const base=Math.round(H*0.9);
+  ctx.strokeStyle=ink; ctx.fillStyle=fill; ctx.lineWidth=Math.max(1,u*0.12);
+  drawOverlap(ctx,W,()=>{},()=>{
+    for(let i=0;i<reps;i++){
+      const cx=Math.round(i*cell+cell/2); const bw=Math.round(cell*0.32); const h=Math.round(H*0.65);
+      ctx.beginPath(); ctx.moveTo(cx,base);
+      ctx.bezierCurveTo(cx-bw,base-h*0.5,cx-bw,base-h,cx,base-h);
+      ctx.bezierCurveTo(cx+bw,base-h,cx+bw,base-h*0.5,cx,base);
+      ctx.closePath(); ctx.fill(); ctx.stroke();
+      ctx.beginPath(); ctx.fillStyle=ink; ctx.arc(cx,base,Math.max(1,Math.floor(u*0.7)),0,Math.PI*2); ctx.fill(); ctx.fillStyle=fill;
+    }
+  });
+}
+
+function eggAndDart(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const cy=Math.round(H*0.45); const R=Math.max(2,Math.floor(u*1.8));
+  drawOverlap(ctx,W,()=>{ // back: darts
+    ctx.strokeStyle=ink; ctx.lineWidth=Math.max(1,u*0.12);
+    for(let i=0;i<reps;i++){const x=Math.round(i*cell+cell/2); ctx.beginPath(); ctx.moveTo(x-R, cy+R*1.6); ctx.lineTo(x, cy+R*2.6); ctx.lineTo(x+R, cy+R*1.6); ctx.stroke();}
+  },()=>{ // front: eggs
+    ctx.strokeStyle=ink; ctx.fillStyle=fill; ctx.lineWidth=Math.max(1,u*0.12);
+    for(let i=0;i<reps;i++){const x=Math.round(i*cell+cell/2); ctx.beginPath(); ctx.ellipse(x,cy,R,Math.floor(R*1.45),0,0,Math.PI*2); ctx.fill(); ctx.stroke();}
+  });
+}
+
+function chevron(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const mid=Math.round(H/2); const off=Math.round(u*2);
+  drawOverlap(ctx,W,()=>{},()=>{
+    ctx.strokeStyle=ink; ctx.lineWidth=Math.max(1,u*0.15);
+    for(let i=0;i<reps;i++){const x0=Math.round(i*cell), x1=Math.round(x0+cell); ctx.beginPath(); ctx.moveTo(x0,mid+off); ctx.lineTo(Math.round((x0+x1)/2),mid-off); ctx.lineTo(x1,mid+off); ctx.stroke();}
+  });
+}
+
+function keyFret(ctx,r,W,H,units,u,ink,fill){
+  const reps=choice(r,divisors(units)); const cell=W/reps; const th=Math.max(1,Math.floor(u*0.18));
+  ctx.strokeStyle=ink; ctx.lineWidth=th;
+  drawOverlap(ctx,W,()=>{},()=>{
+    for(let i=0;i<reps;i++){
+      const x=Math.round(i*cell); const m=Math.round(cell*0.6);
+      const y0=Math.round(H*0.3), y1=Math.round(H*0.7);
+      ctx.beginPath();
+      ctx.moveTo(x, y0); ctx.lineTo(x+m, y0); ctx.lineTo(x+m, y1); ctx.lineTo(x+th*1.5, y1);
+      ctx.stroke();
+    }
+  });
+}
+
+function scrollwork(ctx,r,W,H,units,u,ink,fill){
+  const periods=choice(r,divisors(units)); const amp=Math.round(H*0.28); const cy=Math.round(H/2);
+  drawOverlap(ctx,W,()=>{},()=>{
+    ctx.lineWidth=Math.max(1,u*0.13); ctx.strokeStyle=ink; const N=units*24;
+    ctx.beginPath(); for(let i=0;i<=N;i++){const t=i/N, x=Math.round(t*W), y=Math.round(cy+Math.sin(t*periods*2*Math.PI)*amp); if(i===0) ctx.moveTo(x,y); else ctx.lineTo(x,y);} ctx.stroke();
+  });
+}
+
+// ===== Motif map =====
+const motifMap={
+  'Rosette Chain':rosetteChain,
+  'Guilloche Wave':guilloche,
+  'Ogee Vine':ogeeVine,
+  'Diamonds & Spears':diamondsSpears,
+  'Clover Links':cloverLinks,
+  'Bead Cord':beadCord,
+  'Interlace Bands':interlaceBands,
+  'Palmette':palmette,
+  'Egg-and-Dart':eggAndDart,
+  'Chevron':chevron,
+  'Key Fret':keyFret,
+  'Scrollwork':scrollwork
+};
+
+// ===== Setup & Render (guarded against missing elements) =====
+(function(){
+  const reqIds=['seed','style','units','unitSize','ink','fill','regen','savePNG','tile'];
+  for(const id of reqIds){
+    if(!document.getElementById(id)){
+      console.error('Missing required element #'+id);
+    }
+  }
+
+  const tile=document.getElementById('tile');
+  const tctx=tile ? tile.getContext('2d') : null;
+  const allowedUnits=[24,28,30,32,36,40,42,48,56,60,64];
+
+  // Populate selects safely
+  (function init(){
+    const sel=document.getElementById('units');
+    if(sel){ sel.innerHTML=''; allowedUnits.forEach(n=>{const o=document.createElement('option'); o.textContent=n+' units'; o.value=n; sel.appendChild(o)}); sel.value=40; }
+    const styleSel=document.getElementById('style');
+    if(styleSel){ styleSel.innerHTML=''; ['Mixed', ...Object.keys(motifMap)].forEach(s=>{const o=document.createElement('option'); o.textContent=s; o.value=s; styleSel.appendChild(o)}); }
+  })();
+
+  function render(){
+    if(!tile || !tctx) return;
+    const seed=(document.getElementById('seed')?.value||'seed').trim();
+    const rand=rng(seed);
+    const styleSel=document.getElementById('style')?.value || 'Mixed';
+    const available=Object.keys(motifMap);
+    const style=(styleSel==='Mixed')?choice(rand, available):styleSel;
+    const units=parseInt(document.getElementById('units')?.value||'40',10);
+    const u=parseInt(document.getElementById('unitSize')?.value||'16',10);
+
+    const W=units*u;
+    const H=10*u; // NOTE: If you want fixed height like original import, set H = tile.height instead
+    tile.width=W; tile.height=H;
+
+    const ink=document.getElementById('ink')?.value||'#121212';
+    const fill=document.getElementById('fill')?.value||'#ffffff';
+
+    // clear & background
+    tctx.setTransform(1,0,0,1,0,0);
+    tctx.clearRect(0,0,W,H);
+    tctx.fillStyle='#fff';
+    tctx.fillRect(0,0,W,H);
+
+    // draw motif (guard against undefined)
+    const fn=motifMap[style];
+    if(typeof fn==='function'){
+      try{ fn(tctx, rand, W, H, units, u, ink, fill); }
+      catch(err){ console.error('Render error in motif', style, err); }
+    }
+  }
+
+  // Wire controls (guarded)
+  ['seed','style','units','unitSize','ink','fill'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.addEventListener('input', render);
+  });
+  const regen=document.getElementById('regen');
+  if(regen) regen.addEventListener('click',()=>{const s=document.getElementById('seed'); if(s){ s.value=s.value+'-'+Math.floor(Math.random()*1e6).toString(36);} render();});
+  const save=document.getElementById('savePNG');
+  if(save) save.addEventListener('click',()=>{ if(!tile) return; const a=document.createElement('a'); a.download='border_tile.png'; a.href=tile.toDataURL('image/png'); a.click(); });
+
+  // Minimal tests (added)
+  function runTests(){
+    const results=[];
+    const assert=(name,cond)=>{results.push(`${cond?'✅':'❌'} ${name}`); if(!cond) console.warn('Test failed:',name)};
+
+    // Test 1: Required controls exist
+    reqIds.forEach(id=>assert(`element #${id} exists`, !!document.getElementById(id)));
+
+    // Test 2: Render each motif onto an offscreen canvas without throwing
+    const off=document.createElement('canvas'); off.width=640; off.height=160; const octx=off.getContext('2d');
+    const rand=rng('test-seed'); const units=40, u=16, W=units*u, H=160; off.width=W; off.height=H;
+    const INK='#111', FILL='#fff';
+    Object.keys(motifMap).forEach(k=>{
+      try{ octx.clearRect(0,0,W,H); motifMap[k](octx,rand,W,H,units,u,INK,FILL); assert(`motif renders: ${k}`, true); }
+      catch(e){ assert(`motif renders: ${k}`, false); }
+    });
+
+    // Test 3: Render UI call doesn't throw
+    try{ render(); assert('render() executes', true); } catch(e){ assert('render() executes', false); }
+
+    alert(results.join('\n'));
+  }
+  const btnTests=document.getElementById('runTests');
+  if(btnTests) btnTests.addEventListener('click', runTests);
+
+  // Initial render
+  render();
+})();
+</script>
+</body>
+</html>

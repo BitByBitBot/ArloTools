@@ -203,7 +203,24 @@
   </div>
   <script>
     document.addEventListener("DOMContentLoaded", () => {
-      const TOOL_DIRECTORY = "tools/";
+      const tools = [
+        { name: "3D Color Space Organizer", file: "3_d_color_space_organizer_collapsible_legend_updated_html.html" },
+        { name: "Audio Spectrogram Tool", file: "audio_spectrogram_tool.html" },
+        { name: "Brutalist Mind Map", file: "brutalist_mind_map_scaled.html" },
+        { name: "Chisel Tip Pen Drawing Tool", file: "chisel_pen.html" },
+        { name: "Graded Game of Life", file: "graded_game_of_life.html" },
+        { name: "Less Circle Centric Fractal", file: "less-circle-centric-fractal (1).html" },
+        { name: "Lissajous Figure Grid", file: "lissajous_figure_grid.html" },
+        { name: "Medieval Border Generator", file: "medieval_border_generator_geometric_tiling_v_2.html" },
+        { name: "MIDI → Neumes Converter", file: "midi_→_neumes_converter_single_file_html.html" },
+        { name: "Particle Tree Zoom & Scroll", file: "particle_tree_zoom_scroll.html" },
+        { name: "Pixel Row Glitcher", file: "pixel_row_glitcher.html" },
+        { name: "Random I Heart", file: "random_i_heart.html" },
+        { name: "Recursive Vector Fractal Lab", file: "recursive_vector_fractal_lab_standalone_html (2).html" },
+        { name: "Spectrogram Glitch Posteﬀects", file: "spectrogram_glitch_posteffects (1).html" },
+        { name: "Square Tiling Tool", file: "square_tiling_tool_svg_import_export.html" },
+      ];
+
       const toolList = document.getElementById("tool-list");
       const searchInput = document.getElementById("search");
       const iframe = document.getElementById("tool-frame");
@@ -212,8 +229,6 @@
       const sidebar = document.getElementById("sidebar");
       const mainWrapper = document.querySelector(".main-wrapper");
       const toggleBtn = document.getElementById("sidebar-toggle");
-      searchInput.disabled = true;
-      toolList.textContent = "Loading tools...";
 
       const updateButtonIcon = () => {
         if (sidebar.classList.contains("hidden")) {
@@ -237,14 +252,14 @@
         if (!doc) return;
         const link = doc.createElement("link");
         link.rel = "stylesheet";
-        link.href = "../theme.css";
+        link.href = "theme.css";
         doc.head.appendChild(link);
       };
 
       const selectTool = (tool, button) => {
         document.querySelectorAll(".tool-button").forEach(btn => btn.classList.remove("active"));
         button.classList.add("active");
-        const url = toUrl(`${TOOL_DIRECTORY}${tool.file}`);
+        const url = toUrl(tool.file);
         iframe.src = url;
         iframe.hidden = false;
         toolName.textContent = tool.name;
@@ -259,248 +274,22 @@
         }, { once: true });
       };
 
-      const normaliseName = (file) => {
-        const base = file.replace(/\.html?$/i, "");
-        const decoded = (() => {
-          try {
-            return decodeURIComponent(base);
-          } catch (error) {
-            return base;
-          }
-        })();
-        return decoded.trim();
-      };
+      tools.forEach((tool) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tool-button";
+        button.textContent = tool.name;
+        button.addEventListener("click", () => selectTool(tool, button));
+        toolList.appendChild(button);
+      });
 
-      const parseDirectoryListing = (markup) => {
-        const parser = new DOMParser();
-        const doc = parser.parseFromString(markup, "text/html");
-        const links = Array.from(doc.querySelectorAll("a"));
-        return links
-          .map((link) => link.getAttribute("href") || "")
-          .map((href) => href.replace(/^\.\/?/, ""))
-          .filter((href) => href && href.toLowerCase().endsWith(".html"))
-          .map((href) => decodeURIComponent(href.split("/").pop() || ""));
-      };
-
-      const fetchManifest = async () => {
-        try {
-          const response = await fetch(`${TOOL_DIRECTORY}manifest.json`, { cache: "no-cache" });
-          if (!response.ok) return null;
-          const data = await response.json();
-          if (Array.isArray(data)) return data;
-          if (Array.isArray(data?.files)) return data.files;
-          return null;
-        } catch (error) {
-          console.warn("Unable to load manifest:", error);
-          return null;
-        }
-      };
-
-      const getConfig = () => {
-        const globalConfig = window.ARLO_TOOLS_CONFIG || {};
-        const dataset = document.body?.dataset || {};
-        const normaliseList = (value) => {
-          if (!value) return [];
-          if (Array.isArray(value)) return value;
-          if (typeof value === "string") {
-            return value
-              .split(",")
-              .map((item) => item.trim())
-              .filter(Boolean);
-          }
-          return [];
-        };
-
-        return {
-          githubOwner: globalConfig.githubOwner || dataset.githubOwner || "",
-          githubRepo: globalConfig.githubRepo || dataset.githubRepo || "",
-          githubBranch: globalConfig.githubBranch || dataset.githubBranch || "",
-          githubBranches: normaliseList(globalConfig.githubBranches || dataset.githubBranches),
-          githubToken: globalConfig.githubToken || "",
-          disableGitHubLookup: Boolean(globalConfig.disableGitHubLookup || dataset.disableGithubLookup)
-        };
-      };
-
-      const inferGitHubProject = () => {
-        const { hostname, pathname } = window.location;
-        if (!hostname.endsWith(".github.io")) return { owner: "", repoCandidates: [] };
-
-        const owner = hostname.replace(/\.github\.io$/i, "");
-        const pathSegments = pathname.replace(/^\/+/, "").split("/").filter(Boolean);
-        const repoCandidates = [];
-
-        if (pathSegments.length) {
-          repoCandidates.push(pathSegments[0]);
-        }
-
-        repoCandidates.push(`${owner}.github.io`);
-
-        return { owner, repoCandidates };
-      };
-
-      const fetchGitHubListing = async () => {
-        const config = getConfig();
-        if (config.disableGitHubLookup) return [];
-
-        let owner = config.githubOwner;
-        let repo = config.githubRepo;
-
-        const inferred = inferGitHubProject();
-        if (!owner && inferred.owner) owner = inferred.owner;
-
-        const repoCandidates = new Set();
-        if (repo) repoCandidates.add(repo);
-        if (inferred.repoCandidates) {
-          inferred.repoCandidates.forEach((candidate) => {
-            if (candidate) repoCandidates.add(candidate);
-          });
-        }
-
-        if (!owner || !repoCandidates.size) return [];
-
-        const branches = Array.from(new Set([
-          config.githubBranch,
-          ...(config.githubBranches || []),
-          "main",
-          "master"
-        ].filter(Boolean)));
-
-        const headers = {
-          Accept: "application/vnd.github+json"
-        };
-
-        if (config.githubToken) {
-          headers.Authorization = `Bearer ${config.githubToken}`;
-        }
-
-        const directory = TOOL_DIRECTORY.replace(/\/+$/, "");
-
-        for (const repoCandidate of repoCandidates) {
-          for (const branch of branches) {
-            const url = `https://api.github.com/repos/${owner}/${repoCandidate}/contents/${directory}?ref=${encodeURIComponent(branch)}`;
-            try {
-              const response = await fetch(url, { headers, cache: "no-cache" });
-              if (!response.ok) {
-                if (response.status === 404) {
-                  continue;
-                }
-                console.warn(`GitHub lookup failed (${response.status}): ${await response.text()}`);
-                continue;
-              }
-              const data = await response.json();
-              if (!Array.isArray(data)) continue;
-              return data
-                .filter((entry) => entry?.type === "file")
-                .map((entry) => entry.name)
-                .filter((name) => typeof name === "string" && name.toLowerCase().endsWith(".html"));
-            } catch (error) {
-              console.warn("Unable to query GitHub API:", error);
-            }
-          }
-        }
-
-        return [];
-      };
-
-      const fetchDirectoryListing = async () => {
-        try {
-          const response = await fetch(TOOL_DIRECTORY, { cache: "no-cache" });
-          if (!response.ok) throw new Error(`Unable to list tools: ${response.status}`);
-          const contentType = response.headers.get("content-type") || "";
-          if (contentType.includes("application/json")) {
-            const data = await response.json();
-            if (Array.isArray(data)) return data;
-            if (Array.isArray(data?.files)) return data.files;
-            return [];
-          }
-          const markup = await response.text();
-          return parseDirectoryListing(markup);
-        } catch (error) {
-          console.warn("Directory listing lookup failed:", error);
-          return [];
-        }
-      };
-
-      const fetchToolFiles = async () => {
-        const manifestFiles = await fetchManifest();
-        if (Array.isArray(manifestFiles) && manifestFiles.length) {
-          return manifestFiles;
-        }
-
-        const directoryFiles = await fetchDirectoryListing();
-        if (Array.isArray(directoryFiles) && directoryFiles.length) {
-          return directoryFiles;
-        }
-
-        const githubFiles = await fetchGitHubListing();
-        if (Array.isArray(githubFiles) && githubFiles.length) {
-          return githubFiles;
-        }
-
-        return [];
-      };
-
-      const renderTools = (toolFiles) => {
-        toolList.innerHTML = "";
-        if (!toolFiles.length) {
-          console.warn("No tools detected. Ensure your server exposes a directory listing for the tools folder, set ARLO_TOOLS_CONFIG with GitHub details, or provide a manifest at tools/manifest.json.");
-          const emptyState = document.createElement("div");
-          emptyState.style.display = "flex";
-          emptyState.style.flexDirection = "column";
-          emptyState.style.gap = "0.75rem";
-
-          const message = document.createElement("p");
-          message.textContent = "No tools found in the tools folder.";
-
-          const hint = document.createElement("p");
-          hint.style.fontSize = "0.8rem";
-          hint.style.lineHeight = "1.4";
-          hint.textContent = "If you're hosting ArloTools on GitHub Pages, expose the repository owner/repo via ARLO_TOOLS_CONFIG or data attributes so the index can query the GitHub API automatically.";
-
-          emptyState.appendChild(message);
-          emptyState.appendChild(hint);
-          toolList.appendChild(emptyState);
-          iframe.hidden = true;
-          toolName.textContent = "Choose a tool";
-          openNewTab.removeAttribute("href");
-          searchInput.disabled = true;
-          return;
-        }
-
-        searchInput.disabled = false;
-        searchInput.value = "";
-
-        const uniqueFiles = Array.from(new Set(toolFiles));
-
-        const tools = uniqueFiles
-          .filter(Boolean)
-          .map((file) => ({
-            file,
-            name: normaliseName(file) || file.replace(/\.html?$/i, "")
-          }))
-          .sort((a, b) => a.name.localeCompare(b.name, undefined, { sensitivity: "base" }));
-
-        tools.forEach((tool) => {
-          const button = document.createElement("button");
-          button.type = "button";
-          button.className = "tool-button";
-          button.textContent = tool.name;
-          button.dataset.toolName = tool.name.toLowerCase();
-          button.title = tool.file;
-          button.addEventListener("click", () => selectTool(tool, button));
-          toolList.appendChild(button);
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.trim().toLowerCase();
+        toolList.querySelectorAll(".tool-button").forEach(button => {
+          const match = button.textContent.toLowerCase().includes(query);
+          button.style.display = match ? "block" : "none";
         });
-
-        searchInput.addEventListener("input", () => {
-          const query = searchInput.value.trim().toLowerCase();
-          toolList.querySelectorAll(".tool-button").forEach((button) => {
-            const match = button.dataset.toolName.includes(query);
-            button.style.display = match ? "block" : "none";
-          });
-        });
-      };
-
-      fetchToolFiles().then(renderTools);
+      });
     });
   </script>
 </body>

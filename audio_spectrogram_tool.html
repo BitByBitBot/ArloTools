@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Audio Spectrogram Viewer</title>
+  <style>
+    body {
+      background: white;
+      color: black;
+      font-family: monospace;
+      text-align: center;
+    }
+    canvas {
+      background: white;
+      margin: 10px 0;
+      border: 2px solid black;
+      image-rendering: pixelated;
+    }
+    input[type="file"], button {
+      margin-top: 10px;
+      border: 2px solid black;
+      background: white;
+      color: black;
+      font-family: monospace;
+      padding: 0.4em 0.8em;
+      cursor: pointer;
+    }
+    #sidebar {
+      position: fixed;
+      top: 0;
+      left: 0;
+      bottom: 0;
+      width: 280px;
+      background: white;
+      color: black;
+      border-right: 2px solid black;
+      padding: 1em;
+      font-family: monospace;
+      font-size: 0.9em;
+      text-align: left;
+      overflow-y: auto;
+      display: none;
+      z-index: 10;
+    }
+    #sidebar button {
+      float: right;
+    }
+    h1, h2 {
+      border-bottom: 2px solid black;
+      padding-bottom: 0.2em;
+    }
+    ol, p, li {
+      margin: 0.5em 0;
+    }
+    code {
+      background: #eee;
+      padding: 0.1em 0.3em;
+      border: 1px solid black;
+    }
+  </style>
+</head>
+<body>
+  <div id="sidebar">
+    <button onclick="document.getElementById('sidebar').style.display='none'">×</button>
+    <h2>Instructions</h2>
+    <ol>
+      <li>Upload an audio file using the file input.</li>
+      <li>The spectrogram will render the full audio length.</li>
+      <li>Click and drag to select a region of the spectrogram.</li>
+      <li>Hold <code>Option</code> (or <code>Alt</code>) and drag the selection to duplicate it.</li>
+      <li>Click <em>Resynthesize Audio</em> to play the modified audio.</li>
+    </ol>
+    <p><em>Time runs left to right. Frequencies are low at the bottom, high at the top.</em></p>
+  </div>
+  <button onclick="document.getElementById('sidebar').style.display='block'" style="position: fixed; top: 10px; left: 10px; z-index: 11;">❔ Help</button>
+  <h1>Audio Spectrogram Viewer</h1>
+  <input type="file" id="audioFile" accept="audio/*"><br>
+  <canvas id="spectrogram" width="1024" height="256"></canvas><br>
+  <button id="resynthesize">Resynthesize Audio from Image</button>
+
+  <script>
+    const canvas = document.getElementById('spectrogram');
+    const ctx = canvas.getContext('2d');
+    const fileInput = document.getElementById('audioFile');
+    const resynthesizeButton = document.getElementById('resynthesize');
+
+    let spectrogramData = [];
+    let frameSize = 512;
+    let hopSize = 256;
+    let channelData = [];
+    let isRenderingAudio = false;
+    let isSelecting = false;
+    let isDragging = false;
+    let dragOffset = null;
+    let selection = null;
+    let copiedRegion = null;
+    let copiedData = null;
+
+    canvas.addEventListener('mousedown', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const startX = Math.floor(e.clientX - rect.left);
+      const startY = Math.floor(e.clientY - rect.top);
+
+      if (e.altKey && copiedRegion && copiedData) {
+        isSelecting = false;
+        isDragging = true;
+        dragOffset = { x: startX, y: startY };
+        return;
+      }
+
+      isSelecting = true;
+      isDragging = false;
+      selection = { startX, startY, width: 0, height: 0 };
+    });
+
+    canvas.addEventListener('mousemove', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = Math.floor(e.clientX - rect.left);
+      const mouseY = Math.floor(e.clientY - rect.top);
+
+      if (isDragging && copiedRegion) {
+        redrawSpectrogram();
+        ctx.globalAlpha = 0.5;
+        ctx.putImageData(copiedRegion, mouseX, mouseY - copiedRegion.height);
+        ctx.globalAlpha = 1.0;
+        return;
+      }
+
+      if (!isSelecting) return;
+      const endX = mouseX;
+      const endY = mouseY;
+      selection.width = endX - selection.startX;
+      selection.height = endY - selection.startY;
+      redrawSpectrogram();
+    });
+
+    canvas.addEventListener('mouseup', (e) => {
+      const rect = canvas.getBoundingClientRect();
+      const mouseX = Math.floor(e.clientX - rect.left);
+      const mouseY = Math.floor(e.clientY - rect.top);
+
+      if (isDragging && copiedData) {
+        pasteRegion(mouseX, mouseY - copiedRegion.height);
+        isDragging = false;
+        redrawSpectrogram();
+        return;
+      }
+
+      isSelecting = false;
+      const width = Math.abs(selection.width);
+      const height = Math.abs(selection.height);
+      if (width > 0 && height > 0) {
+        const x1 = Math.min(selection.startX, selection.startX + selection.width);
+        const y1 = Math.min(selection.startY, selection.startY + selection.height);
+        copySelectedRegionFromCoords(x1, y1, width, height);
+      }
+    });
+
+    function copySelectedRegionFromCoords(x1, y1, w, h) {
+      try {
+        copiedRegion = ctx.getImageData(x1, y1, w, h);
+      } catch (e) {
+        console.error('Invalid selection dimensions for getImageData');
+        return;
+      }
+
+      copiedData = [];
+      for (let dx = 0; dx < w; dx++) {
+        const sourceX = x1 + dx;
+        if (sourceX < 0 || sourceX >= spectrogramData.length) continue;
+        const column = [];
+        for (let dy = 0; dy < h; dy++) {
+          const sourceY = canvas.height - (y1 + dy) - 1;
+          if (sourceY >= 0 && sourceY < spectrogramData[sourceX].length) {
+            column.push({ ...spectrogramData[sourceX][sourceY] });
+          } else {
+            column.push({ mag: 0, phase: 0 });
+          }
+        }
+        copiedData.push(column);
+      }
+    }
+
+    function pasteRegion(x, y) {
+      if (!copiedRegion || !copiedData) return;
+      ctx.putImageData(copiedRegion, x, y);
+
+      for (let dx = 0; dx < copiedData.length; dx++) {
+        const targetX = x + dx;
+        if (targetX >= spectrogramData.length) continue;
+        for (let dy = 0; dy < copiedData[dx].length; dy++) {
+          const targetY = canvas.height - (y + dy) - 1;
+          if (targetY >= 0 && targetY < spectrogramData[targetX].length) {
+            spectrogramData[targetX][targetY] = { ...copiedData[dx][dy] };
+          }
+        }
+      }
+    }
+
+    function redrawSpectrogram() {
+      const totalFrames = Math.floor((channelData.length - frameSize) / hopSize);
+      canvas.width = totalFrames;
+      const width = canvas.width;
+      const height = canvas.height;
+      ctx.clearRect(0, 0, width, height);
+      for (let x = 0; x < spectrogramData.length; x++) {
+        const col = spectrogramData[x];
+        for (let y = 0; y < col.length; y++) {
+          const { mag } = col[y];
+          const intensity = Math.log10(1 + mag) * 255 / Math.log10(1 + 100);
+          const val = Math.max(0, Math.min(255, Math.floor(intensity)));
+          ctx.fillStyle = `rgb(${val}, ${val}, ${val})`;
+          ctx.fillRect(x, canvas.height - y - 1, 1, 1);
+        }
+      }
+      if (selection) {
+        ctx.strokeStyle = 'lime';
+        ctx.strokeRect(selection.startX, selection.startY, selection.width, selection.height);
+      }
+    }
+
+    fileInput.addEventListener('change', async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+
+      const audioCtx = new AudioContext();
+      const arrayBuffer = await file.arrayBuffer();
+      const audioBuffer = await audioCtx.decodeAudioData(arrayBuffer);
+
+      const width = canvas.width;
+      const height = canvas.height;
+      const sampleRate = audioCtx.sampleRate;
+      channelData = audioBuffer.getChannelData(0);
+      spectrogramData = [];
+
+      ctx.clearRect(0, 0, width, height);
+
+      const minFreq = 20;
+      const maxFreq = 20000;
+
+      function goertzel(samples, freq, sampleRate) {
+        const N = samples.length;
+        const k = Math.round(0.5 + ((N * freq) / sampleRate));
+        const w = (2 * Math.PI / N) * k;
+        const cosine = Math.cos(w);
+        const sine = Math.sin(w);
+        const coeff = 2 * cosine;
+        let s_prev = 0, s_prev2 = 0;
+        for (let n = 0; n < N; n++) {
+          const s = samples[n] + coeff * s_prev - s_prev2;
+          s_prev2 = s_prev;
+          s_prev = s;
+        }
+        const real = s_prev - s_prev2 * cosine;
+        const imag = s_prev2 * sine;
+        return {
+          mag: Math.sqrt(real * real + imag * imag),
+          phase: Math.atan2(imag, real)
+        };
+      }
+
+      for (let t = 0, x = 0; t + frameSize < channelData.length; t += hopSize, x++) {
+        const frame = new Array(frameSize);
+        for (let i = 0; i < frameSize; i++) {
+          frame[i] = channelData[t + i] * (0.5 - 0.5 * Math.cos(2 * Math.PI * i / (frameSize - 1)));
+        }
+        const column = [];
+        for (let y = 0; y < height; y++) {
+          const freq = minFreq + ((maxFreq - minFreq) * y) / (height - 1);
+          const { mag, phase } = goertzel(frame, freq, sampleRate);
+          column.push({ mag, phase });
+        }
+        spectrogramData.push(column);
+      }
+
+      redrawSpectrogram();
+    });
+
+    resynthesizeButton.addEventListener('click', async () => {
+      if (isRenderingAudio || spectrogramData.length === 0) return;
+      isRenderingAudio = true;
+      resynthesizeButton.disabled = true;
+      resynthesizeButton.textContent = 'Rendering...';
+
+      const audioCtx = new AudioContext();
+      const sampleRate = audioCtx.sampleRate;
+      const frameSize = 512;
+      const hopSize = 256;
+      const numFrames = spectrogramData.length;
+      const height = spectrogramData[0].length;
+      const totalSamples = numFrames * hopSize + frameSize;
+      const audioBuffer = new Float32Array(totalSamples);
+
+      const minFreq = 20;
+      const maxFreq = 20000;
+
+      for (let t = 0; t < numFrames; t++) {
+        const column = spectrogramData[t];
+        for (let y = 0; y < height; y++) {
+          const { mag, phase } = column[y];
+          const freq = minFreq + ((maxFreq - minFreq) * y) / (height - 1);
+
+          for (let n = 0; n < frameSize; n++) {
+            const window = 0.5 - 0.5 * Math.cos(2 * Math.PI * n / (frameSize - 1));
+            const idx = t * hopSize + n;
+            if (idx < totalSamples) {
+              audioBuffer[idx] += mag * window * Math.sin(2 * Math.PI * freq * n / sampleRate + phase);
+            }
+          }
+        }
+        if (t % 16 === 0) await new Promise(r => setTimeout(r, 0));
+      }
+
+      let max = 0;
+      for (let i = 0; i < audioBuffer.length; i++) {
+        if (Math.abs(audioBuffer[i]) > max) max = Math.abs(audioBuffer[i]);
+      }
+      if (max > 0) {
+        for (let i = 0; i < audioBuffer.length; i++) {
+          audioBuffer[i] /= max;
+        }
+      }
+
+      const finalBuffer = audioCtx.createBuffer(1, audioBuffer.length, sampleRate);
+      finalBuffer.copyToChannel(audioBuffer, 0);
+      const source = audioCtx.createBufferSource();
+      source.buffer = finalBuffer;
+      source.connect(audioCtx.destination);
+      source.start();
+
+      resynthesizeButton.disabled = false;
+      resynthesizeButton.textContent = 'Resynthesize Audio from Image';
+      isRenderingAudio = false;
+    });
+  </script>
+</body>
+</html>

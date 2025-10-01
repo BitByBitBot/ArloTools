@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Audio ⇄ Extreme-Glitched Spectrogram</title>
+<style>
+  body {
+    margin: 0;
+    background: white;
+    color: black;
+    font-family: monospace;
+    display: flex;
+    flex-direction: column;
+    height: 100vh;
+  }
+  header {
+    font-size: 1.4rem;
+    border-bottom: 2px solid black;
+    padding: 0.5rem;
+    text-align: center;
+    font-weight: bold;
+  }
+  main {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+  #controls {
+    border-bottom: 2px solid black;
+    border-top: 2px solid black;
+    padding: 1rem;
+    box-sizing: border-box;
+    text-align: left;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  #controls label {
+    display: flex;
+    flex-direction: column;
+    font-weight: bold;
+    font-size: 0.9rem;
+  }
+  input[type="file"], input[type="range"], button {
+    border: 2px solid black;
+    background: white;
+    color: black;
+    font-family: monospace;
+    padding: 0.3rem;
+    margin-top: 0.2rem;
+    cursor: pointer;
+  }
+  input[type="range"] {
+    width: 200px;
+  }
+  button {
+    font-weight: bold;
+  }
+  .canvas-container {
+    flex: 1;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: white;
+  }
+  canvas {
+    border: 2px solid black;
+    image-rendering: pixelated;
+    max-width: 100%;
+    max-height: 100%;
+    background: white;
+  }
+  footer {
+    border-top: 2px solid black;
+    padding: 0.5rem;
+    font-size: 0.8rem;
+    text-align: center;
+  }
+</style>
+<script src="https://cdn.jsdelivr.net/gh/corbanbrook/dsp.js@master/dsp.js"></script>
+</head>
+<body>
+  <header>Audio ⇄ Extreme-Glitched Spectrogram Toy</header>
+  <main>
+    <div id="controls">
+      <label>Load Audio<input type="file" id="audioInput" accept="audio/*" /></label>
+
+      <label>JPEG Q<input type="range" id="jpegQ" min="1" max="100" value="95" /><span id="qVal">95%</span></label>
+      <label>Passes<input type="range" id="passes" min="1" max="8" value="1" /><span id="pVal">1×</span></label>
+      <label>Scale %<input type="range" id="scale" min="20" max="100" value="100" /><span id="sVal">100%</span></label>
+
+      <label><input type="checkbox" id="fxInvert" /> Invert</label>
+      <label><input type="checkbox" id="fxThreshold" /> Threshold</label>
+
+      <button id="btnGenerate" disabled>Generate + Glitch</button>
+      <button id="btnPlay" disabled>Play Current Spectrogram</button>
+      <button id="btnDownload" disabled>⬇ Download Glitched Audio</button>
+    </div>
+    <div class="canvas-container">
+      <canvas id="spec" width="1024" height="512"></canvas>
+    </div>
+  </main>
+  <footer>Brutalist theme applied — controls above, canvas below.</footer>
+<script>
+(()=>{
+  const $=sel=>document.querySelector(sel);
+  const audioInput=$('#audioInput');
+  const jpegQ=$('#jpegQ'), qVal=$('#qVal');
+  const passes=$('#passes'), pVal=$('#pVal');
+  const scale=$('#scale'), sVal=$('#sVal');
+  const cbInv=$('#fxInvert');
+  const cbThr=$('#fxThreshold');
+  const btnGen=$('#btnGenerate');
+  const btnPlay=$('#btnPlay');
+  const btnDownload=$('#btnDownload');
+  const canvas=$('#spec'); const ctx=canvas.getContext('2d');
+
+  let audioBuffer=null, SR=44100;
+  let phaseStore=[], colMaxArr=[];
+  let lastGlitchedBuffer=null;
+
+  const hann=(N,n)=>0.5*(1-Math.cos(2*Math.PI*n/(N-1)));
+  const updateLabels=()=>{qVal.textContent=jpegQ.value+'%';pVal.textContent=passes.value+'×';sVal.textContent=scale.value+'%';};
+  ['input','change'].forEach(evt=>{jpegQ.addEventListener(evt,updateLabels);passes.addEventListener(evt,updateLabels);scale.addEventListener(evt,updateLabels);} );
+  updateLabels();
+
+  audioInput.addEventListener('change',async e=>{
+    const file=e.target.files?.[0]; if(!file) return;
+    try{
+      const arr=await file.arrayBuffer();
+      const AC=new (window.AudioContext||window.webkitAudioContext)();
+      SR=AC.sampleRate;
+      audioBuffer=await AC.decodeAudioData(arr);
+      btnGen.disabled=false;
+    }catch(err){alert('Decode error '+err.message);}  
+  });
+
+  btnGen.addEventListener('click',async()=>{
+    if(!audioBuffer) return;
+    await buildSpectrogram();
+    await degradeImage(+passes.value, +scale.value/100, +jpegQ.value/100);
+    applyPostFX();
+    btnPlay.disabled=false;
+    btnDownload.disabled=false;
+  });
+
+  async function buildSpectrogram(){
+    const fftSize=2048, hop=fftSize/4;
+    const chan=audioBuffer.getChannelData(0);
+    const frames=Math.floor((chan.length-fftSize)/hop);
+    if(frames<1){alert('Audio too short');return;}
+    canvas.width=frames; canvas.height=fftSize>>1;
+    const rows=canvas.height;
+
+    const imgData=ctx.createImageData(frames,rows);
+    phaseStore=new Array(frames);
+    colMaxArr=new Float32Array(frames);
+    const fft=new FFT(fftSize,SR);
+
+    for(let f=0;f<frames;f++){
+      const offset=f*hop;
+      const slice=new Float32Array(fftSize);
+      for(let i=0;i<fftSize;i++) slice[i]=chan[offset+i]||0;
+      for(let i=0;i<fftSize;i++) slice[i]*=hann(fftSize,i);
+      fft.forward(slice);
+      const spec=fft.spectrum, real=fft.real, imag=fft.imag;
+      const phases=new Float32Array(rows);
+      let cMax=0;
+      for(let r=0;r<rows;r++){
+        phases[r]=Math.atan2(imag[r],real[r]);
+        if(spec[r]>cMax) cMax=spec[r];
+      }
+      phaseStore[f]=phases; colMaxArr[f]=cMax||1;
+      for(let r=0;r<rows;r++){
+        const grey=Math.floor(Math.pow(spec[r]/colMaxArr[f],0.25)*255);
+        const idx=((rows-1-r)*frames+f)*4;
+        imgData.data[idx]=imgData.data[idx+1]=imgData.data[idx+2]=grey; imgData.data[idx+3]=255;
+      }
+    }
+    ctx.putImageData(imgData,0,0);
+  }
+
+  async function degradeImage(p,scaleFactor,q){
+    const loadImg=url=>new Promise(res=>{const im=new Image();im.onload=()=>res(im);im.src=url;});
+    for(let i=0;i<p;i++){
+      let srcCan=canvas;
+      if(scaleFactor<1){
+        const tmp=document.createElement('canvas');
+        tmp.width=Math.max(1,Math.round(canvas.width*scaleFactor));
+        tmp.height=Math.max(1,Math.round(canvas.height*scaleFactor));
+        tmp.getContext('2d').drawImage(canvas,0,0,tmp.width,tmp.height);
+        srcCan=tmp;
+      }
+      const img=await loadImg(srcCan.toDataURL('image/jpeg',q));
+      ctx.clearRect(0,0,canvas.width,canvas.height);
+      ctx.drawImage(img,0,0,canvas.width,canvas.height);
+    }
+  }
+
+  function applyPostFX(){
+    const {width:w,height:h}=canvas;
+    const img=ctx.getImageData(0,0,w,h); const px=img.data;
+    const inv=cbInv.checked, thr=cbThr.checked;
+    for(let i=0;i<px.length;i+=4){
+      let v=px[i];
+      if(inv) v=255-v;
+      if(thr) v=v>127?255:0;
+      px[i]=px[i+1]=px[i+2]=v;
+    }
+    ctx.putImageData(img,0,0);
+  }
+
+  cbInv.addEventListener('input',applyPostFX);
+  cbThr.addEventListener('input',applyPostFX);
+
+  btnPlay.addEventListener('click',()=>{
+    applyPostFX();
+    lastGlitchedBuffer = playSpectrogram();
+  });
+
+  btnDownload.addEventListener('click',()=>{
+    if(!lastGlitchedBuffer){alert('Generate first');return;}
+    const wavData = audioBufferToWav(lastGlitchedBuffer);
+    const blob = new Blob([wavData], { type: 'audio/wav' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'glitched_audio.wav';
+    a.click();
+    URL.revokeObjectURL(url);
+  });
+
+  function playSpectrogram(){
+    const rows=canvas.height, cols=canvas.width;
+    if(!rows||!cols){alert('Generate first');return;}
+    const img=ctx.getImageData(0,0,cols,rows).data;
+    const fftSize=rows*2, hop=fftSize/4, total=hop*(cols-1)+fftSize;
+    const AC=new (window.AudioContext||window.webkitAudioContext)({sampleRate:SR});
+    const buffer=AC.createBuffer(1,total,SR); const out=buffer.getChannelData(0);
+    const ifft=new FFT(fftSize,SR);
+
+    for(let c=0;c<cols;c++){
+      const real=new Float32Array(fftSize); const imag=new Float32Array(fftSize);
+      const cMax=colMaxArr[c]||1; const phases=phaseStore[c];
+      for(let r=0;r<rows;r++){
+        const idx=((rows-1-r)*cols+c)*4; const grey=img[idx]; if(grey<1) continue;
+        const mag=cMax*Math.pow(grey/255,4); const phase=phases?phases[r]:0;
+        real[r]=mag*Math.cos(phase); imag[r]=mag*Math.sin(phase);
+        if(r>0){ real[fftSize-r]=real[r]; imag[fftSize-r]=-imag[r]; }
+      }
+      const slice=ifft.inverse(real,imag);
+      for(let i=0;i<fftSize;i++){
+        const dst=c*hop+i;
+        if(dst<out.length) out[dst]+=slice[i]*hann(fftSize,i);
+      }
+    }
+    let peak=0; for(const v of out) if(Math.abs(v)>peak) peak=Math.abs(v);
+    if(peak>0){ const g=0.9/peak; for(let i=0;i<out.length;i++) out[i]*=g; }
+    const src=AC.createBufferSource(); src.buffer=buffer; src.connect(AC.destination);
+    if(AC.state==='suspended') AC.resume();
+    src.start();
+    return buffer;
+  }
+
+  function audioBufferToWav(buffer) {
+    const numOfChan = buffer.numberOfChannels,
+          length = buffer.length * numOfChan * 2 + 44,
+          bufferArray = new ArrayBuffer(length),
+          view = new DataView(bufferArray),
+          sampleRate = buffer.sampleRate,
+          bitDepth = 16;
+
+    let offset = 0;
+
+    function setUint16(data) { view.setUint16(offset, data, true); offset += 2; }
+    function setUint32(data) { view.setUint32(offset, data, true); offset += 4; }
+
+    // RIFF chunk descriptor
+    setUint32(0x46464952); // "RIFF"
+    setUint32(length - 8);
+    setUint32(0x45564157); // "WAVE"
+
+    // FMT sub-chunk
+    setUint32(0x20746d66); // "fmt "
+    setUint32(16);
+    setUint16(1);
+    setUint16(numOfChan);
+    setUint32(sampleRate);
+    setUint32(sampleRate * numOfChan * bitDepth/8);
+    setUint16(numOfChan * bitDepth/8);
+    setUint16(bitDepth);
+
+    // data sub-chunk
+    setUint32(0x61746164); // "data"
+    setUint32(length - offset - 4);
+
+    for(let i=0;i<buffer.length;i++){
+      for(let ch=0;ch<numOfChan;ch++){
+        let sample = buffer.getChannelData(ch)[i]*0x7fff;
+        if(sample< -32768) sample=-32768;
+        if(sample>32767) sample=32767;
+        view.setInt16(offset, sample, true);
+        offset += 2;
+      }
+    }
+    return bufferArray;
+  }
+})();
+</script>
+</body>
+</html>
