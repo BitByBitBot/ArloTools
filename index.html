@@ -199,28 +199,14 @@
       <div class="frame-container">
         <iframe id="tool-frame" title="Selected tool" hidden></iframe>
       </div>
+      <!-- Load the generated tool manifest script. This defines window.toolManifest. -->
+      <script src="tool-manifest.js"></script>
     </main>
   </div>
   <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const tools = [
-        { name: "3D Color Space Organizer", file: "3_d_color_space_organizer_collapsible_legend_updated_html.html" },
-        { name: "Audio Spectrogram Tool", file: "audio_spectrogram_tool.html" },
-        { name: "Brutalist Mind Map", file: "brutalist_mind_map_scaled.html" },
-        { name: "Chisel Tip Pen Drawing Tool", file: "chisel_pen.html" },
-        { name: "Graded Game of Life", file: "graded_game_of_life.html" },
-        { name: "Less Circle Centric Fractal", file: "less-circle-centric-fractal (1).html" },
-        { name: "Lissajous Figure Grid", file: "lissajous_figure_grid.html" },
-        { name: "Medieval Border Generator", file: "medieval_border_generator_geometric_tiling_v_2.html" },
-        { name: "MIDI → Neumes Converter", file: "midi_→_neumes_converter_single_file_html.html" },
-        { name: "Particle Tree Zoom & Scroll", file: "particle_tree_zoom_scroll.html" },
-        { name: "Pixel Row Glitcher", file: "pixel_row_glitcher.html" },
-        { name: "Random I Heart", file: "random_i_heart.html" },
-        { name: "Recursive Vector Fractal Lab", file: "recursive_vector_fractal_lab_standalone_html (2).html" },
-        { name: "Spectrogram Glitch Posteﬀects", file: "spectrogram_glitch_posteffects (1).html" },
-        { name: "Square Tiling Tool", file: "square_tiling_tool_svg_import_export.html" },
-        { name: "Boid Simulator", file: "boid_simulator.html" },
-      ];
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Pull the list of tools from the generated manifest script. The script assigns an array to window.toolManifest.
+      const tools = Array.isArray(window.toolManifest) ? window.toolManifest : [];
 
       const toolList = document.getElementById("tool-list");
       const searchInput = document.getElementById("search");

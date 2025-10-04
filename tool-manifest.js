@@ -1,0 +1,70 @@
+window.toolManifest = [
+  {
+    "name": "3 D Color Space",
+    "file": "arlo_tools_repo/3_d_color_space.html"
+  },
+  {
+    "name": "Archive Shuffle",
+    "file": "arlo_tools_repo/archive_shuffle.html"
+  },
+  {
+    "name": "Auto Modern Grid Layout",
+    "file": "arlo_tools_repo/auto_modern_grid_layout.html"
+  },
+  {
+    "name": "Boids",
+    "file": "arlo_tools_repo/boids.html"
+  },
+  {
+    "name": "Chisel Pen",
+    "file": "arlo_tools_repo/chisel_pen.html"
+  },
+  {
+    "name": "Fractal Lab",
+    "file": "arlo_tools_repo/Fractal_Lab.html"
+  },
+  {
+    "name": "GlitchSkewer",
+    "file": "arlo_tools_repo/GlitchSkewer.html"
+  },
+  {
+    "name": "Graded Game Of Life",
+    "file": "arlo_tools_repo/graded_game_of_life.html"
+  },
+  {
+    "name": "I <3 WIKI",
+    "file": "arlo_tools_repo/I_<3_WIKI.html"
+  },
+  {
+    "name": "Lissajous Figure Grid",
+    "file": "arlo_tools_repo/lissajous_figure_grid.html"
+  },
+  {
+    "name": "Medieval Border Generator",
+    "file": "arlo_tools_repo/medieval_border_generator.html"
+  },
+  {
+    "name": "Midi → Neumes Converter",
+    "file": "arlo_tools_repo/midi_→_neumes_converter.html"
+  },
+  {
+    "name": "Node Net",
+    "file": "arlo_tools_repo/Node_Net.html"
+  },
+  {
+    "name": "Spectrogram Collage",
+    "file": "arlo_tools_repo/Spectrogram_Collage.html"
+  },
+  {
+    "name": "SpectroJPEG",
+    "file": "arlo_tools_repo/SpectroJPEG.html"
+  },
+  {
+    "name": "Square Tiler",
+    "file": "arlo_tools_repo/square_tiler.html"
+  },
+  {
+    "name": "Tree Generator",
+    "file": "arlo_tools_repo/tree_generator.html"
+  }
+];
