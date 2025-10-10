@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Automated Modern Grid — Brutalist (No-Cut Text)</title>
+  <style>
+    :root{
+      --page-margin: 48px; /* px */
+      --gutter: 12px;      /* px */
+      --cols: 12;          /* count */
+      --rows: 16;          /* count */
+      --panel-w: 400px;    /* panel width */
+      --ink: #000;
+      --paper: #fff;
+      --title-scale: 1;    /* 1 = 100% */
+      --font-family: system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%;margin:0;background:var(--paper);color:var(--ink);font:14px/1.4 var(--font-family)}
+
+    .wrap{min-height:100dvh;display:grid;grid-template-columns:minmax(260px,var(--panel-w)) 1fr;gap:24px;padding:16px 16px 12px;align-items:start}
+
+    /* Panel — brutalist black on white */
+    .panel{position:sticky;top:12px;background:var(--paper);border:1px solid #000;padding:12px;max-height:calc(100dvh - 24px);overflow:auto}
+    .panel h1{font:700 18px/1 ui-monospace,Menlo,Consolas,monospace;margin:0 0 6px;text-transform:uppercase}
+    .panel .sub{font:12px/1.3 ui-monospace,Menlo,Consolas,monospace;margin:0 0 10px;color:#000}
+
+    fieldset{border:1px solid #000;margin:10px 0;padding:8px}
+    legend{padding:0 4px;font:700 11px/1 ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase}
+
+    /* label | [range flex] | [number] */
+    label{display:grid;grid-template-columns:auto 1fr auto;gap:8px;align-items:center;margin:6px 0}
+    label>*{min-width:0}
+
+    input[type="number"],input[type="text"],input[type="file"],select{width:90px;padding:6px 8px;border:1px solid #000;background:#fff;border-radius:0}
+    input[type="checkbox"]{width:16px;height:16px;accent-color:#000}
+    input[type="range"]{width:100%;background:transparent}
+    /* Minimal brutalist slider */
+    input[type="range"]::-webkit-slider-runnable-track{height:2px;background:#000}
+    input[type="range"]::-moz-range-track{height:2px;background:#000}
+    input[type="range"]::-webkit-slider-thumb{-webkit-appearance:none;appearance:none;width:12px;height:12px;border:1px solid #000;background:#fff;margin-top:-5px}
+    input[type="range"]::-moz-range-thumb{width:12px;height:12px;border:1px solid #000;background:#fff}
+
+    .row{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+    .btn{appearance:none;border:1px solid #000;background:#fff;border-radius:0;padding:8px 10px;cursor:pointer;font:700 12px/1 ui-monospace,Menlo,Consolas,monospace;text-transform:uppercase}
+    .btn:active{transform:translateY(1px)}
+
+    /* Stage + page: always fit visible area */
+    .stage{display:grid;place-items:center;overflow:auto}
+    .page-frame{height:min(92vh,calc(100dvh - 40px));aspect-ratio:8.5/11;max-width:100%;background:#fff;border:1px solid #000;position:relative;overflow:hidden}
+    .page{position:absolute;inset:0;padding:var(--page-margin);display:grid;grid-template-columns:repeat(var(--cols),1fr);grid-template-rows:repeat(var(--rows),1fr);gap:var(--gutter);background:#fff;transition:padding .2s ease,gap .2s ease;container-type:size;font-family: var(--font-family)}
+
+    /* Optional grid overlay: thin black hairlines */
+    .grid-lines::before{content:"";position:absolute;inset:var(--page-margin);background-image:
+      repeating-linear-gradient(to right, rgba(0,0,0,.12), rgba(0,0,0,.12) 1px, transparent 1px, transparent calc((100% - (var(--cols) - 1)*var(--gutter))/var(--cols))),
+      repeating-linear-gradient(to bottom, rgba(0,0,0,.12), rgba(0,0,0,.12) 1px, transparent 1px, transparent calc((100% - (var(--rows) - 1)*var(--gutter))/var(--rows)));
+      pointer-events:none}
+
+    /* Content blocks remain stark (no boxes) */
+    .block{display:block;position:relative;overflow:hidden;container-type:size;background:transparent}
+    .block[data-kind="image"],.block[data-kind="body"],.block[data-kind="title"],.block[data-kind="empty"]{background:transparent}
+
+    .block .pad{padding:clamp(6px,1.2cqi,16px)}
+    .block img{width:100%;height:100%;object-fit:cover;display:block}
+
+    .title-text{height:100%;width:100%;display:flex;align-items:center;justify-content:center;text-align:center;text-transform:uppercase;letter-spacing:.02em;padding:clamp(6px,1.2cqi,16px);color:#000;
+      /* Start with responsive size; JS will auto-fit inside the block */
+      font-family: var(--font-family);
+      line-height:0.95;
+      text-rendering:optimizeLegibility;-webkit-font-smoothing:antialiased;}
+
+    .body-text{color:#000;font-family: var(--font-family);line-height:1.45}
+    .body-text p{margin:.5em 0}
+    .body-text .lede{font-weight:700}
+
+    .badge{position:absolute;inset:auto 6px 6px auto;background:#fff;color:#000;border:1px solid #000;font:11px/1 ui-monospace,Menlo,Consolas,monospace;padding:2px 4px;display:none}
+    .debug .badge{display:inline-block}
+
+    /* Small screens: stack panel, still fit page */
+    @media (max-width: 980px){
+      .wrap{grid-template-columns:1fr}
+      .panel{position:static;max-height:none}
+      .stage{margin-top:8px}
+      .page-frame{height:calc(100dvh - 220px)}
+    }
+
+    @media print{
+      body{background:#fff}
+      .wrap{display:block;padding:0}
+      .panel{display:none}
+      .page-frame{height:auto;width:100%;border:1px solid #000}
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="panel">
+      <h1>Automated Modern Grid</h1>
+      <div class="sub">No letterforms ever cut: type auto-fits to blocks. Wider text scale ranges included.</div>
+
+      <fieldset>
+        <legend>Grid</legend>
+        <label>Columns <input id="cols" type="range" min="4" max="30" value="12" /> <input id="colsNum" type="number" min="4" max="30" value="12"></label>
+        <label>Rows <input id="rows" type="range" min="6" max="40" value="16" /> <input id="rowsNum" type="number" min="6" max="40" value="16"></label>
+        <label>Margin (px) <input id="margin" type="range" min="0" max="120" value="48" /> <input id="marginNum" type="number" min="0" max="120" value="48"></label>
+        <label>Gutter (px) <input id="gutter" type="range" min="0" max="64" value="12" /> <input id="gutterNum" type="number" min="0" max="64" value="12"></label>
+        <label class="row">Show grid lines <input id="showGrid" type="checkbox"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Blocks</legend>
+        <label>Min block cells <input id="minCells" type="range" min="1" max="12" value="2" /> <input id="minCellsNum" type="number" min="1" max="50" value="2"></label>
+        <label>Max block cells <input id="maxCells" type="range" min="3" max="80" value="24" /> <input id="maxCellsNum" type="number" min="3" max="200" value="24"></label>
+        <label>Fill probability % <input id="fillProb" type="range" min="0" max="100" value="60" /> <input id="fillProbNum" type="number" min="0" max="100" value="60"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Typography</legend>
+        <label>Title scale % <input id="titleScale" type="range" min="40" max="400" value="100" /> <input id="titleScaleNum" type="number" min="40" max="400" value="100"></label>
+        <label>Body scale % <input id="bodyScale" type="range" min="50" max="240" value="100" /> <input id="bodyScaleNum" type="number" min="50" max="240" value="100"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Fonts</legend>
+        <label>Choose font
+          <select id="fontSelect">
+            <option value="system-ui, -apple-system, Segoe UI, Roboto, Inter, Helvetica, Arial, sans-serif" selected>System UI</option>
+            <option value="Helvetica, Arial, sans-serif">Helvetica</option>
+            <option value="Georgia, serif">Georgia</option>
+            <option value="Courier New, monospace">Courier New</option>
+          </select>
+        </label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Content Mix</legend>
+        <label>Target image area % <input id="imgPct" type="range" min="0" max="90" value="35" /> <input id="imgPctNum" type="number" min="0" max="90" value="35"></label>
+        <label>Title blocks <input id="titleCount" type="range" min="0" max="3" value="1" /> <input id="titleCountNum" type="number" min="0" max="6" value="1"></label>
+        <label class="row">Reuse images if needed <input id="reuseImgs" type="checkbox" checked></label>
+        <label class="row">Auto‑fill random images <input id="autoImages" type="checkbox" checked></label>
+        <label>Title text <input id="titleText" type="text" placeholder="Leave blank for auto"></label>
+      </fieldset>
+
+      <fieldset>
+        <legend>Randomness</legend>
+        <label>Seed <input id="seed" type="text" placeholder="blank = random"></label>
+        <div class="row">
+          <button class="btn" id="rerollSeed">New Seed</button>
+          <button class="btn" id="rerollContent">Reroll Content</button>
+        </div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Images</legend>
+        <input id="imgInput" type="file" accept="image/*" multiple>
+        <div class="sub">Drop your own images, or let the tool auto‑fill image blocks from a free random image API.</div>
+      </fieldset>
+
+      <div class="row">
+        <button class="btn" id="generate">Generate</button>
+        <button class="btn" id="regenLayout">Reroll Layout</button>
+        <button class="btn" id="toggleDebug">Toggle Debug</button>
+        <button class="btn" id="runTests">Run Tests</button>
+      </div>
+
+      <details style="margin-top:8px">
+        <summary>Test Console</summary>
+        <pre id="test-log" style="white-space:pre-wrap;border:1px solid #000;padding:8px;max-height:200px;overflow:auto"></pre>
+      </details>
+    </aside>
+
+    <main class="stage">
+      <div class="page-frame">
+        <div id="page" class="page" aria-label="Generated page grid"></div>
+      </div>
+    </main>
+  </div>
+
+<script>
+// --- Utilities: seeded RNG ---
+function xmur3(str){ let h = 1779033703 ^ str.length; for (let i = 0; i < str.length; i++){ h = Math.imul(h ^ str.charCodeAt(i), 3432918353); h = (h << 13) | (h >>> 19); } return ()=>{ h = Math.imul(h ^ (h >>> 16), 2246822507); h = Math.imul(h ^ (h >>> 13), 3266489909); return (h ^= h >>> 16) >>> 0; } }
+function mulberry32(a){ return function(){ let t = a += 0x6D2B79F5; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; } }
+
+const LOREM = `Lorem ipsum dolor sit amet, consectetur adipiscing elit. Suspendisse varius, augue vitae posuere tincidunt, ex nunc varius massa, a fringilla augue neque at lacus. Integer ultrices bibendum ultrices. Curabitur vehicula, arcu eu feugiat interdum, nibh ex tempor arcu, et consequat justo velit eget lorem. Phasellus efficitur posuere mi, eu vestibulum sem dictum quis. Vivamus pretium, nibh non pretium sagittis, nunc erat sollicitudin lectus, at hendrerit urna velit non nunc.`.split(". ");
+
+const state = {
+  cols: 12, rows: 16, margin: 48, gutter: 12,
+  minCells: 2, maxCells: 24,
+  imageAreaPct: 35, titleCount: 1, titleText: "",
+  fillProb: 60,
+  titleScale: 100, bodyScale: 100,
+  autoImages: true, reuseImages: true, showGrid: false,
+  seed: String(Math.floor(Math.random()*1e9)),
+  rng: mulberry32( xmur3("seed")() ),
+  blocks: [],
+  images: [],
+  debug: false,
+};
+
+function setSeed(s){
+  const str = (s && String(s).trim().length) ? String(s) : String(Math.floor(Math.random()*1e12));
+  state.seed = str;
+  const hash = xmur3(str)();
+  state.rng = mulberry32(hash);
+}
+function rand(){ return state.rng(); }
+function randi(min,max){ return Math.floor(rand()*(max-min+1))+min; }
+function choice(arr){ return arr[Math.floor(rand()*arr.length)] }
+
+// --- DOM refs ---
+const el = {
+  page: document.getElementById('page'),
+  cols: document.getElementById('cols'), colsNum: document.getElementById('colsNum'),
+  rows: document.getElementById('rows'), rowsNum: document.getElementById('rowsNum'),
+  margin: document.getElementById('margin'), marginNum: document.getElementById('marginNum'),
+  gutter: document.getElementById('gutter'), gutterNum: document.getElementById('gutterNum'),
+  minCells: document.getElementById('minCells'), minCellsNum: document.getElementById('minCellsNum'),
+  maxCells: document.getElementById('maxCells'), maxCellsNum: document.getElementById('maxCellsNum'),
+  imgPct: document.getElementById('imgPct'), imgPctNum: document.getElementById('imgPctNum'),
+  titleCount: document.getElementById('titleCount'), titleCountNum: document.getElementById('titleCountNum'),
+  titleText: document.getElementById('titleText'),
+  fillProb: document.getElementById('fillProb'), fillProbNum: document.getElementById('fillProbNum'),
+  titleScale: document.getElementById('titleScale'), titleScaleNum: document.getElementById('titleScaleNum'),
+  bodyScale: document.getElementById('bodyScale'), bodyScaleNum: document.getElementById('bodyScaleNum'),
+  autoImages: document.getElementById('autoImages'),
+  seed: document.getElementById('seed'),
+  showGrid: document.getElementById('showGrid'),
+  reuseImgs: document.getElementById('reuseImgs'),
+  imgInput: document.getElementById('imgInput'),
+  generate: document.getElementById('generate'),
+  regenLayout: document.getElementById('regenLayout'),
+  rerollSeed: document.getElementById('rerollSeed'),
+  rerollContent: document.getElementById('rerollContent'),
+  toggleDebug: document.getElementById('toggleDebug'),
+  fontSelect: document.getElementById('fontSelect'),
+  runTests: document.getElementById('runTests'),
+  testLog: document.getElementById('test-log'),
+};
+
+// Bind ranges to number inputs
+function linkRange(range, num, key){
+  const sync = (fromRange)=>{
+    const v = + (fromRange ? range.value : num.value);
+    range.value = v; num.value = v; state[key] = v; scheduleRender();
+  };
+  range.addEventListener('input', ()=> sync(true));
+  num.addEventListener('input', ()=> sync(false));
+}
+linkRange(el.cols, el.colsNum, 'cols');
+linkRange(el.rows, el.rowsNum, 'rows');
+linkRange(el.margin, el.marginNum, 'margin');
+linkRange(el.gutter, el.gutterNum, 'gutter');
+linkRange(el.minCells, el.minCellsNum, 'minCells');
+linkRange(el.maxCells, el.maxCellsNum, 'maxCells');
+linkRange(el.imgPct, el.imgPctNum, 'imageAreaPct');
+linkRange(el.titleCount, el.titleCountNum, 'titleCount');
+linkRange(el.fillProb, el.fillProbNum, 'fillProb');
+linkRange(el.titleScale, el.titleScaleNum, 'titleScale');
+linkRange(el.bodyScale, el.bodyScaleNum, 'bodyScale');
+
+el.titleText.addEventListener('input', ()=>{ state.titleText = el.titleText.value; scheduleRender(); });
+
+el.showGrid.addEventListener('change', ()=>{ state.showGrid = el.showGrid.checked; renderPageFrameClass(); });
+
+el.reuseImgs.addEventListener('change', ()=>{ state.reuseImages = el.reuseImgs.checked; assignContent(); });
+
+el.autoImages.addEventListener('change', ()=>{ state.autoImages = el.autoImages.checked; assignContent(); });
+
+el.seed.addEventListener('change', ()=>{ setSeed(el.seed.value); rebuild(); });
+
+el.rerollSeed.addEventListener('click', ()=>{ setSeed(""); el.seed.value = state.seed; rebuild(); });
+
+el.rerollContent.addEventListener('click', ()=>{ assignContent(); });
+
+el.generate.addEventListener('click', ()=> rebuild());
+
+el.regenLayout.addEventListener('click', ()=>{ rebuild(false); });
+
+el.toggleDebug.addEventListener('click', ()=>{ state.debug = !state.debug; document.body.classList.toggle('debug', state.debug); document.querySelectorAll('.badge').forEach(b=> b.style.display = state.debug ? 'inline-block' : 'none'); });
+
+// Font select -> set CSS var and refit
+if(el.fontSelect){
+  el.fontSelect.addEventListener('change', ()=>{
+    const val = el.fontSelect.value;
+    document.documentElement.style.setProperty('--font-family', val);
+    runFit();
+  });
+}
+
+// --- Tests ---
+function log(msg){ if(!el.testLog) return; el.testLog.textContent += msg + "\n"; }
+function clearLog(){ if(el.testLog) el.testLog.textContent = ''; }
+function assert(name, condition){ log((condition? '✅':'❌') + ' ' + name); return !!condition; }
+
+function testNoOverflow(){
+  const titles = [...document.querySelectorAll('.title-text')];
+  const bodies = [...document.querySelectorAll('.body-text')];
+  let ok = true;
+  for(const t of titles){ if(hasOverflow(t)){ runFit(); if(hasOverflow(t)){ ok = false; break; } } }
+  for(const b of bodies){ if(hasOverflow(b)){ runFit(); if(hasOverflow(b)){ ok = false; break; } } }
+  return assert('No text overflow in titles/bodies', ok);
+}
+
+function testFontVariableApplies(){
+  if(!el.fontSelect) return assert('Font select exists', false);
+  const original = el.fontSelect.value;
+  let ok = true;
+  const opts = [...el.fontSelect.options];
+  for(const o of opts){
+    el.fontSelect.value = o.value; el.fontSelect.dispatchEvent(new Event('change'));
+    const v = getComputedStyle(document.documentElement).getPropertyValue('--font-family').trim();
+    if(v !== o.value){ ok = false; break; }
+  }
+  // restore
+  el.fontSelect.value = original; el.fontSelect.dispatchEvent(new Event('change'));
+  return assert('Font selection updates --font-family', ok);
+}
+
+function runTests(){
+  clearLog();
+  const results = [ testNoOverflow(), testFontVariableApplies() ];
+  const allOK = results.every(Boolean);
+  log(allOK ? '🎉 All tests passed' : '⚠️ Some tests failed');
+}
+
+if(el.runTests){ el.runTests.addEventListener('click', runTests); }
+
+el.imgInput.addEventListener('change', async (e)=>{
+  const files = [...(e.target.files||[])];
+  if(!files.length) return;
+  const urls = await Promise.all(files.map(f=> fileToDataURL(f)));
+  state.images = urls;
+  assignContent();
+});
+
+function fileToDataURL(file){
+  return new Promise((res,rej)=>{
+    const r = new FileReader();
+    r.onload = ()=> res(r.result);
+    r.onerror = rej;
+    r.readAsDataURL(file);
+  });
+}
+
+function rebuild(newSeed=true){
+  if(newSeed===true){ setSeed(el.seed.value); el.seed.value = state.seed; }
+  // push CSS vars
+  el.page.style.setProperty('--cols', state.cols);
+  el.page.style.setProperty('--rows', state.rows);
+  el.page.style.setProperty('--page-margin', state.margin + 'px');
+  el.page.style.setProperty('--gutter', state.gutter + 'px');
+  el.page.style.setProperty('--title-scale', (state.titleScale/100).toString());
+  el.page.style.setProperty('--body-scale', (state.bodyScale/100).toString());
+
+  state.blocks = partitionGrid(state.rows, state.cols, state.minCells, state.maxCells);
+  renderBlocks();
+  assignContent();
+}
+
+function scheduleRender(){
+  clearTimeout(scheduleRender._t);
+  scheduleRender._t = setTimeout(()=> rebuild(false), 30);
+}
+
+function renderPageFrameClass(){
+  const frame = document.querySelector('.page-frame');
+  frame.classList.toggle('grid-lines', state.showGrid);
+}
+
+function partitionGrid(rows, cols, minCells, maxCells){
+  const filled = Array.from({length: rows}, ()=> Array(cols).fill(false));
+  const blocks = [];
+  const total = rows*cols; let used = 0;
+  function findNext(){ for(let r=0;r<rows;r++){ for(let c=0;c<cols;c++) if(!filled[r][c]) return [r,c]; } return null; }
+  function canPlace(r,c,w,h){ if(r+h>rows || c+w>cols) return false; for(let rr=r; rr<r+h; rr++){ for(let cc=c; cc<c+w; cc++) if(filled[rr][cc]) return false; } return true; }
+  function maxWidthFrom(r,c){ let w=0; while(c+w<cols && !filled[r][c+w]) w++; return w; }
+  function maxHeightForWidth(r,c,w){ let h=0; while(r+h<rows){ for(let cc=c; cc<c+w; cc++) if(filled[r+h][cc]) return h; h++; } return h; }
+
+  while(used < total){
+    const start = findNext(); if(!start) break; const [r,c] = start;
+    const wMax = Math.max(1, maxWidthFrom(r,c)); let placed = false;
+    for(let attempt=0; attempt<24; attempt++){
+      const w = Math.max(1, Math.min(wMax, Math.floor(randi(1,wMax))));
+      const hMax = maxHeightForWidth(r,c,w);
+      const h = Math.max(1, Math.min(hMax, Math.floor(randi(1,hMax))));
+      const area = w*h; if(area < minCells || area > maxCells) continue;
+      if(canPlace(r,c,w,h)){
+        for(let rr=r; rr<r+h; rr++) for(let cc=c; cc<c+w; cc++) filled[rr][cc] = true;
+        blocks.push({r,c,w,h,kind:'body'}); used += area; placed = true; break;
+      }
+    }
+    if(!placed){
+      if(canPlace(r,c,1,1)){ filled[r][c] = true; blocks.push({r,c,w:1,h:1,kind:'body'}); used += 1; }
+      else { used++; }
+    }
+  }
+  return blocks;
+}
+
+function renderBlocks(){
+  el.page.innerHTML = '';
+  el.page.classList.toggle('grid-lines', state.showGrid);
+  state.blocks.forEach((b,i)=>{
+    const d = document.createElement('div');
+    d.className = 'block'; d.dataset.index = i;
+    d.style.gridColumn = `${b.c+1} / span ${b.w}`;
+    d.style.gridRow = `${b.r+1} / span ${b.h}`;
+    d.style.setProperty('--w', b.w); d.style.setProperty('--h', b.h);
+    const tag = document.createElement('div'); tag.className = 'badge'; tag.textContent = `${b.w}×${b.h}`; d.appendChild(tag);
+    el.page.appendChild(d); b.el = d;
+  });
+}
+
+function assignContent(){
+  if(!state.blocks.length) return;
+  // Reset content
+  state.blocks.forEach(b=>{ b.kind='body'; if(b.el) b.el.innerHTML = '<div class="badge"></div>'; });
+  document.querySelectorAll('.badge').forEach((bdg,i)=>{ const b = state.blocks[i]; if(b) bdg.textContent = `${b.w}×${b.h}`; });
+
+  const totalCells = state.rows*state.cols;
+  const blocksByArea = [...state.blocks].sort((a,b)=> (b.w*b.h) - (a.w*a.h));
+
+  // Titles first
+  const wantTitles = Math.min(state.titleCount|0, blocksByArea.length);
+  const minTitleArea = Math.max(6, Math.round(totalCells * 0.04));
+  let titles = 0;
+  for(const b of blocksByArea){ if(titles>=wantTitles) break; if((b.w*b.h) >= minTitleArea){ b.kind='title'; titles++; } }
+
+  // Images next by target area
+  const targetImgArea = Math.round(totalCells * (state.imageAreaPct/100));
+  let accArea = 0;
+  for(const b of blocksByArea){ if(b.kind==='title') continue; if(accArea >= targetImgArea) break; b.kind='image'; accArea += b.w*b.h; }
+
+  // White-space control
+  const p = (state.fillProb||0)/100;
+  for(const b of state.blocks){ if(b.kind!=='title'){ if(rand() > p){ b.kind='empty'; } } }
+
+  // Apply DOM children
+  const images = collectImageSources();
+  let imgIdx = 0;
+
+  for(const b of state.blocks){
+    const node = b.el; if(!node) continue;
+    node.dataset.kind = b.kind;
+    node.className = 'block';
+    if(b.kind==='empty'){ node.innerHTML = ''; continue; }
+
+    const tag = node.querySelector('.badge'); if(tag) tag.style.display = document.body.classList.contains('debug') ? 'inline-block' : 'none';
+
+    if(b.kind==='title'){
+      const div = document.createElement('div');
+      div.className = 'title-text';
+      div.textContent = state.titleText && state.titleText.trim().length ? state.titleText.trim() : autoTitle();
+      node.appendChild(div);
+      queueFit(div, {minPx:10, maxPx:400, mode:'title'});
+    }
+    else if(b.kind==='image'){
+      const img = document.createElement('img');
+      let src = images[imgIdx];
+      if(src){ imgIdx++; if(imgIdx >= images.length && state.reuseImages) imgIdx = 0; }
+      else { src = randomImageURL(imgIdx); }
+      img.src = src; img.loading = 'lazy';
+      node.appendChild(img);
+    }
+    else{ // body
+      const wrap = document.createElement('div'); wrap.className = 'pad';
+      const pdiv = document.createElement('div'); pdiv.className = 'body-text';
+      pdiv.innerHTML = bodyParagraphsFor(b);
+      wrap.appendChild(pdiv); node.appendChild(wrap);
+      queueFit(pdiv, {minPx:10, maxPx:28, mode:'body'});
+    }
+  }
+}
+
+function collectImageSources(){
+  const out = [];
+  if(state.images && state.images.length && !state.autoImages){
+    return state.images.slice();
+  }
+  if(state.autoImages){
+    const count = Math.max(12, Math.round((state.rows*state.cols)/2));
+    for(let i=0;i<count;i++) out.push(randomImageURL(i));
+  }
+  return out.length ? out : state.images.slice();
+}
+
+// Free random image API (no key): Lorem Picsum with deterministic seeds
+function randomImageURL(i){
+  return `https://picsum.photos/seed/${encodeURIComponent(state.seed+'-'+i)}/1600/1200`;
+}
+
+function autoTitle(){
+  const A = ["Modern","New","Studio","Graphic","Matter","System","Surface","North","Atlas","Field","Vector","Signal","Echo","Atlas","Offset","Grid","Stack","Frame","Folio","Archive","Index"]; 
+  const B = ["Grid","Forms","Notes","Layouts","Study","Journal","Brief","Report","Digest","Reader","Manual","Almanac","Patterns","Matrix","Ledger","Primer"]; 
+  return `${choice(A)} ${choice(B)}`;
+}
+
+function bodyParagraphsFor(b){
+  const area = b.w*b.h;
+  const sentences = Math.min(10, Math.max(2, Math.round(area/2)));
+  const startLead = `<p class=\"lede\">${sampleSentence()}</p>`;
+  let out = startLead; let remain = sentences-1;
+  while(remain>0){ const chunk = Math.min(remain, randi(1,3)); out += `<p>${Array.from({length:chunk}, sampleSentence).join(' ')}</p>`; remain -= chunk; }
+  return out;
+}
+function sampleSentence(){ return choice(LOREM) + '.'; }
+
+// ---------- No-cut text fitting ----------
+let fitQueue = new Set();
+let ro = null;
+function queueFit(el, opts){
+  el.__fitOpts = opts || {minPx:10, maxPx:40};
+  fitQueue.add(el);
+  if(!ro){
+    ro = new ResizeObserver(()=> runFit());
+    ro.observe(document.getElementById('page'));
+  }
+  // also observe each block for size changes
+  const block = el.closest('.block');
+  if(block){ if(!block.__ro){ block.__ro = new ResizeObserver(()=> runFit()); block.__ro.observe(block); } }
+  // microtask to coalesce
+  Promise.resolve().then(runFit);
+}
+
+function runFit(){
+  fitQueue.forEach(el=> fitText(el, el.__fitOpts));
+  fitQueue.clear();
+}
+
+function hasOverflow(el){
+  return el.scrollHeight > el.clientHeight || el.scrollWidth > el.clientWidth;
+}
+
+function guessStartSize(el, mode){
+  const box = (el.closest('.block')||el).getBoundingClientRect();
+  const cw = Math.max(1, box.width);
+  if(mode==='title'){
+    // 8% of container width * title scale
+    return clamp(18, cw * 0.08 * (state.titleScale/100), 420);
+  } else {
+    return clamp(11, cw * 0.016 * (state.bodyScale/100), 36);
+  }
+}
+
+function fitText(el, {minPx=10, maxPx=40, mode='body'}={}){
+  // Start with a guess based on container width; then binary search to fit
+  let low = minPx;
+  let high = Math.min( maxPx, guessStartSize(el, mode) );
+  let best = low;
+  // Set styles to ensure wrapping, no clipping
+  el.style.wordBreak = 'break-word';
+  el.style.overflow = 'hidden';
+  el.style.hyphens = 'auto';
+  // Binary search ~7 steps
+  for(let i=0;i<7;i++){
+    const mid = (low+high)/2;
+    el.style.fontSize = mid + 'px';
+    const overflow = hasOverflow(el);
+    if(overflow){
+      high = mid - 0.5;
+    } else {
+      best = mid;
+      low = mid + 0.5;
+    }
+  }
+  el.style.fontSize = Math.max(minPx, Math.min(best, maxPx)) + 'px';
+}
+
+function clamp(min,v,max){ return Math.max(min, Math.min(max,v)); }
+
+window.addEventListener('resize', ()=> runFit());
+
+// --- Kickoff ---
+(function init(){
+  // set initial font variable from select
+  if(el.fontSelect){
+    document.documentElement.style.setProperty('--font-family', el.fontSelect.value);
+  }
+  el.seed.value = state.seed; setSeed(state.seed);
+  // Prime values in UI
+  ['cols','rows','margin','gutter','minCells','maxCells','imgPct','titleCount','fillProb','titleScale','bodyScale'].forEach(k=>{
+    const range = document.getElementById(k);
+    if(range) range.value = state[k]||0;
+    const num = document.getElementById(k+"Num"); if(num) num.value = state[k]||0;
+  });
+  if(el.autoImages) el.autoImages.checked = state.autoImages;
+  renderPageFrameClass();
+  rebuild(false);
+})();
+</script>
+</body>
+</html>

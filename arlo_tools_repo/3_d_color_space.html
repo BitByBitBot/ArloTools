@@ -6,22 +6,25 @@
   <title>3D Color‑Space Organizer</title>
   <style>
    :root { --bg:#ffffff; --fg:#000000; --muted:#666666; --accent:#0077ff; --panel:#f9f9f9; }
-*{box-sizing:border-box}
-body{margin:0;display:flex;flex-direction:column;height:100vh;background:var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial}
-header{position:sticky;top:0;z-index:5;backdrop-filter:blur(6px);background:rgba(255,255,255,0.9);border-bottom:1px solid #ddd}
-.bar{display:grid;grid-template-columns:1fr auto auto auto auto;gap:.75rem;padding:.9rem 1rem;align-items:center}
-.title{font-weight:700;letter-spacing:.2px}
-.controls{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
-label{font-size:.85rem;color:var(--muted)}
-input[type=number],select,input[type=file]{background:var(--panel);color:var(--fg);border:1px solid #ccc;border-radius:.4rem;padding:.4rem .6rem}
-input[type=number]{width:6rem}
-button{background:var(--accent);color:#fff;border:none;padding:.5rem .8rem;border-radius:.5rem;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15)}
-button.secondary{background:#f0f0f0;color:var(--fg);border:1px solid #ccc;box-shadow:none}
-.progress-wrap{height:.4rem;background:#eee;border-top:1px solid #ddd}
-.progress{height:100%;width:0;background:linear-gradient(90deg,#0077ff,#66bbff);transition:width .15s ease}
-
-main{flex:1;display:flex}
-#view3d{flex:1;min-height:0;outline:1px solid #ddd}
+  *{box-sizing:border-box}
+  body{margin:0;display:flex;flex-direction:column;height:100vh;background:var(--bg);color:var(--fg);font-family:ui-sans-serif,system-ui,-apple-system,Segoe UI,Inter,Roboto,Arial}
+  header{position:sticky;top:0;z-index:5;backdrop-filter:blur(6px);background:rgba(255,255,255,0.9);border-bottom:1px solid #ddd}
+  .bar{display:grid;grid-template-columns:1fr auto auto auto auto;gap:.75rem;padding:.9rem 1rem;align-items:center}
+  .title{font-weight:700;letter-spacing:.2px}
+  .controls{display:flex;gap:.5rem;align-items:center;flex-wrap:wrap}
+  label{font-size:.85rem;color:var(--muted)}
+  input[type=number],select,input[type=file]{background:var(--panel);color:var(--fg);border:1px solid #ccc;border-radius:.4rem;padding:.4rem .6rem}
+  input[type=number]{width:6rem}
+  button{background:var(--accent);color:#fff;border:none;padding:.5rem .8rem;border-radius:.5rem;font-weight:600;cursor:pointer;box-shadow:0 2px 6px rgba(0,0,0,.15)}
+  button.secondary{background:#f0f0f0;color:var(--fg);border:1px solid #ccc;box-shadow:none}
+  .progress-wrap{height:.4rem;background:#eee;border-top:1px solid #ddd}
+  .progress{height:100%;width:0;background:linear-gradient(90deg,#0077ff,#66bbff);transition:width .15s ease}
+  
+  main{flex:1;display:flex}
+  #view3d{flex:1;min-height:0;outline:1px solid #ddd}
+  
+  /* description styling */
+  .description{padding:0.5rem 1rem;font-size:.85rem;color:var(--muted);line-height:1.4;border-bottom:1px solid #eee;background:var(--panel)}
   </style>
   <script type="importmap">
   {
@@ -48,10 +51,21 @@ main{flex:1;display:flex}
         <label>Upload<input id="upload" type="file" accept="image/*" multiple /></label>
         <button id="go">Load & Arrange</button>
         <button id="repack" class="secondary">Re‑pack</button>
+        <!-- New toggles for grid and bounding box -->
+        <label><input type="checkbox" id="showGrid" checked /> Show Grid</label>
+        <label><input type="checkbox" id="showBox" checked /> Show Bounding Box</label>
       </div>
     </div>
     <div class="progress-wrap"><div class="progress" id="progress"></div></div>
   </header>
+  <!-- Description of the tool -->
+  <div class="description">
+    This tool arranges images by where they fit in 3D color space. The three dimensions of the cube can represent hue, saturation, and value or red, blue, and green. Use the controls above to load your own images, adjust thumbnail size and select between RGB or HSV spaces. You can also show or hide the grid and bounding box using the checkboxes.
+    <ul>
+      <li>Toggle the grid and bounding box using the checkboxes in the toolbar.</li>
+      <li>Click on an image point in 3D space to view it in a new tab.</li>
+    </ul>
+  </div>
 
   <main>
     <div id="view3d"></div>
@@ -69,6 +83,8 @@ main{flex:1;display:flex}
     const repackBtn = document.getElementById('repack');
     const progress = document.getElementById('progress');
     const uploadEl = document.getElementById('upload');
+    const showGridEl = document.getElementById('showGrid');
+    const showBoxEl = document.getElementById('showBox');
 
     let customFiles = [];
     uploadEl.addEventListener('change', () => {
@@ -118,7 +134,10 @@ main{flex:1;display:flex}
       r/=n; g/=n; b/=n; return [r,g,b];
     }
 
+    // Scene globals
     let renderer, scene, camera, controls, sprites=[];
+    let gridHelper, boxHelper;
+    let raycaster, pointer;
 
     function init3D(){
       if (renderer) return;
@@ -132,9 +151,19 @@ main{flex:1;display:flex}
       controls = new OrbitControls(camera, renderer.domElement);
       controls.enableDamping = true;
 
-      const grid = new THREE.GridHelper(1,10,0x335577,0x223344); grid.rotation.x=Math.PI/2; grid.position.set(.5,.5,.0); scene.add(grid);
-      const box = new THREE.Box3Helper(new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(1,1,1)), 0x446688); scene.add(box);
+      // Create grid and box helpers and store in globals
+      gridHelper = new THREE.GridHelper(1,10,0x335577,0x223344); gridHelper.rotation.x=Math.PI/2; gridHelper.position.set(.5,.5,.0); scene.add(gridHelper);
+      boxHelper = new THREE.Box3Helper(new THREE.Box3(new THREE.Vector3(0,0,0), new THREE.Vector3(1,1,1)), 0x446688); scene.add(boxHelper);
       const amb = new THREE.AmbientLight(0xffffff, 1.0); scene.add(amb);
+
+      // Set initial visibility based on checkbox state
+      gridHelper.visible = showGridEl.checked;
+      boxHelper.visible = showBoxEl.checked;
+
+      // Setup raycaster for click interactions
+      raycaster = new THREE.Raycaster();
+      pointer = new THREE.Vector2();
+      renderer.domElement.addEventListener('click', onSpriteClick);
 
       window.addEventListener('resize', ()=>{
         renderer.setSize(view3d.clientWidth, view3d.clientHeight);
@@ -205,9 +234,30 @@ main{flex:1;display:flex}
 
     function repack(){ computeCoords(spaceEl.value); render3D(); }
 
+    function onSpriteClick(event){
+      if (!renderer || !raycaster || !pointer) return;
+      const rect = renderer.domElement.getBoundingClientRect();
+      pointer.x = (event.clientX - rect.left) / rect.width * 2 - 1;
+      pointer.y = -(event.clientY - rect.top) / rect.height * 2 + 1;
+      raycaster.setFromCamera(pointer, camera);
+      const intersects = raycaster.intersectObjects(sprites);
+      if (intersects.length > 0) {
+        const idx = sprites.indexOf(intersects[0].object);
+        if (idx >= 0) {
+          const url = state.metas[idx]?.url;
+          if (url) window.open(url, '_blank');
+        }
+      }
+    }
+
     goBtn.addEventListener('click', run);
     repackBtn.addEventListener('click', repack);
 
+    // Update helper visibility when toggles change
+    showGridEl.addEventListener('change', () => { if (gridHelper) gridHelper.visible = showGridEl.checked; });
+    showBoxEl.addEventListener('change', () => { if (boxHelper) boxHelper.visible = showBoxEl.checked; });
+
+    // Run on load
     run();
   </script>
 </body>

@@ -1,0 +1,336 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Boid Simulator</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #fff;
+      color: #000;
+      font-family: sans-serif;
+      margin: 0;
+      padding-bottom: 1rem;
+    }
+    #description { max-width: 800px; padding: 1rem 1.2rem; font-size: 0.9rem; line-height: 1.4; text-align: center; border-bottom:1px solid #ccc; }
+    canvas {
+      border: 1px solid #ccc;
+      margin-top: 10px;
+      background: white;
+    }
+    .controls {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+      gap: 10px;
+      margin-top: 10px;
+      width: 90%;
+    }
+    label {
+      display: flex;
+      flex-direction: column;
+      font-size: 14px;
+    }
+    input[type="range"], input[type="color"], select {
+      width: 100%;
+    }
+    button { padding: 6px 10px; border: 1px solid #000; background:#fff; cursor:pointer; }
+    button:hover { background:#f2f2f2; }
+  </style>
+</head>
+<body>
+  <h1>Boid Simulator</h1>
+  <div id="description">
+    <p>This customizable boid simulator visualizes flocking behaviour. Adjust parameters like boid count, alignment, cohesion and separation weights, vision radius and speed. New features let you choose presets, switch between circle and arrow shapes, enable a metaball glow, set boid and background colours, pause/resume the simulation and export the current frame as a PNG.</p>
+  </div>
+  <canvas id="boidCanvas" width="800" height="600"></canvas>
+  <div class="controls">
+    <label>Boid Count <input id="boidCount" type="range" min="10" max="500" value="100"></label>
+    <label>Max Speed <input id="maxSpeed" type="range" min="1" max="10" value="4" step="0.1"></label>
+    <label>Alignment <input id="alignSlider" type="range" min="0" max="2" step="0.1" value="1"></label>
+    <label>Cohesion <input id="cohesionSlider" type="range" min="0" max="2" step="0.1" value="1"></label>
+    <label>Separation <input id="separationSlider" type="range" min="0" max="2" step="0.1" value="1.5"></label>
+    <label>Vision Radius <input id="visionSlider" type="range" min="10" max="200" step="1" value="50"></label>
+    <label>Boid Size <input id="scaleSlider" type="range" min="1" max="10" value="4" step="0.1"></label>
+    <label>Preset
+      <select id="preset">
+        <option value="">Custom</option>
+        <option value="calm">Calm Flock</option>
+        <option value="swarm">Swarm</option>
+        <option value="circle">Circle</option>
+        <option value="chaos">Chaos</option>
+      </select>
+    </label>
+    <label>Boid Colour <input id="colorPick" type="color" value="#000000"></label>
+    <label>Background Colour <input id="bgColorPick" type="color" value="#ffffff"></label>
+    <label>Shape
+      <select id="shapeSelect">
+        <option value="circle">Circle</option>
+        <option value="arrow">Arrow</option>
+      </select>
+    </label>
+    <label><input type="checkbox" id="metaball"> Metaball Mode</label>
+    <button id="pauseBtn" type="button">Pause</button>
+    <button id="exportBtn" type="button">Export Frame</button>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('boidCanvas');
+    const ctx = canvas.getContext('2d');
+
+    let boids = [];
+    let paused = false;
+    let boidColor = '#000000';
+    let bgColor = '#ffffff';
+    let shapeType = 'circle';
+    let metaballMode = false;
+
+    const sliders = {
+      boidCount: document.getElementById('boidCount'),
+      maxSpeed: document.getElementById('maxSpeed'),
+      alignment: document.getElementById('alignSlider'),
+      cohesion: document.getElementById('cohesionSlider'),
+      separation: document.getElementById('separationSlider'),
+      vision: document.getElementById('visionSlider'),
+      scale: document.getElementById('scaleSlider')
+    };
+    const presetSelect = document.getElementById('preset');
+    const colorPick = document.getElementById('colorPick');
+    const bgColorPick = document.getElementById('bgColorPick');
+    const shapeSelect = document.getElementById('shapeSelect');
+    const metaballChk = document.getElementById('metaball');
+    const pauseBtn = document.getElementById('pauseBtn');
+    const exportBtn = document.getElementById('exportBtn');
+
+    class Boid {
+      constructor() {
+        this.position = {
+          x: Math.random() * canvas.width,
+          y: Math.random() * canvas.height
+        };
+        const angle = Math.random() * Math.PI * 2;
+        const speed = Math.random() * 2 + 1;
+        this.velocity = {
+          x: Math.cos(angle) * speed,
+          y: Math.sin(angle) * speed
+        };
+        this.acceleration = { x: 0, y: 0 };
+        this.maxForce = 0.05;
+      }
+      edges() {
+        if (this.position.x > canvas.width) this.position.x = 0;
+        if (this.position.x < 0) this.position.x = canvas.width;
+        if (this.position.y > canvas.height) this.position.y = 0;
+        if (this.position.y < 0) this.position.y = canvas.height;
+      }
+      steer(target) {
+        let steer = {
+          x: target.x - this.velocity.x,
+          y: target.y - this.velocity.y
+        };
+        return limit(steer, this.maxForce);
+      }
+      align(boids) {
+        let avg = { x: 0, y: 0 };
+        let count = 0;
+        for (let other of boids) {
+          const d = distance(this.position, other.position);
+          if (other !== this && d < sliders.vision.value) {
+            avg.x += other.velocity.x;
+            avg.y += other.velocity.y;
+            count++;
+          }
+        }
+        if (count > 0) {
+          avg.x /= count;
+          avg.y /= count;
+          return this.steer(avg);
+        }
+        return { x: 0, y: 0 };
+      }
+      cohesion(boids) {
+        let center = { x: 0, y: 0 };
+        let count = 0;
+        for (let other of boids) {
+          const d = distance(this.position, other.position);
+          if (other !== this && d < sliders.vision.value) {
+            center.x += other.position.x;
+            center.y += other.position.y;
+            count++;
+          }
+        }
+        if (count > 0) {
+          center.x /= count;
+          center.y /= count;
+          return this.steer({ x: center.x - this.position.x, y: center.y - this.position.y });
+        }
+        return { x: 0, y: 0 };
+      }
+      separation(boids) {
+        let avoid = { x: 0, y: 0 };
+        let count = 0;
+        for (let other of boids) {
+          const d = distance(this.position, other.position);
+          if (other !== this && d < sliders.vision.value / 2) {
+            avoid.x += this.position.x - other.position.x;
+            avoid.y += this.position.y - other.position.y;
+            count++;
+          }
+        }
+        if (count > 0) {
+          avoid.x /= count;
+          avoid.y /= count;
+          return this.steer(avoid);
+        }
+        return { x: 0, y: 0 };
+      }
+      update(boids) {
+        let alignment = this.align(boids);
+        let cohesion = this.cohesion(boids);
+        let separation = this.separation(boids);
+        this.acceleration.x = alignment.x * sliders.alignment.value + cohesion.x * sliders.cohesion.value + separation.x * sliders.separation.value;
+        this.acceleration.y = alignment.y * sliders.alignment.value + cohesion.y * sliders.cohesion.value + separation.y * sliders.separation.value;
+        this.velocity.x += this.acceleration.x;
+        this.velocity.y += this.acceleration.y;
+        this.velocity = limit(this.velocity, parseFloat(sliders.maxSpeed.value));
+        this.position.x += this.velocity.x;
+        this.position.y += this.velocity.y;
+        this.edges();
+      }
+      draw() {
+        const radius = parseFloat(sliders.scale.value);
+        if (metaballMode) {
+          // draw soft glow for metaball mode
+          const r = radius * 6;
+          const grad = ctx.createRadialGradient(this.position.x, this.position.y, 0, this.position.x, this.position.y, r);
+          grad.addColorStop(0, boidColor);
+          grad.addColorStop(1, boidColor + '00');
+          ctx.fillStyle = grad;
+          ctx.beginPath();
+          ctx.arc(this.position.x, this.position.y, r, 0, Math.PI * 2);
+          ctx.fill();
+          return;
+        }
+        if (shapeType === 'circle') {
+          ctx.beginPath();
+          ctx.arc(this.position.x, this.position.y, radius, 0, Math.PI * 2);
+          ctx.fillStyle = boidColor;
+          ctx.fill();
+        } else {
+          // arrow/triangle oriented to velocity
+          const angle = Math.atan2(this.velocity.y, this.velocity.x);
+          ctx.save();
+          ctx.translate(this.position.x, this.position.y);
+          ctx.rotate(angle);
+          ctx.beginPath();
+          ctx.moveTo(radius * 2, 0);
+          ctx.lineTo(-radius, radius);
+          ctx.lineTo(-radius, -radius);
+          ctx.closePath();
+          ctx.fillStyle = boidColor;
+          ctx.fill();
+          ctx.restore();
+        }
+      }
+    }
+    function distance(a, b) { return Math.hypot(a.x - b.x, a.y - b.y); }
+    function limit(vector, max) {
+      const mag = Math.hypot(vector.x, vector.y);
+      if (mag > max) {
+        vector.x = (vector.x / mag) * max;
+        vector.y = (vector.y / mag) * max;
+      }
+      return vector;
+    }
+    function updateBoids() {
+      boids = Array.from({ length: parseInt(sliders.boidCount.value) }, () => new Boid());
+    }
+    function animate() {
+      if (!paused) {
+        // draw background
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        if (metaballMode) ctx.globalCompositeOperation = 'lighter'; else ctx.globalCompositeOperation = 'source-over';
+        for (let boid of boids) {
+          boid.update(boids);
+          boid.draw();
+        }
+      } else {
+        // even when paused, show boids on current frame
+        ctx.fillStyle = bgColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.globalCompositeOperation = metaballMode ? 'lighter' : 'source-over';
+        for (let boid of boids) boid.draw();
+      }
+      requestAnimationFrame(animate);
+    }
+    // Preset settings
+    function setPreset(name) {
+      switch(name) {
+        case 'calm':
+          sliders.boidCount.value = 150;
+          sliders.maxSpeed.value = 2.5;
+          sliders.alignment.value = 1;
+          sliders.cohesion.value = 1;
+          sliders.separation.value = 1.5;
+          sliders.vision.value = 70;
+          sliders.scale.value = 4;
+          break;
+        case 'swarm':
+          sliders.boidCount.value = 300;
+          sliders.maxSpeed.value = 5;
+          sliders.alignment.value = 0.5;
+          sliders.cohesion.value = 0.5;
+          sliders.separation.value = 1;
+          sliders.vision.value = 40;
+          sliders.scale.value = 3;
+          break;
+        case 'circle':
+          sliders.boidCount.value = 200;
+          sliders.maxSpeed.value = 3;
+          sliders.alignment.value = 1.2;
+          sliders.cohesion.value = 1.5;
+          sliders.separation.value = 0.4;
+          sliders.vision.value = 80;
+          sliders.scale.value = 4;
+          break;
+        case 'chaos':
+          sliders.boidCount.value = 200;
+          sliders.maxSpeed.value = 8;
+          sliders.alignment.value = 0.2;
+          sliders.cohesion.value = 0.2;
+          sliders.separation.value = 0.2;
+          sliders.vision.value = 30;
+          sliders.scale.value = 3;
+          break;
+      }
+    }
+    // Wire up controls
+    presetSelect.addEventListener('change', () => {
+      setPreset(presetSelect.value);
+      updateBoids();
+    });
+    colorPick.addEventListener('input', () => { boidColor = colorPick.value; });
+    bgColorPick.addEventListener('input', () => { bgColor = bgColorPick.value; canvas.style.background = bgColor; });
+    shapeSelect.addEventListener('change', () => { shapeType = shapeSelect.value; });
+    metaballChk.addEventListener('change', () => { metaballMode = metaballChk.checked; });
+    pauseBtn.addEventListener('click', () => {
+      paused = !paused;
+      pauseBtn.textContent = paused ? 'Resume' : 'Pause';
+    });
+    exportBtn.addEventListener('click', () => {
+      const link = document.createElement('a');
+      link.download = 'boids.png';
+      link.href = canvas.toDataURL('image/png');
+      link.click();
+    });
+    for (let key in sliders) {
+      sliders[key].addEventListener('input', updateBoids);
+    }
+    updateBoids();
+    animate();
+  </script>
+</body>
+</html>

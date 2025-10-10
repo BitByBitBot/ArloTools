@@ -12,6 +12,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
+      overflow-y: auto;
     }
     canvas {
       background: white;
@@ -78,9 +79,28 @@
       gap: 0.5rem;
       align-items: center;
     }
+    .description {
+      width: 95%;
+      max-width: 1200px;
+      background: #f8f8f8;
+      border: 2px solid black;
+      padding: 1rem;
+      margin: 1rem auto 0;
+      font-size: 0.9rem;
+      color: #333;
+    }
+    .description ul { margin-left: 1.2em; }
   </style>
 </head>
 <body>
+  <div class="description">
+    <strong>Graded Game of Life</strong> — this tool is a complex cellular automata inspired by John Conway's Game of Life. Simple rules create emergent behaviors that mimic biological life on a pixel grid. Use the brush to draw on the canvas and explore how different settings affect the evolution.
+    <ul>
+      <li>Use your mouse to draw on the grid. Select <strong>Eraser</strong> to remove cells.</li>
+      <li>Adjust the birth and survival ranges, boost and decay rates, draw intensity, and brush size using the sliders.</li>
+      <li>Try the preset buttons to start with interesting parameter combinations. The simulation starts automatically.</li>
+    </ul>
+  </div>
   <div class="controls">
     <div>
       <h4>Birth</h4>
@@ -131,7 +151,7 @@
       </div>
     </div>
   </div>
-
+  
   <canvas id="lifeCanvas" width="400" height="400" style="width: 800px; height: 800px;"></canvas>
   <div class="button-row">
     <button id="togglePlay">Pause</button>
@@ -148,7 +168,7 @@
     <button onclick="setPreset('2.4,3.2,3.2,3.8,149,18,9,255,7')">Preset 2</button>
     <button onclick="setPreset('2.4,3.2,3.2,5.9,194,36,8,255,6')">Preset 3</button>
   </div>
-
+  
   <script>
     // JS unchanged from before
     const canvas = document.getElementById("lifeCanvas");
@@ -158,10 +178,10 @@
     const resolution = 2;
     const cols = width / resolution;
     const rows = height / resolution;
-
+    
     let grid = new Array(cols).fill(null).map(() => new Array(rows).fill(0).map(() => Math.floor(Math.random() * 256)));
     let momentum = new Array(cols).fill(null).map(() => new Array(rows).fill(0));
-
+    
     function drawGrid() {
       for (let x = 0; x < cols; ++x) {
         for (let y = 0; y < rows; ++y) {
@@ -171,7 +191,7 @@
         }
       }
     }
-
+    
     function countNeighbors(grid, x, y) {
       let total = 0;
       for (let i = -1; i <= 1; i++) {
@@ -184,7 +204,7 @@
       }
       return total;
     }
-
+    
     function update() {
       const birthMin = parseFloat(document.getElementById("birthMin").value);
       const birthMax = parseFloat(document.getElementById("birthMax").value);
@@ -193,9 +213,9 @@
       const birthBoost = parseInt(document.getElementById("birthBoost").value);
       const decayRate = parseInt(document.getElementById("decayRate").value);
       const survivalGain = parseInt(document.getElementById("survivalGain").value);
-
+      
       const next = Array.from({ length: cols }, () => new Array(rows));
-
+      
       for (let x = 0; x < cols; ++x) {
         const col = grid[x];
         const momCol = momentum[x];
@@ -203,7 +223,7 @@
         for (let y = 0; y < rows; ++y) {
           const neighbors = countNeighbors(grid, x, y);
           const current = col[y];
-
+          
           let delta = 0;
           if (current < 20 && neighbors >= birthMin && neighbors <= birthMax) {
             delta = birthBoost;
@@ -212,26 +232,26 @@
           } else {
             delta = -decayRate;
           }
-
+          
           momCol[y] += delta;
           momCol[y] *= 0.9;
-
+          
           nextCol[y] = Math.max(0, Math.min(255, current + momCol[y]));
         }
       }
-
+      
       grid = next;
       drawGrid();
     }
-
+    
     let playing = true;
     function loop() {
       if (playing) update();
       requestAnimationFrame(loop);
     }
-
+    
     let isDrawing = false;
-
+    
     canvas.addEventListener("mousedown", (e) => {
       isDrawing = true;
       const rect = canvas.getBoundingClientRect();
@@ -239,10 +259,10 @@
       const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
       const drawVal = document.getElementById("eraser").checked ? 0 : parseInt(document.getElementById("drawIntensity").value);
       const brushSize = parseInt(document.getElementById("brushSize").value);
-
+      
       const startX = Math.floor(mouseX / resolution) - Math.floor(brushSize / 2);
       const startY = Math.floor(mouseY / resolution) - Math.floor(brushSize / 2);
-
+      
       for (let dx = 0; dx < brushSize; dx++) {
         for (let dy = 0; dy < brushSize; dy++) {
           const x = startX + dx;
@@ -264,10 +284,10 @@
       const mouseY = (e.clientY - rect.top) * (canvas.height / rect.height);
       const drawVal = document.getElementById("eraser").checked ? 0 : parseInt(document.getElementById("drawIntensity").value);
       const brushSize = parseInt(document.getElementById("brushSize").value);
-
+      
       const startX = Math.floor(mouseX / resolution) - Math.floor(brushSize / 2);
       const startY = Math.floor(mouseY / resolution) - Math.floor(brushSize / 2);
-
+      
       for (let dx = 0; dx < brushSize; dx++) {
         for (let dy = 0; dy < brushSize; dy++) {
           const x = startX + dx;
@@ -280,7 +300,7 @@
       }
       drawGrid();
     });
-
+    
     drawGrid();
     [
       'birthMin', 'birthMax', 'birthBoost',
@@ -291,13 +311,15 @@
       const label = document.getElementById(id + 'Label');
       if (el && label) label.textContent = el.value;
     });
+    
+    // start playing after page load
     loop();
-
+    
     document.getElementById("togglePlay").addEventListener("click", () => {
       playing = !playing;
       document.getElementById("togglePlay").textContent = playing ? "Pause" : "Play";
     });
-
+    
     document.getElementById("clearButton").addEventListener("click", () => {
       for (let x = 0; x < cols; x++) {
         for (let y = 0; y < rows; y++) {
@@ -307,7 +329,7 @@
       }
       drawGrid();
     });
-
+    
     function copyPresetCode() {
       const values = [
         'birthMin', 'birthMax', 'surviveMin', 'surviveMax',
@@ -321,7 +343,7 @@
       document.execCommand('copy');
       alert('Preset copied!');
     }
-
+    
     function applyPresetCode() {
       const code = document.getElementById('presetInput').value;
       const values = code.split(',');
@@ -341,11 +363,14 @@
         if (label) label.textContent = values[i];
       });
     }
-
+    
     function setPreset(code) {
       document.getElementById('presetInput').value = code;
       applyPresetCode();
     }
+    
+    // automatically apply a default preset on load for a running example
+    setPreset('2.4,3.2,3.2,5.9,194,36,8,255,6');
   </script>
 </body>
 </html>

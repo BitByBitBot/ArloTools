@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Internet Archive Roulette</title>
+  <style>
+    body {
+      background-color: white;
+      color: black;
+      font-family: Arial, sans-serif;
+      text-align: center;
+      margin: 60px;
+    }
+    button {
+      font-size: 16px;
+      padding: 8px 12px;
+      margin: 12px;
+      border: 1px solid black;
+      background: white;
+      cursor: pointer;
+    }
+    button:hover {
+      background: black;
+      color: white;
+    }
+    #loading {
+      display: none;
+      font-size: 16px;
+      color: gray;
+      margin-top: 20px;
+    }
+    .category-box {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: center;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+    label {
+      display: flex;
+      align-items: center;
+      gap: 5px;
+      border: 1px solid black;
+      padding: 5px 10px;
+      cursor: pointer;
+    }
+    img, video, audio {
+      max-width: 80%;
+      margin-top: 30px;
+      border: 1px solid #ccc;
+    }
+    a.link-item {
+      display: inline-block;
+      font-size: 18px;
+      color: #0066cc;
+      text-decoration: none;
+      margin-top: 20px;
+    }
+    a.link-item:hover {
+      text-decoration: underline;
+    }
+  </style>
+</head>
+<body>
+  <h1>Internet Archive Roulette</h1>
+  <div class="category-box">
+    <label><input type="checkbox" class="cat" value="web"> Web</label>
+    <label><input type="checkbox" class="cat" value="texts"> Texts</label>
+    <label><input type="checkbox" class="cat" value="movies"> Video</label>
+    <label><input type="checkbox" class="cat" value="audio"> Audio</label>
+    <label><input type="checkbox" class="cat" value="software"> Software</label>
+    <label><input type="checkbox" class="cat" value="image" checked> Images</label>
+  </div>
+  <button onclick="getRandomItem()">Spin the Wheel</button>
+  <p id="loading">Loading...</p>
+  <h2 id="title"></h2>
+  <div id="media"></div>
+
+  <script>
+    window.onload = () => getRandomItem(); // start with images
+
+    async function getRandomItem(retry = 0) {
+      const loading = document.getElementById('loading');
+      const titleEl = document.getElementById('title');
+      const mediaEl = document.getElementById('media');
+      const checked = Array.from(document.querySelectorAll('.cat:checked')).map(el => el.value);
+
+      if (checked.length === 0) {
+        alert('Please select at least one category.');
+        return;
+      }
+
+      if (retry > 5) {
+        titleEl.textContent = 'Failed to load any items.';
+        loading.style.display = 'none';
+        return;
+      }
+
+      loading.style.display = 'block';
+      titleEl.textContent = '';
+      mediaEl.innerHTML = '';
+
+      const query = checked.map(c => `(collection:${c} OR mediatype:${c})`).join(' OR ');
+      const randomPage = Math.floor(Math.random() * 5000) + 1;
+      const searchUrl = `https://archive.org/advancedsearch.php?q=${encodeURIComponent(query)}&fl[]=identifier,title,mediatype&rows=1&page=${randomPage}&output=json`;
+
+      try {
+        const response = await fetch(searchUrl);
+        const data = await response.json();
+        const docs = data.response.docs;
+
+        if (!docs.length) throw new Error('No docs found');
+
+        const item = docs[0];
+        const identifier = item.identifier;
+        const title = item.title || 'Untitled';
+        const link = `https://archive.org/details/${identifier}`;
+
+        titleEl.textContent = title;
+
+        // Try to get preview from metadata
+        const metaRes = await fetch(`https://archive.org/metadata/${identifier}`);
+        const meta = await metaRes.json();
+        const files = meta.files || [];
+
+        let previewHTML = '';
+        const image = files.find(f => /\.(jpg|jpeg|png|gif)$/i.test(f.name));
+        const video = files.find(f => /\.(mp4|mov|webm)$/i.test(f.name));
+        const audio = files.find(f => /\.(mp3|ogg|wav)$/i.test(f.name));
+
+        if (image) {
+          previewHTML = `<img src="https://archive.org/download/${identifier}/${encodeURIComponent(image.name)}" alt="${title}">`;
+        } else if (video) {
+          previewHTML = `<video controls><source src="https://archive.org/download/${identifier}/${encodeURIComponent(video.name)}"></video>`;
+        } else if (audio) {
+          previewHTML = `<audio controls><source src="https://archive.org/download/${identifier}/${encodeURIComponent(audio.name)}"></audio>`;
+        } else {
+          previewHTML = '<p>No preview available, but you can visit the page below.</p>';
+        }
+
+        loading.style.display = 'none';
+        mediaEl.innerHTML = `${previewHTML}<br><a href="${link}" target="_blank" class="link-item">View on Internet Archive →</a>`;
+      } catch (err) {
+        console.error(err);
+        getRandomItem(retry + 1);
+      }
+    }
+  </script>
+</body>
+</html>

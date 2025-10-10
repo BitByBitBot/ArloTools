@@ -36,6 +36,23 @@
       margin-right: 5px;
       font-size: 12px;
     }
+    .description {
+      position: fixed;
+      bottom: 10px;
+      left: 10px;
+      right: 10px;
+      background: rgba(255,255,255,0.9);
+      border: 1px solid #ccc;
+      padding: 6px;
+      font-size: 0.85em;
+      color: #333;
+      max-height: 30%;
+      overflow-y: auto;
+      z-index: 10;
+    }
+    .description ul {
+      margin-left: 1.2em;
+    }
   </style>
 </head>
 <body>
@@ -44,9 +61,24 @@
     <label>Aspect Y: <input type="number" id="aspectY" value="1" step="0.1" onchange="updateAspect()"></label>
     <button onclick="addNode()">Add Node (N)</button>
     <button onclick="clearMap()">Clear (C)</button>
+    <button onclick="undoClear()">Undo (Z)</button>
     <button onclick="exportAsSVG()">Export SVG</button>
     <div>Shape: <span id="shapeDisplay">square</span></div>
     <div>Scale: <span id="scaleDisplay">medium</span></div>
+  </div>
+  <!-- Description / Help section -->
+  <div class="description">
+    <strong>Brutalist Mind Map Tool</strong> — this tool lets you create a super simple mind map structure. No polish, no excess; just placing boxes and bubbles, and connecting them with lines. Create visual data networks and export them as SVG to save your creation.
+    <ul>
+      <li><strong>N</strong>: add a node at your mouse location.</li>
+      <li><strong>C</strong>: clear the map (you can undo once using <strong>Z</strong>).</li>
+      <li><strong>Z</strong>: undo the last clear operation.</li>
+      <li>Hold <strong>Shift</strong> and click two nodes to connect them.</li>
+      <li><strong>1</strong>/<strong>2</strong>/<strong>3</strong>: switch between square, circle and triangle node shapes.</li>
+      <li><strong>S</strong>/<strong>M</strong>/<strong>L</strong>: small, medium or large node sizes.</li>
+      <li>Use the aspect X/Y inputs to change node aspect ratios; scaling preserves relative sizes across small, medium and large.</li>
+      <li>Drag nodes to reposition them.</li>
+    </ul>
   </div>
   <canvas id="mindmap"></canvas>
   <script>
@@ -54,7 +86,7 @@
     const ctx = canvas.getContext('2d');
     const shapeDisplay = document.getElementById('shapeDisplay');
     const scaleDisplay = document.getElementById('scaleDisplay');
-
+    
     let nodes = [];
     let connections = [];
     let draggingNode = null;
@@ -63,25 +95,28 @@
     let currentScale = 'medium';
     let mouseX = 200;
     let mouseY = 200;
-
+    
     const SCALE_MAP = {
       small: [0.5, 0.5],
       medium: [1, 1],
       large: [1.5, 1.5]
     };
-
+    
     let scaleX = SCALE_MAP[currentScale][0];
     let scaleY = SCALE_MAP[currentScale][1];
     let aspectX = 1;
     let aspectY = 1;
-
+    
+    // store previous state for undo
+    let lastState = null;
+    
     function resize() {
       canvas.width = window.innerWidth;
       canvas.height = window.innerHeight;
     }
     window.addEventListener('resize', resize);
     resize();
-
+    
     function addNode() {
       const baseSize = 60;
       const x = mouseX - (baseSize * scaleX * aspectX) / 2;
@@ -89,20 +124,34 @@
       nodes.push({ x, y, w: baseSize * scaleX * aspectX, h: baseSize * scaleY * aspectY, shape: currentShape });
       draw();
     }
-
+    
     function clearMap() {
+      // save current state before clearing
+      lastState = {
+        nodes: nodes.map(n => ({ ...n })),
+        connections: connections.map(pair => pair.slice())
+      };
       nodes = [];
       connections = [];
       draw();
     }
-
+    
+    function undoClear() {
+      if (lastState) {
+        nodes = lastState.nodes.map(n => ({ ...n }));
+        connections = lastState.connections.map(pair => pair.map(node => nodes.find(n => n.x === node.x && n.y === node.y && n.w === node.w && n.h === node.h && n.shape === node.shape)));
+        lastState = null;
+        draw();
+      }
+    }
+    
     function setScale(scale) {
       if (!SCALE_MAP[scale]) return;
       currentScale = scale;
       scaleDisplay.textContent = scale;
       [scaleX, scaleY] = SCALE_MAP[scale];
     }
-
+    
     function exportAsSVG() {
       let svg = `<svg xmlns='http://www.w3.org/2000/svg' width='${canvas.width}' height='${canvas.height}' style='background:white'>`;
       for (let [a, b] of connections) {
@@ -134,7 +183,7 @@
       document.body.removeChild(link);
       URL.revokeObjectURL(url);
     }
-
+    
     canvas.addEventListener('mousemove', (e) => {
       mouseX = e.offsetX;
       mouseY = e.offsetY;
@@ -144,7 +193,7 @@
         draw();
       }
     });
-
+    
     canvas.addEventListener('mousedown', (e) => {
       const { offsetX, offsetY } = e;
       for (let node of nodes) {
@@ -167,14 +216,15 @@
       }
       selectedNode = null;
     });
-
+    
     canvas.addEventListener('mouseup', () => {
       draggingNode = null;
     });
-
+    
     document.addEventListener('keydown', (e) => {
       if (e.key === 'n') addNode();
       if (e.key === 'c') clearMap();
+      if (e.key === 'z') undoClear();
       if (e.key === '1') setShape('square');
       if (e.key === '2') setShape('circle');
       if (e.key === '3') setShape('triangle');
@@ -182,12 +232,12 @@
       if (e.key === 'm') setScale('medium');
       if (e.key === 'l') setScale('large');
     });
-
+    
     function setShape(shape) {
       currentShape = shape;
       shapeDisplay.textContent = shape;
     }
-
+    
     function updateAspect() {
       aspectX = parseFloat(document.getElementById('aspectX').value) || 1;
       aspectY = parseFloat(document.getElementById('aspectY').value) || 1;
@@ -199,7 +249,7 @@
       }
       draw();
     }
-
+    
     function getNodeScaleLabel(w, h) {
       for (const [label, [sx, sy]] of Object.entries(SCALE_MAP)) {
         const targetW = 60 * sx;
@@ -210,7 +260,7 @@
       }
       return currentScale;
     }
-
+    
     function draw() {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
       ctx.lineWidth = 1;

@@ -1,0 +1,273 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Lissajous Figure Grid</title>
+  <style>
+    html, body {
+      margin: 0;
+      padding: 0;
+      height: 100%;
+      width: 100%;
+      font-family: sans-serif;
+      background: #f0f0f0;
+      overflow: hidden;
+    }
+    body {
+      display: flex;
+      flex-direction: row;
+    }
+    #sidebar {
+      width: 240px;
+      background: #fff;
+      padding: 1rem;
+      box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
+      display: flex;
+      flex-direction: column;
+      overflow-y: auto;
+      gap: 0.5rem;
+    }
+    #table-container {
+      flex: 1;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 1rem;
+    }
+    #lissajous-table {
+      border-collapse: collapse;
+      width: 90vmin;
+      height: 90vmin;
+      table-layout: fixed;
+    }
+    th, td {
+      border: 1px solid #ccc;
+      padding: 0;
+      background: #fff;
+    }
+    th {
+      background: #e0e0e0;
+      font-size: 0.6rem;
+      text-align: center;
+    }
+    canvas {
+      width: 100%;
+      height: auto;
+      aspect-ratio: 1 / 1;
+      display: block;
+    }
+    h1 {
+      margin: 0 0 0.5rem 0;
+      font-size: 1rem;
+    }
+    label {
+      font-size: 0.8rem;
+    }
+    input[type="number"], input[type="range"], select {
+      width: 100%;
+      margin-bottom: 0.5rem;
+    }
+    button {
+      border: 1px solid #000;
+      background: #fff;
+      padding: 0.4rem 0.6rem;
+      cursor: pointer;
+      font-size: 0.8rem;
+    }
+  </style>
+</head>
+<body>
+  <!-- Main canvas area -->
+  <div id="table-container">
+    <table id="lissajous-table"></table>
+  </div>
+  <!-- Sidebar with controls and description -->
+  <div id="sidebar">
+    <h1>Lissajous Figure Grid</h1>
+    <!-- Description about the tool -->
+    <div id="description" style="font-size:0.8rem; text-align:left;">
+      <p>
+        This tool plots a grid of Lissajous curves. Each cell uses sine waves of different frequencies on the X‑ and Y‑axes.
+        Use the controls below to change the grid size, alter the frequency step between successive rows and columns,
+        toggle axis labels on or off, pause/play the animation and reset everything back to the defaults.
+        The “Mode” menu changes how the phase difference between the two oscillations is interpreted.
+      </p>
+    </div>
+    <!-- Play/pause and speed -->
+    <button id="toggleBtn">Pause</button>
+    <label for="speedRange">Speed:</label>
+    <input type="range" id="speedRange">
+    <label for="modeSelect">Mode:</label>
+    <select id="modeSelect">
+      <option value="math">Mathematical (phase difference)</option>
+      <option value="visual">Visual (rotate Y by π/2)</option>
+      <option value="sync">Synchronized (mirror symmetry)</option>
+    </select>
+    <!-- Additional controls -->
+    <label for="gridSize">Grid size:</label>
+    <input type="number" id="gridSize" min="1" max="20" value="10">
+    <label for="freqStep">Frequency step:</label>
+    <input type="number" id="freqStep" min="0.1" max="5" step="0.1" value="1">
+    <label><input type="checkbox" id="showLabels" checked> Show labels</label>
+    <button id="resetBtn">Reset</button>
+  </div>
+
+  <script>
+    const table = document.getElementById("lissajous-table");
+    // Grab extra inputs
+    const gridSizeInput = document.getElementById("gridSize");
+    const freqStepInput = document.getElementById("freqStep");
+    const showLabels = document.getElementById("showLabels");
+    const resetBtn = document.getElementById("resetBtn");
+
+    let canvases = [];
+    let speed;
+    let running = true;
+    let startTime = performance.now();
+    let phase = 0;
+    let mode = 'math';
+
+    const speedSlider = document.getElementById("speedRange");
+    const modeSelect = document.getElementById("modeSelect");
+
+    // Setup speed slider with logarithmic control
+    const minLog = -2;
+    const maxLog = 2;
+    speedSlider.min = minLog;
+    speedSlider.max = maxLog;
+    speedSlider.step = 0.01;
+    speedSlider.value = Math.log10(0.02);
+    speed = Math.pow(10, parseFloat(speedSlider.value));
+
+    speedSlider.addEventListener("input", e => {
+      speed = Math.pow(10, parseFloat(e.target.value));
+      startTime = performance.now();
+    });
+
+    modeSelect.addEventListener("change", () => {
+      mode = modeSelect.value;
+    });
+
+    document.getElementById("toggleBtn").addEventListener("click", () => {
+      running = !running;
+      if (running) startTime = performance.now() - (phase / speed * 1000);
+      document.getElementById("toggleBtn").textContent = running ? "Pause" : "Play";
+    });
+
+    // Generate the table based on current grid size and frequency step
+    function generateTable() {
+      const gridSize = parseInt(gridSizeInput.value, 10) || 1;
+      const step = parseFloat(freqStepInput.value) || 1;
+      // Clear previous content
+      table.innerHTML = '';
+      canvases = [];
+      // Build table head
+      const thead = document.createElement("thead");
+      const headRow = document.createElement("tr");
+      const cornerTh = document.createElement("th");
+      cornerTh.className = "corner";
+      headRow.appendChild(cornerTh);
+      for (let b = 1; b <= gridSize; b++) {
+        const th = document.createElement("th");
+        th.textContent = showLabels.checked ? (b * step).toFixed(1) : '';
+        headRow.appendChild(th);
+      }
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+      // Build body
+      const tbody = document.createElement("tbody");
+      for (let a = 1; a <= gridSize; a++) {
+        const row = document.createElement("tr");
+        const rowHeader = document.createElement("th");
+        rowHeader.className = "row-header";
+        rowHeader.textContent = showLabels.checked ? (a * step).toFixed(1) : '';
+        row.appendChild(rowHeader);
+        for (let b = 1; b <= gridSize; b++) {
+          const cell = document.createElement("td");
+          const canvas = document.createElement("canvas");
+          canvas.width = 100;
+          canvas.height = 100;
+          const freqA = a * step;
+          const freqB = b * step;
+          canvases.push({ canvas, freqA, freqB });
+          cell.appendChild(canvas);
+          row.appendChild(cell);
+        }
+        tbody.appendChild(row);
+      }
+      table.appendChild(tbody);
+    }
+
+    // Respond to grid controls
+    gridSizeInput.addEventListener('input', generateTable);
+    freqStepInput.addEventListener('input', generateTable);
+    showLabels.addEventListener('change', generateTable);
+    resetBtn.addEventListener('click', () => {
+      gridSizeInput.value = 10;
+      freqStepInput.value = 1;
+      showLabels.checked = true;
+      modeSelect.value = 'math';
+      mode = 'math';
+      speedSlider.value = Math.log10(0.02);
+      speed = Math.pow(10, parseFloat(speedSlider.value));
+      document.getElementById("toggleBtn").textContent = 'Pause';
+      running = true;
+      generateTable();
+    });
+
+    function animate(time) {
+      if (running) {
+        phase = ((time - startTime) * 0.001 * speed);
+      }
+      for (const { canvas, freqA, freqB } of canvases) {
+        drawLissajous(canvas, freqA, freqB, phase, mode);
+      }
+      requestAnimationFrame(animate);
+    }
+
+    function drawLissajous(canvas, a, b, phase, mode) {
+      const ctx = canvas.getContext("2d");
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+      ctx.beginPath();
+      const A = canvas.width / 2.5;
+      const B = canvas.height / 2.5;
+      const cx = canvas.width / 2;
+      const cy = canvas.height / 2;
+      // Compute approximate period by lcm of integer scaled frequencies
+      const scaleFactor = 10;
+      const lcmVal = lcm(Math.round(a * scaleFactor), Math.round(b * scaleFactor));
+      const T = 2 * Math.PI * (lcmVal / scaleFactor);
+      for (let t = 0; t <= T; t += 0.01) {
+        let x, y;
+        if (mode === 'math') {
+          x = cx + A * Math.sin(a * t + phase);
+          y = cy + B * Math.sin(b * t);
+        } else if (mode === 'visual') {
+          x = cx + A * Math.sin(a * t + phase);
+          y = cy + B * Math.sin(b * t + Math.PI / 2);
+        } else if (mode === 'sync') {
+          x = cx + A * Math.sin(a * t + phase);
+          y = cy + B * Math.sin(b * t + phase);
+        }
+        ctx.lineTo(x, y);
+      }
+      ctx.strokeStyle = "#333";
+      ctx.lineWidth = 1;
+      ctx.stroke();
+    }
+
+    function gcd(x, y) {
+      while (y) [x, y] = [y, x % y];
+      return x;
+    }
+
+    function lcm(x, y) {
+      return (x * y) / gcd(x, y);
+    }
+
+    // Initial generation and animation start
+    generateTable();
+    requestAnimationFrame(animate);
+  </script>
+</body>
+</html>

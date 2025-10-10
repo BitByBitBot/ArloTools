@@ -6,14 +6,19 @@
   <style>
     html, body { margin: 0; padding: 0; background: white; color: black; font-family: monospace; overflow: hidden; }
     canvas { display: block; background: white; border: 2px solid black; }
-    .ui { position: absolute; top: 10px; left: 10px; background: white; border: 2px solid black; padding: 10px; z-index: 10; }
+    .ui { position: absolute; top: 10px; left: 10px; background: white; border: 2px solid black; padding: 10px; z-index: 10; max-width: 240px; }
     label, button { display: block; margin-bottom: 6px; }
     input[type=range], input[type=checkbox] { width: 100%; }
+    #description { margin-bottom: 8px; font-size: 0.9rem; line-height: 1.3; }
+    #pauseBtn { margin-top: 4px; }
   </style>
 </head>
 <body>
   <canvas id="treeCanvas"></canvas>
   <div class="ui">
+    <div id="description">
+      <strong>Particle Tree Generator</strong> procedurally grows tree‑like structures from a single seed. When the curviness of a branch exceeds a threshold it may spawn new branches. Use the sliders below to tweak the behaviour. New options let you taper line thickness, fade opacity with age, shorten steps as branches age, and apply a hue gradient through time. Hold <kbd>Shift</kbd> and drag to pan around without spawning a new tree.
+    </div>
     <label>Curviness Threshold: <input type="range" id="curviness" min="0.1" max="3.14" step="0.01" value="1.57"></label>
     <label>Angle Range: <input type="range" id="angleRange" min="0" max="1" step="0.01" value="0.2"></label>
     <label>Step Size: <input type="range" id="stepSize" min="0.5" max="10" step="0.1" value="2"></label>
@@ -24,6 +29,11 @@
     <label>Max Branch Length: <input type="range" id="maxLength" min="10" max="1000" step="10" value="300"></label>
     <label>Particle Lifespan: <input type="range" id="lifespan" min="10" max="1000" step="1" value="200"></label>
     <label><input type="checkbox" id="avoidance" checked> Avoid overlapping lines</label>
+    <label><input type="checkbox" id="taperThickness"> Taper thickness</label>
+    <label><input type="checkbox" id="opacityFalloff"> Opacity falloff</label>
+    <label><input type="checkbox" id="lengthTaper"> Length taper</label>
+    <label><input type="checkbox" id="gradientColor"> Gradient color</label>
+    <button id="pauseBtn" type="button">Pause</button>
     <button onclick="restart()">Restart</button>
     <button onclick="exportSVG()">Export as SVG</button>
   </div>
@@ -37,6 +47,10 @@
     let particles = [], svgPaths = [], drawnPoints = new Set();
     let offsetX = 0, offsetY = 0, scale = 1;
     let isDragging = false, lastX = 0, lastY = 0;
+    let isPaused = false;
+
+    function resize(){ canvas.width = window.innerWidth; canvas.height = window.innerHeight; redrawAll(); }
+    window.addEventListener('resize', resize);
 
     canvas.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
     canvas.addEventListener('mouseup', () => isDragging = false);
@@ -68,27 +82,50 @@
       }
 
       update(config) {
+        // Stop if expired or too long
         if (this.age++ > this.lifespan || this.length > config.maxLength) return;
+        // Compute random delta angle
         const deltaAngle = (Math.random() - 0.5) * config.angleRange;
         this.angle += deltaAngle;
-        const dx = Math.cos(this.angle) * config.stepSize;
-        const dy = Math.sin(this.angle) * config.stepSize;
+        // Adjust step length if length taper is enabled
+        const taper = document.getElementById('lengthTaper').checked ? (1 - (this.age / this.lifespan)) : 1;
+        const dx = Math.cos(this.angle) * config.stepSize * taper;
+        const dy = Math.sin(this.angle) * config.stepSize * taper;
         const nx = this.x + dx, ny = this.y + dy;
         const key = `${Math.round(nx)},${Math.round(ny)}`;
         if (config.avoidance && drawnPoints.has(key)) return;
         drawnPoints.add(key);
-
+        // Draw segment with styling options
+        ctx.save();
+        // Move into world transform
+        // The transform is applied in animate/redrawAll
+        if (document.getElementById('opacityFalloff').checked) {
+          ctx.globalAlpha = Math.max(0.05, 1 - this.age / this.lifespan);
+        } else {
+          ctx.globalAlpha = 1;
+        }
+        if (document.getElementById('gradientColor').checked) {
+          const hue = (this.depth * 40 + this.age * 0.7) % 360;
+          ctx.strokeStyle = `hsl(${hue},70%,40%)`;
+        } else {
+          ctx.strokeStyle = 'black';
+        }
+        if (document.getElementById('taperThickness').checked) {
+          ctx.lineWidth = Math.max(0.5, (this.lifespan - this.age) / this.lifespan * 3);
+        } else {
+          ctx.lineWidth = 1;
+        }
         ctx.beginPath();
         ctx.moveTo(this.x, this.y);
         ctx.lineTo(nx, ny);
         ctx.stroke();
-
+        ctx.restore();
+        // Record for SVG
         svgPaths.push(`<line x1="${this.x.toFixed(2)}" y1="${this.y.toFixed(2)}" x2="${nx.toFixed(2)}" y2="${ny.toFixed(2)}" stroke="black" stroke-width="1" />`);
-
         this.curviness += Math.abs(deltaAngle);
         this.length += Math.hypot(dx, dy);
         this.x = nx; this.y = ny;
-
+        // Branching
         if (this.curviness > config.curvinessThreshold && this.depth < config.maxDepth) {
           this.curviness = 0;
           if (Math.random() < config.branchProb) particles.push(new Particle(this.x, this.y, this.angle - config.branchAngle, this.depth + 1, this.lifespan * 0.9));
@@ -110,8 +147,13 @@
     function animate() {
       const config = getConfig();
       ctx.setTransform(scale, 0, 0, scale, offsetX * scale, offsetY * scale);
-      for (let i = 0; i < particles.length; i++) {
-        if (Math.random() > config.skipRate) particles[i].update(config);
+      if (!isPaused) {
+        // limit complexity
+        if (svgPaths.length < 20000) {
+          for (let i = 0; i < particles.length; i++) {
+            if (Math.random() > config.skipRate) particles[i].update(config);
+          }
+        }
       }
       requestAnimationFrame(animate);
     }
@@ -125,10 +167,13 @@
       svgPaths.forEach(path => {
         const m = path.match(/x1="(.*?)" y1="(.*?)" x2="(.*?)" y2="(.*?)"/);
         if (m) {
+          ctx.save();
+          // For static redraw we ignore dynamic styling and draw simple black lines
           ctx.beginPath();
           ctx.moveTo(parseFloat(m[1]), parseFloat(m[2]));
           ctx.lineTo(parseFloat(m[3]), parseFloat(m[4]));
           ctx.stroke();
+          ctx.restore();
         }
       });
     }
@@ -141,8 +186,8 @@
       offsetX = 0;
       offsetY = 0;
       scale = 1;
-      const lifespan = parseInt(document.getElementById('lifespan').value);
-      particles = [new Particle(x, y, -Math.PI / 2, 0, lifespan)];
+      const lifespanVal = parseInt(document.getElementById('lifespan').value);
+      particles = [new Particle(x, y, -Math.PI / 2, 0, lifespanVal)];
     }
 
     function exportSVG() {
@@ -158,9 +203,20 @@
       URL.revokeObjectURL(url);
     }
 
-    canvas.addEventListener('click', e => restart((e.offsetX - offsetX * scale) / scale, (e.offsetY - offsetY * scale) / scale));
-    ctx.strokeStyle = 'black';
-    ctx.lineWidth = 1;
+    canvas.addEventListener('click', e => {
+      // If shift key is held, treat as panning click and do not restart
+      if (e.shiftKey) return;
+      const x = (e.offsetX - offsetX * scale) / scale;
+      const y = (e.offsetY - offsetY * scale) / scale;
+      restart(x, y);
+    });
+
+    document.getElementById('pauseBtn').addEventListener('click', () => {
+      isPaused = !isPaused;
+      document.getElementById('pauseBtn').textContent = isPaused ? 'Resume' : 'Pause';
+    });
+
+    // Kick off initial state
     restart();
     animate();
   </script>

@@ -8,16 +8,15 @@
     :root { --red:#e4002b; }
     *{box-sizing:border-box;}
     body{margin:0;display:flex;flex-direction:column;align-items:center;font-family:Helvetica,Arial,sans-serif;background:#fff;color:#000;}
+    #description{max-width:700px;padding:1rem 1.2rem;text-align:center;border-bottom:2px solid #000;font-size:0.9rem;line-height:1.4;margin-top:0.5rem;}
     #design{text-align:center;line-height:1.05;margin-top:1rem;}
     #topText{font-size:12rem;letter-spacing:-.05em;white-space:nowrap;}
     .heart{width:1em;height:1em;display:inline-block;vertical-align:-0.12em;}
     .heart path{fill:var(--red);}
     #bottomCanvas{display:block;margin:-0.35em auto 0 auto;}
-
     /* Toggle button */
     #toggleFilters{margin:1rem 0;padding:.5rem 1rem;font-size:1rem;border:2px solid #000;background:#fff;cursor:pointer;}
     #toggleFilters:hover{background:#f2f2f2;}
-
     /* Controls */
     #controls{max-width:700px;padding:1rem 0;display:none;} /* hidden by default */
     #controls.open{display:block;}
@@ -25,13 +24,17 @@
     legend{padding:0 .5rem;}
     label{display:inline-flex;align-items:center;margin:0 .8rem .4rem 0;user-select:none;}
     label input{margin-right:.3rem;}
-
-    #generate{margin:1.5rem 0 2rem;padding:.75rem 1.5rem;font-size:1rem;border:2px solid #000;background:#fff;cursor:pointer;}
-    #generate:hover{background:#f2f2f2;}
-    #status{font-size:.9rem;color:#555;}
+    #generate,#capture{margin:1.5rem 0 0.5rem;padding:.75rem 1.5rem;font-size:1rem;border:2px solid #000;background:#fff;cursor:pointer;}
+    #generate:hover,#capture:hover{background:#f2f2f2;}
+    #status{font-size:.9rem;color:#555;margin-bottom:1rem;}
   </style>
 </head>
 <body>
+  <!-- Description section -->
+  <div id="description">
+    <p><strong>Random “I ♥” Generator</strong> turns random Wikipedia article titles into "I ♥" designs. Use the filter menu to bias which categories are sampled or enable <em>Arlo’s special filter</em> for a mix of art, science and math. Click <b>Generate new design</b> to fetch a new title, then use <b>Capture Design</b> to download your creation as a PNG.</p>
+  </div>
+
   <!-- Toggle button -->
   <button id="toggleFilters" aria-expanded="false">Show Filters ▾</button>
 
@@ -58,8 +61,10 @@
   </div>
 
   <button id="generate">Generate new design</button>
+  <button id="capture">Capture Design</button>
   <div id="status"></div>
 
+<script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
 <script>
 // Toggle logic
 const toggleBtn=document.getElementById('toggleFilters');
@@ -82,7 +87,7 @@ const categoryMap={
   videogames:["videogames","video games","computer games"],
   arlo:["videogames","video games","computer games","films","movies","television","tv series","tv shows","music","musicians","musical groups","albums","singers","bands","artists","mathematics","math","geometry","algebra","calculus","science","biology","chemistry","physics","astronomy","technology","philosophy","ethics","metaphysics","logic","visual artists","painters","sculptors","graphic designers","art","visual art","art theory","art concepts"]
 };
-const politicsBlacklist=["politic","government","election","parliament","congress","senate","house of representatives","legislature","president","prime minister","sports"];
+const politicsBlacklist=["politic","government","election","parliament","congress","senate","house of representatives","president","prime minister","sports"];
 
 function selectedFilters(){return[...document.querySelectorAll('#controls input[type="checkbox"]:checked')].map(b=>b.value);}  
 function selectedKeywords(){return selectedFilters().flatMap(k=>categoryMap[k]||[]);}  
@@ -101,7 +106,22 @@ function fit(ctx,l,m,s,f){ctx.font=`${s}px ${f}`;const w=Math.max(...l.map(a=>ct
 function drawBottom(text){const top=document.getElementById('topText');const canvas=document.getElementById('bottomCanvas');const ctx=canvas.getContext('2d');const dpr=window.devicePixelRatio||1;const maxW=top.offsetWidth;const base=parseFloat(getComputedStyle(top).fontSize);const font=getComputedStyle(top).fontFamily;let size=base;let lines=[];for(let i=0;i<5;i++){ctx.font=`${size}px ${font}`;lines=wrap(ctx,text,maxW);size=fit(ctx,lines,maxW,size,font);ctx.font=`${size}px ${font}`;if(lines.length*size*1.05<=base*1.3)break;size*=0.9;}const lineH=size*1.05;const cssH=lines.length*lineH;canvas.style.width=`${maxW}px`;canvas.style.height=`${cssH}px`;canvas.width=Math.ceil(maxW*dpr);canvas.height=Math.ceil(cssH*dpr);ctx.resetTransform?.();ctx.scale(dpr,dpr);ctx.clearRect(0,0,maxW,cssH);ctx.fillStyle='#000';ctx.textBaseline='middle';ctx.font=`${size}px ${font}`;lines.forEach((l,i)=>{const w=ctx.measureText(l).width;ctx.save();ctx.translate(0,i*lineH+lineH/2);ctx.scale(maxW/w,1);ctx.fillText(l,0,0);ctx.restore();});}
 
 async function generate(){const txt=await getFilteredRandom();drawBottom(txt);window.lastTitle=txt;}
-document.getElementById('generate').addEventListener('click',generate);window.addEventListener('resize',()=>window.lastTitle&&drawBottom(window.lastTitle));(async()=>{await document.fonts.ready;generate();})();
+document.getElementById('generate').addEventListener('click',generate);
+window.addEventListener('resize',()=>window.lastTitle&&drawBottom(window.lastTitle));
+(async()=>{await document.fonts.ready;generate();})();
+
+// Capture button logic
+const captureBtn=document.getElementById('capture');
+captureBtn.addEventListener('click',()=>{
+  const design=document.getElementById('design');
+  html2canvas(design,{scale:window.devicePixelRatio||1}).then(canvas=>{
+    const link=document.createElement('a');
+    const fname=(window.lastTitle||'design').replace(/[^a-z0-9]+/gi,'_');
+    link.download=fname+'.png';
+    link.href=canvas.toDataURL('image/png');
+    link.click();
+  });
+});
 </script>
 </body>
 </html>

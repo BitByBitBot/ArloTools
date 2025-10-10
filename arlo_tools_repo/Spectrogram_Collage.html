@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Audio Spectrogram Viewer</title>
+  <title>Audio Spectrogram Editor</title>
   <style>
     body {
       background: white;
@@ -57,6 +57,22 @@
       padding: 0.1em 0.3em;
       border: 1px solid black;
     }
+    /* Loading progress bar */
+    progress {
+      width: 80%;
+      margin: 10px auto;
+      display: none;
+    }
+    .description {
+      margin: 0 0 1em;
+      font-size: 0.9em;
+      color: #444;
+    }
+    .description ul {
+      text-align: left;
+      max-width: 600px;
+      margin: 0.5em auto 0;
+    }
   </style>
 </head>
 <body>
@@ -64,17 +80,27 @@
     <button onclick="document.getElementById('sidebar').style.display='none'">×</button>
     <h2>Instructions</h2>
     <ol>
-      <li>Upload an audio file using the file input.</li>
-      <li>The spectrogram will render the full audio length.</li>
-      <li>Click and drag to select a region of the spectrogram.</li>
-      <li>Hold <code>Option</code> (or <code>Alt</code>) and drag the selection to duplicate it.</li>
+      <li>Upload an audio file using the file input below (or load a demo if available).</li>
+      <li>The spectrogram will render the full audio length. A progress bar shows processing status.</li>
+      <li>Click and drag on the spectrogram to select a region. Hold <code>Alt</code>/<code>Option</code> and drag a selected region to duplicate it.</li>
       <li>Click <em>Resynthesize Audio</em> to play the modified audio.</li>
     </ol>
     <p><em>Time runs left to right. Frequencies are low at the bottom, high at the top.</em></p>
+    <p><em>Keyboard shortcuts:</em> Alt/Option+drag to duplicate selection.</p>
   </div>
   <button onclick="document.getElementById('sidebar').style.display='block'" style="position: fixed; top: 10px; left: 10px; z-index: 11;">❔ Help</button>
-  <h1>Audio Spectrogram Viewer</h1>
+  <h1>Audio Spectrogram Editor</h1>
+  <!-- Description of the tool -->
+  <div class="description">
+    This tool lets you edit audio through visual editing. Your imported sound is turned into a visual spectrogram which can be read and turned back into audio. By copying and pasting sections of the spectrogram, you can create unique audio glitches with freq'd‑out lo‑fi chunks of sound.
+    <ul>
+      <li>Start by uploading an audio file to generate its spectrogram.</li>
+      <li>Click and drag to select a region; hold <code>Alt</code>/<code>Option</code> while dragging to duplicate.</li>
+      <li>A progress bar appears while processing your file.</li>
+    </ul>
+  </div>
   <input type="file" id="audioFile" accept="audio/*"><br>
+  <progress id="loadingProgress" value="0" max="1"></progress>
   <canvas id="spectrogram" width="1024" height="256"></canvas><br>
   <button id="resynthesize">Resynthesize Audio from Image</button>
 
@@ -83,6 +109,7 @@
     const ctx = canvas.getContext('2d');
     const fileInput = document.getElementById('audioFile');
     const resynthesizeButton = document.getElementById('resynthesize');
+    const loadingProgress = document.getElementById('loadingProgress');
 
     let spectrogramData = [];
     let frameSize = 512;
@@ -259,6 +286,10 @@
         };
       }
 
+      const totalFrames = Math.floor((channelData.length - frameSize) / hopSize);
+      loadingProgress.value = 0;
+      loadingProgress.style.display = '';
+
       for (let t = 0, x = 0; t + frameSize < channelData.length; t += hopSize, x++) {
         const frame = new Array(frameSize);
         for (let i = 0; i < frameSize; i++) {
@@ -271,9 +302,14 @@
           column.push({ mag, phase });
         }
         spectrogramData.push(column);
+        // update progress bar
+        loadingProgress.value = x / totalFrames;
+        if (x % 16 === 0) await new Promise(r => setTimeout(r, 0));
       }
 
       redrawSpectrogram();
+      loadingProgress.value = 1;
+      setTimeout(() => { loadingProgress.style.display = 'none'; loadingProgress.value = 0; }, 500);
     });
 
     resynthesizeButton.addEventListener('click', async () => {

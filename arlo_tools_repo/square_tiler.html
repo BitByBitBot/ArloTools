@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Greedy Square Fitting + SVG Import + Export</title>
+  <style>
+    :root { --ui: #111; }
+    html, body { height: 100%; }
+    body { margin: 0; background:#fff; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; }
+    #description { max-width: 800px; margin: 0 auto; padding: 12px 16px; font-size: 0.9rem; line-height: 1.4; border-bottom: 1px solid #000; }
+    #ui { position: fixed; top: 12px; left: 12px; background: rgba(255,255,255,.95); border:1px solid #000; padding:10px 12px; border-radius:10px; box-shadow: 2px 2px 0 #000; z-index: 10; }
+    #ui label { display:block; font-size:12px; margin:6px 0 2px; }
+    #ui input[type="range"] { width: 220px; }
+    #ui .row { display:flex; gap:8px; align-items:center; margin-top:6px; flex-wrap: wrap; }
+    #ui button { border:1px solid #000; background:#fff; padding:6px 10px; border-radius:8px; cursor:pointer; }
+    #ui button:active { transform: translate(1px,1px); }
+    #hint { position: fixed; bottom: 10px; left: 12px; font-size:12px; color:#222; background: rgba(255,255,255,.85); padding:6px 8px; border:1px solid #000; border-radius: 8px; max-width: 340px; }
+    #testlog { max-width: 360px; white-space: pre-wrap; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 11px; border-top: 1px dashed #000; margin-top: 6px; padding-top: 6px; }
+    canvas { display:block; width:100vw; height:100vh; }
+    #fileInput { display:none; }
+    #toggleUI { position: fixed; top: 12px; right: 12px; z-index: 11; border:1px solid #000; background:#fff; padding:6px 10px; border-radius:8px; cursor:pointer; }
+    #toggleUI:active { transform: translate(1px,1px); }
+  </style>
+</head>
+<body>
+  <div id="description">
+    <strong>Square Tiling Tool</strong> packs the area of your drawn shape or imported SVG with squares of decreasing size using a greedy fill algorithm. First draw a closed freehand shape on the canvas or import an SVG path. Then click the ◻️ Tile button to fill the shape. Use the <b>Hide UI</b> button to temporarily conceal the controls so that the menu doesn't cover your art. Export your creation as a PNG or SVG.
+  </div>
+  <button id="toggleUI">Hide UI</button>
+  <div id="ui">
+    <div class="row">
+      <button id="modeDraw">✏️ Draw</button>
+      <button id="modeTile">◻️ Tile</button>
+      <button id="importSvg">🗂️ Import SVG</button>
+      <button id="exportPng">🖼️ Export PNG</button>
+      <button id="exportSvg">📐 Export SVG</button>
+      <button id="clear">🧹 Clear</button>
+      <button id="runTests">🧪 Run tests</button>
+    </div>
+    <label>Min square size: <span id="minLabel">8</span> px</label>
+    <input id="minSize" type="range" min="2" max="80" step="1" value="8"/>
+    <label>Animate placement <input id="animate" type="checkbox" checked></label>
+    <label>Stroke width <input id="stroke" type="range" min="0.5" max="3" step="0.5" value="1"/></label>
+    <div id="testlog"></div>
+  </div>
+  <div id="hint">Draw a closed shape or click <b>Import SVG</b>. Then click <b>◻️ Tile</b>. Squares are placed largest→smallest down to the chosen minimum. Use the export buttons to save as PNG or SVG. Use the <b>Hide UI</b> button to see more of the canvas.</div>
+  <input type="file" id="fileInput" accept=".svg,image/svg+xml" />
+  <canvas id="c"></canvas>
+  <script>
+  // ------------------------------
+  // State (declare BEFORE any calls that might read it)
+  // ------------------------------
+  let mode = 'draw';
+  /** @type {{x:number,y:number}[]} */
+  let shape = []; // freehand polygon
+  let isDragging = false;
+
+  // Active fill geometry can be either a Path2D from freehand or from SVG
+  let activePath = null;      // Path2D in canvas space (after transform)
+  let hasSVG = false;         // true if we imported an SVG
+
+  // Result tiles (for export)
+  /** @type {{x:number,y:number,size:number}[]} */
+  let tiles = [];
+
+  // Preview style
+  const PREVIEW_STROKE = '#000';
+
+  // ------------------------------
+  // Canvas setup
+  // ------------------------------
+  const canvas = document.getElementById('c');
+  const ctx = canvas.getContext('2d');
+
+  function drawEverything(){
+    ctx.setTransform(1,0,0,1,0,0);
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    // Preview the current outline
+    ctx.lineWidth = parseFloat(document.getElementById('stroke').value);
+    ctx.strokeStyle = PREVIEW_STROKE;
+    if(hasSVG && activePath){ ctx.stroke(activePath); }
+    else if(shape.length>1){ drawShapePath(); ctx.stroke(); }
+    // Re-draw tiles if any (useful after resize or export)
+    if(tiles.length){ ctx.lineWidth = parseFloat(document.getElementById('stroke').value); for(const {x,y,size} of tiles){ ctx.strokeRect(Math.round(x)+0.5, Math.round(y)+0.5, size, size); } }
+  }
+
+  function resize(){ canvas.width = innerWidth; canvas.height = innerHeight; drawEverything(); }
+  addEventListener('resize', resize); resize();
+
+  // ------------------------------
+  // UI elements
+  // ------------------------------
+  const minSizeEl = document.getElementById('minSize');
+  const minLabel = document.getElementById('minLabel');
+  const animateEl = document.getElementById('animate');
+  minLabel.textContent = minSizeEl.value;
+  minSizeEl.oninput = () => { minLabel.textContent = minSizeEl.value; drawEverything(); };
+  document.getElementById('modeDraw').onclick = () => { mode='draw'; drawEverything(); };
+  document.getElementById('modeTile').onclick = () => { mode='tile'; greedyTile(); };
+  document.getElementById('clear').onclick = () => { shape=[]; activePath=null; hasSVG=false; tiles=[]; mode='draw'; drawEverything(); };
+  // Export buttons
+  document.getElementById('exportPng').onclick = exportPNG;
+  document.getElementById('exportSvg').onclick = exportSVG;
+  // SVG import
+  const fileInput = document.getElementById('fileInput');
+  document.getElementById('importSvg').onclick = () => fileInput.click();
+  fileInput.addEventListener('change', async (e) => {
+    const file = e.target.files && e.target.files[0];
+    if(!file) return;
+    const text = await file.text();
+    try{
+      const parser = new DOMParser();
+      const doc = parser.parseFromString(text, 'image/svg+xml');
+      const svg = doc.querySelector('svg');
+      if(!svg){ alert('No <svg> element found.'); return; }
+      // Collect all <path d="..."> and combine
+      const paths = [...doc.querySelectorAll('path')]
+        .map(p => p.getAttribute('d'))
+        .filter(Boolean);
+      if(paths.length === 0){
+        alert('Currently only <path d="..."> elements are supported. Convert shapes to paths and try again.');
+        return;
+      }
+      // Build a combined Path2D in SVG units
+      const svgPath = new Path2D();
+      for(const d of paths){ svgPath.addPath(new Path2D(d)); }
+      // Compute transform to fit canvas using the SVG viewBox if available
+      const vb = svg.getAttribute('viewBox');
+      let minX=0, minY=0, vbW=parseFloat(svg.getAttribute('width'))||100, vbH=parseFloat(svg.getAttribute('height'))||100;
+      if(vb){ const parts = vb.trim().split(/[\,\s]+/).map(Number); if(parts.length===4){ [minX,minY,vbW,vbH] = parts; } }
+      // Add margin
+      const margin = 20; // px
+      const scale = Math.min((canvas.width-2*margin)/vbW, (canvas.height-2*margin)/vbH);
+      const tx = margin - minX*scale + (canvas.width - 2*margin - vbW*scale)/2; // center inside margins
+      const ty = margin - minY*scale + (canvas.height - 2*margin - vbH*scale)/2;
+      const transformed = new Path2D();
+      const m = new DOMMatrix([scale,0,0,scale,tx,ty]);
+      transformed.addPath(svgPath, m);
+      activePath = transformed;
+      hasSVG = true;
+      tiles = []; // reset previous tiles
+      mode='draw';
+      drawEverything();
+    } catch(err){
+      console.error(err);
+      alert('Failed to parse SVG. See console for details.');
+    } finally {
+      fileInput.value = '';
+    }
+  });
+  // ------------------------------
+  // Freehand drawing handlers
+  // ------------------------------
+  canvas.addEventListener('mousedown', (e)=>{
+    if(mode!=='draw' || hasSVG) return; // disable freehand when an SVG is active
+    isDragging = true;
+    shape = [{x: e.offsetX, y: e.offsetY}];
+    tiles = []; // clear tiles when starting a new drawing
+    drawEverything();
+  });
+  canvas.addEventListener('mousemove', (e)=>{
+    if(!isDragging || mode!=='draw' || hasSVG) return;
+    shape.push({x:e.offsetX, y:e.offsetY});
+    drawEverything();
+  });
+  addEventListener('mouseup', ()=>{ isDragging = false; });
+  function drawShapePath(){ if(shape.length<2) return; ctx.beginPath(); ctx.moveTo(shape[0].x, shape[0].y); for(let i=1;i<shape.length;i++) ctx.lineTo(shape[i].x, shape[i].y); ctx.closePath(); }
+  function path2DFromShape(){ if(hasSVG && activePath) return activePath; const p = new Path2D(); if(shape.length<3) return p; p.moveTo(shape[0].x, shape[0].y); for(let i=1;i<shape.length;i++) p.lineTo(shape[i].x, shape[i].y); p.closePath(); return p; }
+  function getBoundsFromPath(p){ const step = 10; let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity; for(let y=0;y<canvas.height;y+=step){ for(let x=0;x<canvas.width;x+=step){ if(ctx.isPointInPath(p,x,y)){ if(x<minX) minX=x; if(y<minY) minY=y; if(x>maxX) maxX=x; if(y>maxY) maxY=y; } } } if(minX===Infinity) return {x:0,y:0,w:0,h:0}; return {x:minX,y:minY,w:maxX-minX+step,h:maxY-minY+step}; }
+  function getBounds(){ if(hasSVG && activePath){ return getBoundsFromPath(activePath); } let minX=Infinity,minY=Infinity,maxX=-Infinity,maxY=-Infinity; for(const {x,y} of shape){ if(x<minX) minX=x; if(y<minY) minY=y; if(x>maxX) maxX=x; if(y>maxY) maxY=y; } return {x:minX, y:minY, w:maxX-minX, h:maxY-minY}; }
+  // ------------------------------
+  // Core algorithm: maximal square DP (unit-testable)
+  function maximalSquareDP(avail){ const rows = avail.length; const cols = rows? avail[0].length : 0; if(!rows || !cols) return null; const dp = Array.from({length: rows}, ()=>Array(cols).fill(0)); let bestS=0, bestR=0, bestC=0; for(let r=0;r<rows;r++){ for(let c=0;c<cols;c++){ if(avail[r][c]){ if(r===0||c===0) dp[r][c]=1; else dp[r][c] = 1 + Math.min(dp[r-1][c], dp[r][c-1], dp[r-1][c-1]); if(dp[r][c]>bestS){ bestS=dp[r][c]; bestR=r; bestC=c; } } } } if(bestS<=0) return null; return {size: bestS, r0: bestR - bestS + 1, c0: bestC - bestS + 1}; }
+  // ------------------------------
+  // Greedy largest-square packing on a grid with cell = minSize
+  async function greedyTile(){ const path = path2DFromShape(); if(!(path instanceof Path2D)) return; drawEverything(); const cell = Math.max(2, parseInt(minSizeEl.value,10)); const b = getBounds(); if(b.w<=0 || b.h<=0) return; const gx0 = Math.floor(b.x/cell)*cell; const gy0 = Math.floor(b.y/cell)*cell; const cols = Math.ceil((b.x + b.w - gx0)/cell); const rows = Math.ceil((b.y + b.h - gy0)/cell); const avail = Array.from({length: rows}, ()=>Array(cols).fill(0)); for(let r=0;r<rows;r++){ for(let c=0;c<cols;c++){ const cx = gx0 + c*cell + cell/2; const cy = gy0 + r*cell + cell/2; avail[r][c] = ctx.isPointInPath(path, cx, cy) ? 1 : 0; } } tiles = []; const drawSquare = (r0,c0,s)=>{ const x = gx0 + c0*cell; const y = gy0 + r0*cell; ctx.strokeStyle = PREVIEW_STROKE; ctx.lineWidth = parseFloat(document.getElementById('stroke').value); const size = s*cell; ctx.strokeRect(Math.round(x)+0.5, Math.round(y)+0.5, size, size); tiles.push({x, y, size}); }; function markFilled(r0,c0,s){ for(let r=r0;r<r0+s;r++) for(let c=c0;c<c0+s;c++) avail[r][c]=0; } let step=0; const animate = animateEl.checked; while(true){ const res = maximalSquareDP(avail); if(!res) break; drawSquare(res.r0, res.c0, res.size); markFilled(res.r0, res.c0, res.size); step++; if(animate){ await new Promise(requestAnimationFrame); } if(step> rows*cols) break; } mode='draw'; }
+  // ------------------------------
+  // Exporters
+  function exportPNG(){ drawEverything(); const link = document.createElement('a'); link.download = 'tiling.png'; link.href = canvas.toDataURL('image/png'); link.click(); }
+  function exportSVG(){ const svgNS = 'http://www.w3.org/2000/svg'; const svg = document.createElementNS(svgNS, 'svg'); svg.setAttribute('xmlns', svgNS); svg.setAttribute('width', canvas.width); svg.setAttribute('height', canvas.height); svg.setAttribute('viewBox', `0 0 ${canvas.width} ${canvas.height}`); const strokeWidth = parseFloat(document.getElementById('stroke').value); if(hasSVG && activePath){ /* omit outline to keep export simple */ } else if(shape.length>2){ const pl = document.createElementNS(svgNS, 'polyline'); pl.setAttribute('fill', 'none'); pl.setAttribute('stroke', '#000'); pl.setAttribute('stroke-width', strokeWidth); pl.setAttribute('points', shape.map(p=>`${p.x},${p.y}`).join(' ')); svg.appendChild(pl); } for (const {x, y, size} of tiles) { const rect = document.createElementNS(svgNS, 'rect'); rect.setAttribute('x', x); rect.setAttribute('y', y); rect.setAttribute('width', size); rect.setAttribute('height', size); rect.setAttribute('fill', 'none'); rect.setAttribute('stroke', '#000'); rect.setAttribute('stroke-width', strokeWidth); svg.appendChild(rect); } const serializer = new XMLSerializer(); const svgBlob = new Blob([serializer.serializeToString(svg)], {type: 'image/svg+xml'}); const url = URL.createObjectURL(svgBlob); const link = document.createElement('a'); link.download = 'tiling.svg'; link.href = url; link.click(); URL.revokeObjectURL(url); }
+  // ------------------------------
+  // Unit Tests for DP
+  const testlog = document.getElementById('testlog');
+  function log(line){ testlog.textContent += line + "\n"; }
+  function assertEq(actual, expected, msg){ const ok = JSON.stringify(actual) === JSON.stringify(expected); log((ok? '✅':'❌') + ' ' + msg + '  got=' + JSON.stringify(actual) + '  expected=' + JSON.stringify(expected)); }
+  function runTests(){ testlog.textContent=''; log('Running maximalSquareDP tests...'); const g1 = [ [1,1,1,0], [1,1,1,0], [1,1,0,0], [0,0,0,0] ]; assertEq(maximalSquareDP(g1), {size:2, r0:0, c0:0}, 'T1: simple grid'); const g2 = [ [1,1,1,1], [1,1,1,1], [1,1,1,0], [1,1,0,0] ]; assertEq(maximalSquareDP(g2), {size:3, r0:0, c0:0}, 'T2: larger block'); const g3 = [ [0,0,0], [0,0,0] ]; assertEq(maximalSquareDP(g3), null, 'T3: no squares'); const g4 = [ [1,1,0,1,1], [1,1,0,1,1], [0,0,0,1,1] ]; const r = maximalSquareDP(g4); assertEq(r && r.size, 2, 'T4: size check (2x2)'); }
+  document.getElementById('runTests').onclick = runTests; runTests();
+  // UI toggle
+  const toggleBtn = document.getElementById('toggleUI');
+  toggleBtn.onclick = () => {
+    const uiDiv = document.getElementById('ui');
+    if (uiDiv.style.display === 'none') {
+      uiDiv.style.display = '';
+      toggleBtn.textContent = 'Hide UI';
+    } else {
+      uiDiv.style.display = 'none';
+      toggleBtn.textContent = 'Show UI';
+    }
+  };
+  </script>
+</body>
+</html>
