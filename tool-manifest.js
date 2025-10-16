@@ -1,70 +1,70 @@
 window.toolManifest = [
   {
-    "name": "3 D Color Space",
-    "file": "arlo_tools_repo/3_d_color_space.html"
+    "name": "3D Color‑Space Organizer",
+    "file": "tools/3_d_color_space.html"
   },
   {
-    "name": "Archive Shuffle",
-    "file": "arlo_tools_repo/archive_shuffle.html"
+    "name": "Internet Archive Roulette",
+    "file": "tools/archive_shuffle.html"
   },
   {
-    "name": "Auto Modern Grid Layout",
-    "file": "arlo_tools_repo/auto_modern_grid_layout.html"
+    "name": "Automated Modern Grid — Brutalist (No-Cut Text)",
+    "file": "tools/auto_modern_grid_layout.html"
   },
   {
-    "name": "Boids",
-    "file": "arlo_tools_repo/boids.html"
+    "name": "Boid Simulator",
+    "file": "tools/boids.html"
   },
   {
-    "name": "Chisel Pen",
-    "file": "arlo_tools_repo/chisel_pen.html"
+    "name": "Chisel‑Tip Pen — Brutalist",
+    "file": "tools/chisel_pen.html"
   },
   {
-    "name": "Fractal Lab",
-    "file": "arlo_tools_repo/Fractal_Lab.html"
+    "name": "Recursive Vector Fractal Lab — Standalone",
+    "file": "tools/Fractal_Lab.html"
   },
   {
-    "name": "GlitchSkewer",
-    "file": "arlo_tools_repo/GlitchSkewer.html"
+    "name": "Row & Column Glitcher — Brutalist",
+    "file": "tools/GlitchSkewer.html"
   },
   {
-    "name": "Graded Game Of Life",
-    "file": "arlo_tools_repo/graded_game_of_life.html"
+    "name": "Graded Game of Life — Brutalist",
+    "file": "tools/graded_game_of_life.html"
   },
   {
-    "name": "I <3 WIKI",
-    "file": "arlo_tools_repo/I_<3_WIKI.html"
+    "name": "Random “I ♥” Generator",
+    "file": "tools/I_<3_WIKI.html"
   },
   {
     "name": "Lissajous Figure Grid",
-    "file": "arlo_tools_repo/lissajous_figure_grid.html"
+    "file": "tools/lissajous_figure_grid.html"
   },
   {
-    "name": "Medieval Border Generator",
-    "file": "arlo_tools_repo/medieval_border_generator.html"
+    "name": "Medieval Border Generator — Brutalist (Tile Only)",
+    "file": "tools/medieval_border_generator.html"
   },
   {
-    "name": "Midi → Neumes Converter",
-    "file": "arlo_tools_repo/midi_→_neumes_converter.html"
+    "name": "MIDI → Neumes (Square‑Note) — Single‑File HTML",
+    "file": "tools/midi_→_neumes_converter.html"
   },
   {
-    "name": "Node Net",
-    "file": "arlo_tools_repo/Node_Net.html"
+    "name": "Brutalist Mind Map Tool",
+    "file": "tools/Node_Net.html"
   },
   {
-    "name": "Spectrogram Collage",
-    "file": "arlo_tools_repo/Spectrogram_Collage.html"
+    "name": "Audio Spectrogram Editor",
+    "file": "tools/Spectrogram_Collage.html"
   },
   {
-    "name": "SpectroJPEG",
-    "file": "arlo_tools_repo/SpectroJPEG.html"
+    "name": "Audio ⇄ Extreme-Glitched Spectrogram",
+    "file": "tools/SpectroJPEG.html"
   },
   {
-    "name": "Square Tiler",
-    "file": "arlo_tools_repo/square_tiler.html"
+    "name": "Greedy Square Fitting + SVG Import + Export",
+    "file": "tools/square_tiler.html"
   },
   {
-    "name": "Tree Generator",
-    "file": "arlo_tools_repo/tree_generator.html"
+    "name": "Particle Tree Generator",
+    "file": "tools/tree_generator.html"
   }
 ];
