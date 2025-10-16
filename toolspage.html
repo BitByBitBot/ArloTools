@@ -114,7 +114,7 @@
       font-size: 0.85rem;
       letter-spacing: 0.05em;
       text-transform: uppercase;
-      text-align: left; /* left align tool names */
+      text-align: left;
       cursor: pointer;
     }
 
@@ -199,13 +199,34 @@
       <div class="frame-container">
         <iframe id="tool-frame" title="Selected tool" hidden></iframe>
       </div>
-      <!-- Load the generated tool manifest script. This defines window.toolManifest. -->
-      <script src="tool-manifest.js"></script>
+      <!-- Hardcoded tool manifest replacing external tool-manifest.js -->
+      <script>
+        window.toolManifest = [
+          { name: 'Archive Roulette', file: 'tools/archive_shuffle.html' },
+          { name: 'Boid Simulator', file: 'tools/boids.html' },
+          { name: 'Border Tool', file: 'tools/medieval_border_generator.html' },
+          { name: 'Chisel Tool', file: 'tools/chisel_pen.html' },
+          { name: 'Colorspace Visualizer', file: 'tools/3_d_color_space.html' },
+          { name: 'Fractal Explorer', file: 'tools/Fractal_Lab.html' },
+          { name: 'Heart Generator', file: 'tools/I_<3_WIKI.html' },
+          { name: 'Game of Life Variations', file: 'tools/graded_game_of_life.html' },
+          { name: 'Lissajous Visualizer', file: 'tools/lissajous_figure_grid.html' },
+          { name: 'Modern Grid Generator', file: 'tools/auto_modern_grid_layout.html' },
+          { name: 'Neumes Converter', file: 'tools/midi_→_neumes_converter.html' },
+          { name: 'Node Tool', file: 'tools/Node_Net.html' },
+          { name: 'Skewer Tool', file: 'tools/GlitchSkewer.html' },
+          { name: 'Spectrogram Collage', file: 'tools/Spectrogram_Collage.html' },
+          { name: 'Spectrogram JPEG Tool', file: 'tools/SpectroJPEG.html' },
+          { name: 'Tiler Tool', file: 'tools/square_tiler.html' },
+          { name: 'Tree Generator', file: 'tools/tree_generator.html' },
+        ];
+      </script>
     </main>
   </div>
   <script>
     document.addEventListener("DOMContentLoaded", async () => {
-      // Pull the list of tools from the generated manifest script. The script assigns an array to window.toolManifest.
+      // Pull the list of tools from the generated manifest script. The
+      // script assigns an array to window.toolManifest.
       const tools = Array.isArray(window.toolManifest) ? window.toolManifest : [];
 
       const toolList = document.getElementById("tool-list");
@@ -227,7 +248,8 @@
 
       toggleBtn.addEventListener("click", () => {
         sidebar.classList.toggle("hidden");
-        mainWrapper.style.width = sidebar.classList.contains("hidden") ? "100vw" : "calc(100vw - 320px)";
+        mainWrapper.style.width = sidebar.classList.contains("hidden") ?
+          "100vw" : "calc(100vw - 320px)";
         updateButtonIcon();
       });
 
@@ -277,6 +299,24 @@
           button.style.display = match ? "block" : "none";
         });
       });
+
+      // Parse the ?tool= query parameter to auto-load a tool
+      const params = new URLSearchParams(window.location.search);
+      const initialFile = params.get('tool');
+      if (initialFile) {
+        const initialTool = tools.find(t => t.file === initialFile || t.file.endsWith(initialFile.split('/').pop()));
+        if (initialTool) {
+          const index = tools.indexOf(initialTool);
+          const button = document.querySelectorAll(".tool-button")[index];
+          selectTool(initialTool, button);
+        } else {
+          const url = toUrl(initialFile);
+          iframe.src = url;
+          iframe.hidden = false;
+          toolName.textContent = initialFile.split('/').pop();
+          openNewTab.href = url;
+        }
+      }
     });
   </script>
 </body>
