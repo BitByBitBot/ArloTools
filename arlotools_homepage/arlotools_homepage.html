@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ArloTools</title>
+  <style>
+
+      @font-face {
+        font-family: 'FaceOff';
+        src: url('Face off!.ttf') format('truetype');
+      }
+
+      body {
+        margin: 0;
+        background: white;
+        color: black;
+        font-family: Helvetica, Arial, sans-serif;
+        display: flex;
+        flex-direction: column;
+        align-items: center;
+      }
+
+      header {
+        text-align: center;
+        border-bottom: 4px solid black;
+        width: 100%;
+        padding: 20px 0;
+      }
+
+      #logo-container {
+        position: relative;
+        width: 80%;
+        max-width: 800px;
+        margin: 0 auto;
+      }
+
+      #logo-base {
+        width: 100%;
+        display: block;
+        height: auto;
+      }
+
+      .face-overlay {
+        position: absolute;
+        width: 11.6%;
+        aspect-ratio: 1 / 1;
+        background: #fff;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transform: translate(-50%, -50%);
+        z-index: -3;
+        overflow: hidden;
+      }
+
+      #face1 { left: 41.7%; top: 63%; }
+      #face2 { left: 61.9%; top: 63%; }
+      #face3 { left: 73.9%; top: 63%; }
+
+      .face-char {
+        font-family: 'FaceOff';
+        font-size: 4vw;
+        line-height: 1;
+        color: #000;
+      }
+
+      p.tagline {
+        font-size: 1rem;
+        margin: 8px 0 0;
+        text-transform: uppercase;
+      }
+
+      main {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+        gap: 24px;
+        padding: 40px;
+        width: 100%;
+        max-width: 2000px;
+        box-sizing: border-box;
+      }
+
+      .tool-card {
+        display: flex;
+        flex-direction: column;
+        border: 2px solid black;
+        background: white;
+        text-decoration: none;
+        color: black;
+        transition: all 0.2s ease;
+      }
+
+      .tool-card:hover {
+        background: black;
+        color: white;
+      }
+
+      video.preview {
+        width: 100%;
+        height: 180px;
+        object-fit: cover;
+      }
+
+      .tool-card h2 {
+        font-size: 1.2rem;
+        padding: 12px;
+        margin: 0;
+        border-top: 2px solid black;
+        text-align: center;
+      }
+
+      footer {
+        border-top: 4px solid black;
+        width: 100%;
+        text-align: center;
+        padding: 12px 0;
+        font-size: 0.9rem;
+        text-transform: uppercase;
+      }
+  
+  </style>
+</head>
+<body>
+  <header>
+    <div id="logo-container">
+      <img id="logo-base" src="ArloTools nucourier.svg" alt="ArloTools Logo">
+      <div id="face1" class="face-overlay"><span class="face-char">A</span></div>
+      <div id="face2" class="face-overlay"><span class="face-char">B</span></div>
+      <div id="face3" class="face-overlay"><span class="face-char">C</span></div>
+    </div>
+    <p class="tagline">Experimental Tools by Arlo Robbins</p>
+  </header>
+
+  <main>
+    <a class="tool-card" href="tools/archive.html">
+      <video class="preview" src="videos/Archive Demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Archive Roulette</h2>
+    </a>
+    <a class="tool-card" href="tools/boid-sim.html">
+      <video class="preview" src="videos/boids demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Boid Simulator</h2>
+    </a>
+    <a class="tool-card" href="tools/border.html">
+      <video class="preview" src="videos/border demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Border Tool</h2>
+    </a>
+    <a class="tool-card" href="tools/chisel.html">
+      <video class="preview" src="videos/chisel demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Chisel Tool</h2>
+    </a>
+    <a class="tool-card" href="tools/colorspace.html">
+      <video class="preview" src="videos/colorspace demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Colorspace Visualizer</h2>
+    </a>
+    <a class="tool-card" href="tools/fractal.html">
+      <video class="preview" src="videos/fractal demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Fractal Explorer</h2>
+    </a>
+    <a class="tool-card" href="tools/heart.html">
+      <video class="preview" src="videos/heart demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Heart Generator</h2>
+    </a>
+    <a class="tool-card" href="tools/life.html">
+      <video class="preview" src="videos/life demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Game of Life Variations</h2>
+    </a>
+    <a class="tool-card" href="tools/lissajous.html">
+      <video class="preview" src="videos/lissajous demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Lissajous Visualizer</h2>
+    </a>
+    <a class="tool-card" href="tools/grid.html">
+      <video class="preview" src="videos/modern grid demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Modern Grid Generator</h2>
+    </a>
+    <a class="tool-card" href="tools/neumes.html">
+      <video class="preview" src="videos/neumes demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Neumes Converter</h2>
+    </a>
+    <a class="tool-card" href="tools/node.html">
+      <video class="preview" src="videos/node demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Node Tool</h2>
+    </a>
+    <a class="tool-card" href="tools/skewer.html">
+      <video class="preview" src="videos/skewer demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Skewer Tool</h2>
+    </a>
+    <a class="tool-card" href="tools/spectro-collage.html">
+      <video class="preview" src="videos/spectro collage demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Spectrogram Collage</h2>
+    </a>
+    <a class="tool-card" href="tools/spectro-jpeg.html">
+      <video class="preview" src="videos/spectro jpeg demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Spectrogram JPEG Tool</h2>
+    </a>
+    <a class="tool-card" href="tools/tiler.html">
+      <video class="preview" src="videos/tiler demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Tiler Tool</h2>
+    </a>
+    <a class="tool-card" href="tools/tree.html">
+      <video class="preview" src="videos/tree demo.mp4" autoplay muted loop playsinline></video>
+      <h2>Tree Generator</h2>
+    </a>
+  </main>
+
+  <footer>
+    © 2025 Arlo Robbins — Built with Brutalist Precision
+  </footer>
+
+  <script>
+    const charSet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+    function getUniqueChars(count) {
+      const chars = new Set();
+      while (chars.size < count) {
+        const rand = charSet.charAt(Math.floor(Math.random() * charSet.length));
+        chars.add(rand);
+      }
+      return Array.from(chars);
+    }
+
+    function updateFaces() {
+      const unique = getUniqueChars(3);
+      document.querySelectorAll('.face-char').forEach((span, i) => {
+        span.textContent = unique[i];
+      });
+    }
+
+    updateFaces();
+    setInterval(updateFaces, 1000);
+  </script>
+</body>
+</html>
