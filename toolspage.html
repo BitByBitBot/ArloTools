@@ -59,10 +59,17 @@
       margin: 0;
       padding-bottom: 12px;
       border-bottom: 2px solid var(--divider);
+      display: flex;
+      align-items: center;
+      gap: 12px;
     }
 
     .sidebar.hidden {
       display: none;
+    }
+
+    .sidebar h1 .arlo-logo {
+      height: 28px;
     }
 
     .main-wrapper {
@@ -182,7 +189,10 @@
 </head>
 <body>
   <aside class="sidebar" id="sidebar">
-    <h1><span style="border: 2px solid var(--border); padding: 0.25em 0.45em; background: var(--panel);">AT</span> ArloTools</h1>
+    <h1>
+      <span style="border: 2px solid var(--border); padding: 0.25em 0.45em; background: var(--panel);">AT</span>
+      <img src="ArloTools nucourier.svg" alt="ArloTools" class="arlo-logo">
+    </h1>
     <label class="search-wrapper">
       <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 015.977 12.072l3.226 3.225a1 1 0 01-1.414 1.415l-3.226-3.226A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 100 11 5.5 5.5 0 000-11z"/></svg>
       <input id="search" type="search" placeholder="Search tools..." autocomplete="off">
