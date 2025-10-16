@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>ArloTools</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link rel="stylesheet" href="theme.css">
+  <style>
+    /* Global reset for consistency across browsers */
+    *, *::before, *::after {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    html, body {
+      height: 100%;
+      overflow: hidden;
+      background: var(--bg);
+      color: var(--text);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    :root {
+      color-scheme: light;
+      --bg: #ffffff;
+      --panel: #ffffff;
+      --panel-hover: #f0f0f0;
+      --panel-active: #eaeaea;
+      --accent: #000000;
+      --text: #000000;
+      --muted: #444444;
+      --border: #000000;
+      --divider: #cccccc;
+      font-family: "Space Mono", "IBM Plex Mono", "Courier New", monospace;
+      line-height: 1.4;
+    }
+
+    body {
+      display: flex;
+    }
+
+    .sidebar {
+      width: 320px;
+      max-width: 100vw;
+      transition: all 0.3s ease;
+      background: var(--bg);
+      border-right: 2px solid var(--border);
+      padding: 20px 26px 32px;
+      display: flex;
+      flex-direction: column;
+      gap: 20px;
+      position: relative;
+      z-index: 10;
+    }
+
+    .sidebar h1 {
+      margin: 0;
+      padding-bottom: 12px;
+      border-bottom: 2px solid var(--divider);
+    }
+
+    .sidebar.hidden {
+      display: none;
+    }
+
+    .main-wrapper {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      width: 100%;
+    }
+
+    .search-wrapper {
+      position: relative;
+    }
+
+    .search-wrapper input {
+      width: 100%;
+      padding: 12px 16px 12px 48px;
+      border: 2px solid var(--border);
+      background: var(--panel);
+      color: inherit;
+      font-size: 0.95rem;
+      outline: none;
+    }
+
+    .search-wrapper svg {
+      position: absolute;
+      top: 50%;
+      left: 14px;
+      width: 22px;
+      height: 22px;
+      transform: translateY(-50%);
+      fill: var(--border);
+      pointer-events: none;
+    }
+
+    #tool-list {
+      flex: 1 1 auto;
+      overflow-y: auto;
+      display: grid;
+      gap: 14px;
+    }
+
+    .tool-button {
+      display: block;
+      width: 100%;
+      padding: 12px 14px;
+      border: 2px solid var(--border);
+      background: var(--panel);
+      font-size: 0.85rem;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      text-align: left; /* left align tool names */
+      cursor: pointer;
+    }
+
+    .tool-button.active {
+      background: var(--panel-active);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    main {
+      flex: 1 1 auto;
+      display: flex;
+      flex-direction: column;
+      padding: 0;
+    }
+
+    .toolbar {
+      display: flex;
+      align-items: center;
+      padding: 0 12px;
+      height: 40px;
+      background: var(--panel);
+      border: 2px solid var(--border);
+      font-size: 0.9rem;
+      font-weight: bold;
+      gap: 12px;
+      position: relative;
+    }
+
+    #sidebar-toggle {
+      width: 40px;
+      height: 40px;
+      background: var(--accent);
+      color: var(--bg);
+      border: none;
+      font-weight: bold;
+      cursor: pointer;
+      font-size: 1rem;
+      position: absolute;
+      top: 0;
+      left: 0;
+      z-index: 20;
+    }
+
+    .toolbar #tool-name {
+      margin-left: 52px;
+      flex: 1;
+    }
+
+    .frame-container {
+      flex: 1;
+      position: relative;
+      overflow: hidden;
+      background: var(--panel);
+      border: 2px solid var(--border);
+    }
+
+    iframe {
+      width: 100%;
+      height: 100%;
+      border: none;
+      background: var(--panel);
+    }
+  </style>
+</head>
+<body>
+  <aside class="sidebar" id="sidebar">
+    <h1><span style="border: 2px solid var(--border); padding: 0.25em 0.45em; background: var(--panel);">AT</span> ArloTools</h1>
+    <label class="search-wrapper">
+      <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M10.5 3a7.5 7.5 0 015.977 12.072l3.226 3.225a1 1 0 01-1.414 1.415l-3.226-3.226A7.5 7.5 0 1110.5 3zm0 2a5.5 5.5 0 100 11 5.5 5.5 0 000-11z"/></svg>
+      <input id="search" type="search" placeholder="Search tools..." autocomplete="off">
+    </label>
+    <div id="tool-list" role="listbox"></div>
+  </aside>
+  <div class="main-wrapper">
+    <main>
+      <div class="toolbar">
+        <button id="sidebar-toggle">☰</button>
+        <span id="tool-name">Choose a tool</span>
+        <a id="open-new-tab" href="#" target="_blank" rel="noopener">↗</a>
+      </div>
+      <div class="frame-container">
+        <iframe id="tool-frame" title="Selected tool" hidden></iframe>
+      </div>
+      <!-- Load the generated tool manifest script. This defines window.toolManifest. -->
+      <script src="tool-manifest.js"></script>
+    </main>
+  </div>
+  <script>
+    document.addEventListener("DOMContentLoaded", async () => {
+      // Pull the list of tools from the generated manifest script. The script assigns an array to window.toolManifest.
+      const tools = Array.isArray(window.toolManifest) ? window.toolManifest : [];
+
+      const toolList = document.getElementById("tool-list");
+      const searchInput = document.getElementById("search");
+      const iframe = document.getElementById("tool-frame");
+      const toolName = document.getElementById("tool-name");
+      const openNewTab = document.getElementById("open-new-tab");
+      const sidebar = document.getElementById("sidebar");
+      const mainWrapper = document.querySelector(".main-wrapper");
+      const toggleBtn = document.getElementById("sidebar-toggle");
+
+      const updateButtonIcon = () => {
+        if (sidebar.classList.contains("hidden")) {
+          toggleBtn.textContent = "☰"; // menu icon when closed
+        } else {
+          toggleBtn.textContent = "←"; // left arrow when open
+        }
+      };
+
+      toggleBtn.addEventListener("click", () => {
+        sidebar.classList.toggle("hidden");
+        mainWrapper.style.width = sidebar.classList.contains("hidden") ? "100vw" : "calc(100vw - 320px)";
+        updateButtonIcon();
+      });
+
+      updateButtonIcon();
+
+      const toUrl = (file) => encodeURI(file).replace(/#/g, "%23");
+
+      const injectTheme = (doc) => {
+        if (!doc) return;
+        const link = doc.createElement("link");
+        link.rel = "stylesheet";
+        link.href = "theme.css";
+        doc.head.appendChild(link);
+      };
+
+      const selectTool = (tool, button) => {
+        document.querySelectorAll(".tool-button").forEach(btn => btn.classList.remove("active"));
+        button.classList.add("active");
+        const url = toUrl(tool.file);
+        iframe.src = url;
+        iframe.hidden = false;
+        toolName.textContent = tool.name;
+        openNewTab.href = url;
+
+        iframe.addEventListener("load", () => {
+          try {
+            injectTheme(iframe.contentDocument);
+          } catch (e) {
+            console.warn("Could not inject theme:", e);
+          }
+        }, { once: true });
+      };
+
+      tools.forEach((tool) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "tool-button";
+        button.textContent = tool.name;
+        button.addEventListener("click", () => selectTool(tool, button));
+        toolList.appendChild(button);
+      });
+
+      searchInput.addEventListener("input", () => {
+        const query = searchInput.value.trim().toLowerCase();
+        toolList.querySelectorAll(".tool-button").forEach(button => {
+          const match = button.textContent.toLowerCase().includes(query);
+          button.style.display = match ? "block" : "none";
+        });
+      });
+    });
+  </script>
+</body>
+</html>
