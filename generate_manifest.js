@@ -11,7 +11,7 @@ const path = require('path');
  * after adding or removing tools to keep the manifest up‑to‑date.
  */
 
-const toolDir = path.join(__dirname, 'arlo_tools_repo');
+const toolDir = path.join(__dirname, 'tools');
 const manifestPath = path.join(__dirname, 'tool-manifest.json');
 
 // Read all entries in the tool directory
@@ -42,7 +42,7 @@ const manifest = files.map((file) => {
   name = name.replace(/\b\w/g, (char) => char.toUpperCase());
   return {
     name,
-    file: `arlo_tools_repo/${file}`,
+    file: `tools/${file}`,
   };
 });
 
