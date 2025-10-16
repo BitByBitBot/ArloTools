@@ -4,14 +4,14 @@ const path = require('path');
 /*
  * generate_manifest.js
  *
- * This script scans the `arlo_tools_repo` folder for HTML files and writes
+ * This script scans the `tools` folder for HTML files and writes
  * a `tool-manifest.json` file at the project root. The manifest contains an
  * array of objects with `name` and `file` properties that can be consumed by
  * the index page to build a navigation menu automatically. Run this script
  * after adding or removing tools to keep the manifest up‑to‑date.
  */
 
-const toolDir = path.join(__dirname, 'arlo_tools_repo');
+const toolDir = path.join(__dirname, 'tools');
 const manifestPath = path.join(__dirname, 'tool-manifest.json');
 
 // Read all entries in the tool directory
@@ -30,19 +30,35 @@ files.sort((a, b) => a.localeCompare(b));
 
 // Build manifest entries
 const manifest = files.map((file) => {
-  // Human‑readable name: decode URI, remove extension, replace underscores/hyphens with spaces
-  let name = file.replace(/\.html$/i, '');
+  const filePath = path.join(toolDir, file);
+
+  let title = '';
   try {
-    name = decodeURIComponent(name);
-  } catch (_) {
-    // ignore decode errors
+    const contents = fs.readFileSync(filePath, 'utf8');
+    const match = contents.match(/<title[^>]*>([^<]*)<\/title>/i);
+    if (match) {
+      title = match[1].trim();
+    }
+  } catch (err) {
+    console.warn(`Unable to read ${filePath} for title extraction:`, err);
   }
-  name = name.replace(/[_-]+/g, ' ');
-  // Capitalize each word for a nicer display title
-  name = name.replace(/\b\w/g, (char) => char.toUpperCase());
+
+  // Fallback to a humanised version of the filename if no title is present.
+  if (!title) {
+    try {
+      title = decodeURIComponent(file);
+    } catch (_) {
+      title = file;
+    }
+    title = title
+      .replace(/\.html$/i, '')
+      .replace(/[_-]+/g, ' ')
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+  }
+
   return {
-    name,
-    file: `arlo_tools_repo/${file}`,
+    name: title,
+    file: `tools/${file}`,
   };
 });
 
