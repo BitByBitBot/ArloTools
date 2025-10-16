@@ -119,7 +119,13 @@
         font-size: 0.9rem;
         text-transform: uppercase;
       }
-  
+
+      .loading-message {
+        text-align: center;
+        font-size: 1rem;
+        padding: 24px;
+      }
+
   </style>
 </head>
 <body>
@@ -133,75 +139,8 @@
     <p class="tagline">Experimental Tools by Arlo Robbins</p>
   </header>
 
-  <main>
-    <a class="tool-card" href="tools/archive.html">
-      <video class="preview" src="videos/Archive Demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Archive Roulette</h2>
-    </a>
-    <a class="tool-card" href="tools/boid-sim.html">
-      <video class="preview" src="videos/boids demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Boid Simulator</h2>
-    </a>
-    <a class="tool-card" href="tools/border.html">
-      <video class="preview" src="videos/border demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Border Tool</h2>
-    </a>
-    <a class="tool-card" href="tools/chisel.html">
-      <video class="preview" src="videos/chisel demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Chisel Tool</h2>
-    </a>
-    <a class="tool-card" href="tools/colorspace.html">
-      <video class="preview" src="videos/colorspace demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Colorspace Visualizer</h2>
-    </a>
-    <a class="tool-card" href="tools/fractal.html">
-      <video class="preview" src="videos/fractal demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Fractal Explorer</h2>
-    </a>
-    <a class="tool-card" href="tools/heart.html">
-      <video class="preview" src="videos/heart demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Heart Generator</h2>
-    </a>
-    <a class="tool-card" href="tools/life.html">
-      <video class="preview" src="videos/life demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Game of Life Variations</h2>
-    </a>
-    <a class="tool-card" href="tools/lissajous.html">
-      <video class="preview" src="videos/lissajous demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Lissajous Visualizer</h2>
-    </a>
-    <a class="tool-card" href="tools/grid.html">
-      <video class="preview" src="videos/modern grid demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Modern Grid Generator</h2>
-    </a>
-    <a class="tool-card" href="tools/neumes.html">
-      <video class="preview" src="videos/neumes demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Neumes Converter</h2>
-    </a>
-    <a class="tool-card" href="tools/node.html">
-      <video class="preview" src="videos/node demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Node Tool</h2>
-    </a>
-    <a class="tool-card" href="tools/skewer.html">
-      <video class="preview" src="videos/skewer demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Skewer Tool</h2>
-    </a>
-    <a class="tool-card" href="tools/spectro-collage.html">
-      <video class="preview" src="videos/spectro collage demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Spectrogram Collage</h2>
-    </a>
-    <a class="tool-card" href="tools/spectro-jpeg.html">
-      <video class="preview" src="videos/spectro jpeg demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Spectrogram JPEG Tool</h2>
-    </a>
-    <a class="tool-card" href="tools/tiler.html">
-      <video class="preview" src="videos/tiler demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Tiler Tool</h2>
-    </a>
-    <a class="tool-card" href="tools/tree.html">
-      <video class="preview" src="videos/tree demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Tree Generator</h2>
-    </a>
+  <main id="tool-grid" aria-live="polite">
+    <p class="loading-message">Loading tools…</p>
   </main>
 
   <footer>
@@ -210,6 +149,75 @@
 
   <script>
     const charSet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
+
+    const videoMap = new Map([
+      ['3 D Color Space', 'colorspace demo.mp4'],
+      ['Archive Shuffle', 'Archive Demo.mp4'],
+      ['Auto Modern Grid Layout', 'modern grid demo.mp4'],
+      ['Boids', 'boids demo.mp4'],
+      ['Chisel Pen', 'chisel demo.mp4'],
+      ['Fractal Lab', 'fractal demo.mp4'],
+      ['GlitchSkewer', 'skewer demo.mp4'],
+      ['Graded Game Of Life', 'life demo.mp4'],
+      ['I <3 WIKI', 'heart demo.mp4'],
+      ['Lissajous Figure Grid', 'lissajous demo.mp4'],
+      ['Medieval Border Generator', 'border demo.mp4'],
+      ['Midi → Neumes Converter', 'neumes demo.mp4'],
+      ['Node Net', 'node demo.mp4'],
+      ['Spectrogram Collage', 'spectro collage demo.mp4'],
+      ['SpectroJPEG', 'spectro jpeg demo.mp4'],
+      ['Square Tiler', 'tiler demo.mp4'],
+      ['Tree Generator', 'tree demo.mp4'],
+    ]);
+
+    const toolGrid = document.getElementById('tool-grid');
+
+    function createCard(tool) {
+      const card = document.createElement('a');
+      card.className = 'tool-card';
+      card.href = `../${tool.file}`;
+      card.setAttribute('data-tool', tool.name);
+
+      const videoFile = videoMap.get(tool.name);
+      if (videoFile) {
+        const video = document.createElement('video');
+        video.className = 'preview';
+        video.src = `videos/${videoFile}`;
+        video.autoplay = true;
+        video.muted = true;
+        video.loop = true;
+        video.playsInline = true;
+        card.appendChild(video);
+      }
+
+      const title = document.createElement('h2');
+      title.textContent = tool.name;
+      card.appendChild(title);
+
+      return card;
+    }
+
+    async function populateTools() {
+      let manifest = [];
+      try {
+        const response = await fetch('../tool-manifest.json');
+        if (!response.ok) {
+          throw new Error(`Failed to fetch manifest: ${response.status}`);
+        }
+        manifest = await response.json();
+      } catch (error) {
+        toolGrid.innerHTML = '<p class="loading-message">Unable to load tools right now.</p>';
+        console.error(error);
+        return;
+      }
+
+      toolGrid.innerHTML = '';
+      manifest.forEach((tool) => {
+        toolGrid.appendChild(createCard(tool));
+      });
+    }
+
+    populateTools();
 
     function getUniqueChars(count) {
       const chars = new Set();
