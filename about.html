@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>About • ArloTools</title>
+  <style>
+    @font-face {
+      font-family: 'FaceOff';
+      src: url('Face off!.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    :root {
+      color-scheme: light;
+      --bg: linear-gradient(115deg, rgba(255, 255, 255, 1) 0%, rgba(255, 246, 252, 0.92) 45%, rgba(246, 252, 255, 0.92) 100%);
+      --fg: #111111;
+      --panel: rgba(255, 255, 255, 0.86);
+      --panel-border: rgba(17, 17, 17, 0.14);
+      --accent: #2020ff;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      padding: clamp(28px, 6vw, 64px);
+      gap: clamp(36px, 6vw, 64px);
+    }
+
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 14px;
+      justify-content: space-between;
+      align-items: flex-end;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    .brand span {
+      letter-spacing: 0.15em;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-family: 'FaceOff', 'Helvetica Neue', sans-serif;
+      letter-spacing: 0.12em;
+      font-size: clamp(2.8rem, 8vw, 4.8rem);
+      line-height: 0.95;
+    }
+
+    nav {
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+
+    nav a {
+      text-decoration: none;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-size: 0.78rem;
+      padding: 8px 18px;
+      border-radius: 0;
+      border: 1px solid rgba(0, 0, 0, 0.18);
+      background: rgba(255, 255, 255, 0.8);
+      color: inherit;
+      transition: all 0.3s ease;
+    }
+
+    nav a:hover,
+    nav a:focus-visible {
+      border-color: rgba(0, 0, 0, 0.5);
+      background: rgba(255, 255, 255, 0.95);
+      outline: none;
+    }
+
+    main {
+      display: grid;
+      gap: clamp(24px, 4vw, 48px);
+      max-width: 920px;
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      border-radius: 0;
+      padding: clamp(24px, 4vw, 48px);
+      box-shadow: 0 26px 60px rgba(17, 17, 17, 0.08);
+      backdrop-filter: blur(8px);
+    }
+
+    .panel h2 {
+      margin: 0 0 16px;
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: 0.8rem;
+    }
+
+    .panel p {
+      margin: 0 0 16px;
+      line-height: 1.65;
+      font-size: clamp(1rem, 2.3vw, 1.2rem);
+    }
+
+    .panel p:last-child {
+      margin-bottom: 0;
+    }
+
+    footer {
+      font-size: 0.7rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+    }
+
+    footer a {
+      color: inherit;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        padding: 24px;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      nav {
+        width: 100%;
+      }
+
+      nav a {
+        flex: 1 0 auto;
+        text-align: center;
+      }
+    }
+  </style>
+</head>
+<body>
+  <header>
+    <div class="brand">
+      <span>Get to know the workshop</span>
+      <h1>About ArloTools</h1>
+    </div>
+    <nav>
+      <a href="index.html">Home</a>
+      <a href="about.html" aria-current="page">About</a>
+      <a href="toolspage.html">Full Library</a>
+    </nav>
+  </header>
+  <main>
+    <section class="panel">
+      <h2>The Idea</h2>
+      <p>
+        ArloTools is my playground for experimental interfaces, audiovisual sketches, and computational curiosities. I wanted a single place where tools could feel alive—each one orbiting in a shared space, ready to be discovered and explored in seconds.
+      </p>
+      <p>
+        The site is structured like a living collection rather than a static portfolio. Every project is interactive, documented with a video preview, and linked to its in-browser playground so you can dive in immediately.
+      </p>
+    </section>
+    <section class="panel">
+      <h2>Why I Built It</h2>
+      <p>
+        I create prototypes constantly: instruments for thinking, toys for performers, utilities for archivists, tools for anyone curious enough to try them. ArloTools lets me share those experiments without burying them in folders or forgetting the sparks that made them exciting.
+      </p>
+      <p>
+        You’ll find work that spans medium and mood—audio visualizers, glitch engines, thoughtful research aides, and meditative simulations. If one of them resonates, use it, remix it, or let it inspire your own experiments.
+      </p>
+    </section>
+  </main>
+  <footer>
+    © 2025 Arlo Robbins — Keep exploring. View every tool in the <a href="toolspage.html">full library</a>.
+  </footer>
+</body>
+</html>

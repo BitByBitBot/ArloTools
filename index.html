@@ -5,229 +5,672 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ArloTools</title>
   <style>
-      @font-face {
-        font-family: 'FaceOff';
-        src: url('Face off!.ttf') format('truetype');
-      }
+    @font-face {
+      font-family: 'FaceOff';
+      src: url('Face off!.ttf') format('truetype');
+      font-display: swap;
+    }
 
-      body {
-        margin: 0;
-        background: white;
-        color: black;
-        font-family: Helvetica, Arial, sans-serif;
-        display: flex;
-        flex-direction: column;
-        align-items: center;
-      }
+    :root {
+      color-scheme: light;
+      --bg: linear-gradient(120deg, rgba(255, 255, 255, 1) 0%, rgba(255, 246, 252, 0.9) 35%, rgba(245, 250, 255, 0.92) 70%, rgba(255, 255, 240, 0.95) 100%);
+      --fg: #111111;
+      --accent: #2020ff;
+      --accent-soft: rgba(32, 32, 255, 0.12);
+      --panel: rgba(255, 255, 255, 0.82);
+      --panel-border: rgba(17, 17, 17, 0.12);
+      --orbit-size: clamp(320px, 70vw, 1024px);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
 
-      header {
-        text-align: center;
-        border-bottom: 4px solid black;
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--fg);
+      display: flex;
+      flex-direction: column;
+      overflow-x: hidden;
+    }
+
+    header {
+      padding: clamp(24px, 5vw, 48px) clamp(20px, 5vw, 64px) 16px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .top-row {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      align-items: center;
+      justify-content: space-between;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+
+    .brand span {
+      letter-spacing: 0.12em;
+      font-size: 0.75rem;
+      text-transform: uppercase;
+    }
+
+    .brand h1 {
+      margin: 0;
+      font-size: clamp(2.4rem, 8vw, 4.6rem);
+      line-height: 1;
+      font-family: 'FaceOff', 'Helvetica Neue', sans-serif;
+      letter-spacing: 0.1em;
+    }
+
+    nav {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    nav a {
+      font-size: 0.82rem;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      text-decoration: none;
+      color: inherit;
+      padding: 8px 16px;
+      border: 1px solid rgba(0, 0, 0, 0.2);
+      border-radius: 0;
+      background: rgba(255, 255, 255, 0.7);
+      transition: all 0.25s ease;
+    }
+
+    nav a:hover,
+    nav a:focus-visible {
+      border-color: rgba(0, 0, 0, 0.5);
+      background: rgba(255, 255, 255, 0.95);
+      outline: none;
+    }
+
+    .hero {
+      max-width: 680px;
+      font-size: clamp(1rem, 2.3vw, 1.35rem);
+      line-height: 1.5;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-top: 10px;
+    }
+
+    .sort-button {
+      border: 1px solid rgba(0, 0, 0, 0.28);
+      background: rgba(255, 255, 255, 0.85);
+      color: inherit;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 0.74rem;
+      padding: 8px 16px;
+      border-radius: 0;
+      cursor: pointer;
+      transition: all 0.25s ease;
+    }
+
+    .sort-button:hover,
+    .sort-button:focus-visible {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px var(--accent-soft);
+      outline: none;
+    }
+
+    .sort-button.active {
+      background: rgba(32, 32, 255, 0.12);
+      border-color: var(--accent);
+      color: var(--accent);
+    }
+
+    main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 0 clamp(16px, 4vw, 48px) clamp(32px, 8vw, 64px);
+      gap: clamp(28px, 5vw, 48px);
+    }
+
+    .scene-wrapper {
+      flex: 1;
+      min-height: clamp(420px, 60vh, 680px);
+      position: relative;
+      perspective: 1800px;
+      perspective-origin: 50% 45%;
+      overflow: hidden;
+      border: 1px solid rgba(0, 0, 0, 0.08);
+      background: linear-gradient(160deg, rgba(255, 255, 255, 0.95) 0%, rgba(255, 246, 255, 0.7) 45%, rgba(245, 252, 255, 0.7) 100%);
+      box-shadow: 0 20px 40px rgba(17, 17, 17, 0.08);
+    }
+
+    .scene-wrapper::before {
+      content: "";
+      position: absolute;
+      inset: 0;
+      background: radial-gradient(circle at 20% 20%, rgba(255, 255, 255, 0.7), transparent 60%),
+                  radial-gradient(circle at 80% 80%, rgba(102, 153, 255, 0.15), transparent 65%);
+      pointer-events: none;
+    }
+
+    .space {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+    }
+
+    #cluster-labels {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+      pointer-events: none;
+    }
+
+    .tool-frame {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      width: clamp(180px, 18vw, 240px);
+      aspect-ratio: 4 / 3;
+      background: rgba(255, 255, 255, 0.92);
+      border: 2px solid rgba(17, 17, 17, 0.5);
+      border-radius: 0;
+      padding: 16px;
+      display: flex;
+      align-items: flex-end;
+      justify-content: center;
+      text-decoration: none;
+      color: inherit;
+      transform-style: preserve-3d;
+      transition: transform 0.9s cubic-bezier(0.2, 0.9, 0.3, 1),
+                  filter 0.45s ease,
+                  box-shadow 0.6s ease,
+                  border-color 0.3s ease;
+      box-shadow: 0 14px 36px rgba(17, 17, 17, 0.08);
+      backdrop-filter: blur(8px);
+    }
+
+    .tool-frame::after {
+      content: "";
+      position: absolute;
+      inset: 0;
+      border-radius: 0;
+      border: 1px solid rgba(255, 255, 255, 0.65);
+      pointer-events: none;
+    }
+
+    .tool-frame .frame-info {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      font-size: 0.64rem;
+    }
+
+    .tool-frame .frame-info h2 {
+      margin: 0;
+      font-size: clamp(0.95rem, 1.4vw, 1.1rem);
+      letter-spacing: 0.08em;
+      line-height: 1.2;
+    }
+
+    .tool-frame .frame-info span {
+      opacity: 0.65;
+    }
+
+    .tool-frame video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      border-radius: 0;
+      opacity: 0;
+      transition: opacity 0.35s ease;
+      filter: saturate(1.2);
+    }
+
+    .tool-frame.is-hovered {
+      box-shadow: 0 26px 60px rgba(32, 32, 255, 0.25);
+      border-color: rgba(32, 32, 255, 0.7);
+      filter: brightness(1.08);
+      z-index: 20;
+    }
+
+    .tool-frame.is-hovered video {
+      opacity: 1;
+    }
+
+    .tool-frame.grouped {
+      transition: transform 1s cubic-bezier(0.2, 0.85, 0.35, 1),
+                  filter 0.45s ease,
+                  box-shadow 0.6s ease,
+                  border-color 0.3s ease;
+    }
+
+    .cluster-label {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      padding: 8px 18px;
+      border-radius: 0;
+      background: rgba(255, 255, 255, 0.9);
+      color: var(--fg);
+      font-size: 0.68rem;
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      pointer-events: none;
+      transform-style: preserve-3d;
+      box-shadow: 0 8px 20px rgba(17, 17, 17, 0.18);
+      opacity: 0;
+      transition: opacity 0.4s ease;
+    }
+
+    .space[data-mode="group"] .cluster-label {
+      opacity: 1;
+    }
+
+    .cluster-label::after {
+      content: "";
+      position: absolute;
+      inset: -1px;
+      border-radius: 0;
+      border: 1px solid rgba(0, 0, 0, 0.12);
+    }
+
+    footer {
+      padding: 24px clamp(20px, 5vw, 48px) 40px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+    }
+
+    footer a {
+      color: inherit;
+    }
+
+    @media (max-width: 768px) {
+      nav {
         width: 100%;
-        padding: 20px 0;
+        justify-content: flex-start;
       }
 
-      #logo-container {
-        position: relative;
-        width: 80%;
-        max-width: 800px;
-        margin: 0 auto;
+      .scene-wrapper {
+        min-height: clamp(520px, 70vh, 720px);
       }
-
-      #logo-base {
-        width: 100%;
-        display: block;
-        height: auto;
-      }
-
-      .face-overlay {
-        position: absolute;
-        width: 11.6%;
-        aspect-ratio: 1 / 1;
-        background: #fff;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transform: translate(-50%, -50%);
-        z-index: -3;
-        overflow: hidden;
-      }
-
-      #face1 { left: 41.7%; top: 63%; }
-      #face2 { left: 61.9%; top: 63%; }
-      #face3 { left: 73.9%; top: 63%; }
-
-      .face-char {
-        font-family: 'FaceOff';
-        font-size: 4vw;
-        line-height: 1;
-        color: #000;
-      }
-
-      p.tagline {
-        font-size: 1rem;
-        margin: 8px 0 0;
-        text-transform: uppercase;
-      }
-
-      main {
-        display: grid;
-        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-        gap: 24px;
-        padding: 40px;
-        width: 100%;
-        max-width: 2000px;
-        box-sizing: border-box;
-      }
-
-      .tool-card {
-        display: flex;
-        flex-direction: column;
-        border: 2px solid black;
-        background: white;
-        text-decoration: none;
-        color: black;
-        transition: all 0.2s ease;
-      }
-
-      .tool-card:hover {
-        background: black;
-        color: white;
-      }
-
-      video.preview {
-        width: 100%;
-        height: 180px;
-        object-fit: cover;
-      }
-
-      .tool-card h2 {
-        font-size: 1.2rem;
-        padding: 12px;
-        margin: 0;
-        border-top: 2px solid black;
-        text-align: center;
-      }
-
-      footer {
-        border-top: 4px solid black;
-        width: 100%;
-        text-align: center;
-        padding: 12px 0;
-        font-size: 0.9rem;
-        text-transform: uppercase;
-      }
-
+    }
   </style>
 </head>
 <body>
   <header>
-    <div id="logo-container">
-      <img id="logo-base" src="ArloTools nucourier.svg" alt="ArloTools Logo">
-      <div id="face1" class="face-overlay"><span class="face-char">A</span></div>
-      <div id="face2" class="face-overlay"><span class="face-char">B</span></div>
-      <div id="face3" class="face-overlay"><span class="face-char">C</span></div>
+    <div class="top-row">
+      <div class="brand">
+        <span>Experimental tools by Arlo Robbins</span>
+        <h1>ArloTools</h1>
+      </div>
+      <nav>
+        <a href="index.html" aria-current="page">Home</a>
+        <a href="about.html">About</a>
+        <a href="toolspage.html">Full Library</a>
+      </nav>
     </div>
-    <p class="tagline">Experimental Tools by Arlo Robbins</p>
+    <p class="hero">
+      Explore a constellation of creative experiments. Every tool is a self-contained portal—hover to pause its orbit, watch a live demo, and dive straight into the experience. Use the sorters to coax the swarm into thematic clusters.
+    </p>
+    <div class="controls" role="group" aria-label="Sort tools">
+      <button class="sort-button active" data-group="orbit">Free Orbit</button>
+      <button class="sort-button" data-group="medium">Sort by Medium</button>
+      <button class="sort-button" data-group="experience">Sort by Experience</button>
+    </div>
   </header>
-
   <main>
-    <a class="tool-card" href="toolspage.html?tool=tools/archive_shuffle.html">
-      <video class="preview" src="videos/Archive Demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Archive Roulette</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/boids.html">
-      <video class="preview" src="videos/boids demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Boid Simulator</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/medieval_border_generator.html">
-      <video class="preview" src="videos/border demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Border Tool</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/chisel_pen.html">
-      <video class="preview" src="videos/chisel demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Chisel Tool</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/3_d_color_space.html">
-      <video class="preview" src="videos/colorspace demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Colorspace Visualizer</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/Fractal_Lab.html">
-      <video class="preview" src="videos/fractal demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Fractal Explorer</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/I_<3_WIKI.html">
-      <video class="preview" src="videos/heart demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Heart Generator</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/graded_game_of_life.html">
-      <video class="preview" src="videos/life demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Game of Life Variations</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/lissajous_figure_grid.html">
-      <video class="preview" src="videos/lissajous demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Lissajous Visualizer</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/auto_modern_grid_layout.html">
-      <video class="preview" src="videos/modern grid demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Modern Grid Generator</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/midi_→_neumes_converter.html">
-      <video class="preview" src="videos/neumes demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Neumes Converter</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/Node_Net.html">
-      <video class="preview" src="videos/node demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Node Tool</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/GlitchSkewer.html">
-      <video class="preview" src="videos/skewer demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Skewer Tool</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/Spectrogram_Collage.html">
-      <video class="preview" src="videos/spectro collage demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Spectrogram Collage</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/SpectroJPEG.html">
-      <video class="preview" src="videos/spectro jpeg demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Spectrogram JPEG Tool</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/square_tiler.html">
-      <video class="preview" src="videos/tiler demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Tiler Tool</h2>
-    </a>
-    <a class="tool-card" href="toolspage.html?tool=tools/tree_generator.html">
-      <video class="preview" src="videos/tree demo.mp4" autoplay muted loop playsinline></video>
-      <h2>Tree Generator</h2>
-    </a>
+    <section class="scene-wrapper" aria-label="Floating tool gallery">
+      <div class="space" id="space" data-mode="orbit">
+        <div id="cluster-labels" aria-hidden="true"></div>
+      </div>
+    </section>
   </main>
-
   <footer>
-    © 2025 Arlo Robbins — Built with Brutalist Precision
+    <span>© 2025 Arlo Robbins — Built for curiosity.</span>
+    <span>Hover to preview • Click to launch • Sort to regroup.</span>
   </footer>
 
   <script>
-    const charSet = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz';
-
-    function getUniqueChars(count) {
-      const chars = new Set();
-      while (chars.size < count) {
-        const rand = charSet.charAt(Math.floor(Math.random() * charSet.length));
-        chars.add(rand);
+    const toolData = [
+      {
+        name: 'Archive Roulette',
+        link: 'toolspage.html?tool=tools/archive_shuffle.html',
+        video: 'videos/Archive Demo.mp4',
+        medium: 'video',
+        experience: 'in-depth'
+      },
+      {
+        name: 'Boid Simulator',
+        link: 'toolspage.html?tool=tools/boids.html',
+        video: 'videos/boids demo.mp4',
+        medium: 'visual',
+        experience: 'mesmerizing'
+      },
+      {
+        name: 'Border Tool',
+        link: 'toolspage.html?tool=tools/medieval_border_generator.html',
+        video: 'videos/border demo.mp4',
+        medium: 'visual',
+        experience: 'practical'
+      },
+      {
+        name: 'Chisel Tool',
+        link: 'toolspage.html?tool=tools/chisel_pen.html',
+        video: 'videos/chisel demo.mp4',
+        medium: 'visual',
+        experience: 'practical'
+      },
+      {
+        name: 'Colorspace Visualizer',
+        link: 'toolspage.html?tool=tools/3_d_color_space.html',
+        video: 'videos/colorspace demo.mp4',
+        medium: 'visual',
+        experience: 'mesmerizing'
+      },
+      {
+        name: 'Fractal Explorer',
+        link: 'toolspage.html?tool=tools/Fractal_Lab.html',
+        video: 'videos/fractal demo.mp4',
+        medium: 'visual',
+        experience: 'in-depth'
+      },
+      {
+        name: 'Heart Generator',
+        link: 'toolspage.html?tool=tools/I_<3_WIKI.html',
+        video: 'videos/heart demo.mp4',
+        medium: 'visual',
+        experience: 'playful'
+      },
+      {
+        name: 'Game of Life Variations',
+        link: 'toolspage.html?tool=tools/graded_game_of_life.html',
+        video: 'videos/life demo.mp4',
+        medium: 'visual',
+        experience: 'in-depth'
+      },
+      {
+        name: 'Lissajous Visualizer',
+        link: 'toolspage.html?tool=tools/lissajous_figure_grid.html',
+        video: 'videos/lissajous demo.mp4',
+        medium: 'visual',
+        experience: 'mesmerizing'
+      },
+      {
+        name: 'Modern Grid Generator',
+        link: 'toolspage.html?tool=tools/auto_modern_grid_layout.html',
+        video: 'videos/modern grid demo.mp4',
+        medium: 'visual',
+        experience: 'practical'
+      },
+      {
+        name: 'Neumes Converter',
+        link: 'toolspage.html?tool=tools/midi_→_neumes_converter.html',
+        video: 'videos/neumes demo.mp4',
+        medium: 'audio',
+        experience: 'in-depth'
+      },
+      {
+        name: 'Node Tool',
+        link: 'toolspage.html?tool=tools/Node_Net.html',
+        video: 'videos/node demo.mp4',
+        medium: 'visual',
+        experience: 'in-depth'
+      },
+      {
+        name: 'Skewer Tool',
+        link: 'toolspage.html?tool=tools/GlitchSkewer.html',
+        video: 'videos/skewer demo.mp4',
+        medium: 'video',
+        experience: 'mesmerizing'
+      },
+      {
+        name: 'Spectrogram Collage',
+        link: 'toolspage.html?tool=tools/Spectrogram_Collage.html',
+        video: 'videos/spectro collage demo.mp4',
+        medium: 'audio',
+        experience: 'mesmerizing'
+      },
+      {
+        name: 'Spectrogram JPEG Tool',
+        link: 'toolspage.html?tool=tools/SpectroJPEG.html',
+        video: 'videos/spectro jpeg demo.mp4',
+        medium: 'audio',
+        experience: 'in-depth'
+      },
+      {
+        name: 'Tiler Tool',
+        link: 'toolspage.html?tool=tools/square_tiler.html',
+        video: 'videos/tiler demo.mp4',
+        medium: 'visual',
+        experience: 'practical'
+      },
+      {
+        name: 'Tree Generator',
+        link: 'toolspage.html?tool=tools/tree_generator.html',
+        video: 'videos/tree demo.mp4',
+        medium: 'visual',
+        experience: 'mesmerizing'
       }
-      return Array.from(chars);
+    ];
+
+    const groupLayouts = {
+      medium: {
+        audio: { x: -280, y: -40, z: -140 },
+        video: { x: 280, y: -10, z: -120 },
+        visual: { x: 0, y: 100, z: 40 }
+      },
+      experience: {
+        mesmerizing: { x: -320, y: 50, z: -60 },
+        'in-depth': { x: 0, y: -60, z: -200 },
+        playful: { x: 320, y: 90, z: -40 },
+        practical: { x: 0, y: 140, z: 80 }
+      }
+    };
+
+    const space = document.getElementById('space');
+    const clusterLabels = document.getElementById('cluster-labels');
+    const buttonEls = document.querySelectorAll('.sort-button');
+
+    const orbitEntries = [];
+    const baseTransform = 'translate3d(-50%, -50%, 0) rotateX(18deg) rotateY(-26deg)';
+    const orbitBands = [
+      { radius: 260, elevation: -140, speed: 0.00022 },
+      { radius: 310, elevation: -80, speed: 0.00026 },
+      { radius: 360, elevation: -20, speed: 0.0003 },
+      { radius: 410, elevation: 40, speed: 0.00034 },
+      { radius: 460, elevation: 100, speed: 0.00038 }
+    ];
+
+    toolData.forEach((tool, index) => {
+      const frame = document.createElement('a');
+      frame.className = 'tool-frame';
+      frame.href = tool.link;
+      frame.dataset.medium = tool.medium;
+      frame.dataset.experience = tool.experience;
+      frame.setAttribute('aria-label', `${tool.name} — ${tool.medium} / ${tool.experience}`);
+
+      const info = document.createElement('div');
+      info.className = 'frame-info';
+      info.innerHTML = `
+        <h2>${tool.name}</h2>
+        <span>${tool.medium.toUpperCase()} • ${tool.experience.toUpperCase()}</span>
+      `;
+
+      const video = document.createElement('video');
+      video.src = tool.video;
+      video.muted = true;
+      video.playsInline = true;
+      video.loop = true;
+      video.preload = 'metadata';
+
+      frame.appendChild(info);
+      frame.appendChild(video);
+      space.appendChild(frame);
+
+      const band = orbitBands[index % orbitBands.length];
+      const ring = Math.floor(index / orbitBands.length);
+      const radius = band.radius + ring * 38;
+      const elevation = band.elevation + ring * 12;
+      const entry = {
+        element: frame,
+        video,
+        data: tool,
+        angle: (index / toolData.length) * Math.PI * 2,
+        radius,
+        elevation,
+        speed: band.speed,
+        wobble: Math.random() * Math.PI * 2,
+        isFrozen: false
+      };
+
+      const startX = Math.cos(entry.angle) * entry.radius;
+      const startZ = Math.sin(entry.angle) * entry.radius;
+      frame.style.transform = `${baseTransform} translate3d(${startX}px, ${entry.elevation}px, ${startZ}px) rotateY(${-entry.angle * (180 / Math.PI) + 90}deg)`;
+
+      frame.addEventListener('mouseenter', () => {
+        entry.isFrozen = true;
+        frame.classList.add('is-hovered');
+        video.currentTime = 0;
+        const playPromise = video.play();
+        if (playPromise) {
+          playPromise.catch(() => {});
+        }
+      });
+
+      frame.addEventListener('mouseleave', () => {
+        entry.isFrozen = false;
+        frame.classList.remove('is-hovered');
+        video.pause();
+        video.currentTime = 0;
+      });
+
+      orbitEntries.push(entry);
+    });
+
+    let currentMode = 'orbit';
+    let lastTime = performance.now();
+
+    function animate(time) {
+      const delta = time - lastTime;
+      lastTime = time;
+
+      if (currentMode === 'orbit') {
+        orbitEntries.forEach((entry) => {
+          if (!entry.isFrozen) {
+            entry.angle += entry.speed * delta;
+          }
+          const wobbleY = Math.sin(time * 0.001 + entry.wobble) * 18;
+          const wobbleZ = Math.cos(time * 0.0011 + entry.wobble) * 12;
+
+          const x = Math.cos(entry.angle) * entry.radius;
+          const z = Math.sin(entry.angle) * entry.radius + wobbleZ;
+          const y = entry.elevation + wobbleY;
+
+          const facing = -entry.angle * (180 / Math.PI) + 90;
+          entry.element.style.transform = `${baseTransform} translate3d(${x}px, ${y}px, ${z}px) rotateY(${facing}deg)`;
+        });
+      }
+
+      requestAnimationFrame(animate);
     }
 
-    function updateFaces() {
-      const unique = getUniqueChars(3);
-      document.querySelectorAll('.face-char').forEach((span, i) => {
-        span.textContent = unique[i];
+    requestAnimationFrame(animate);
+
+    function setMode(mode) {
+      if (mode === currentMode) return;
+      currentMode = mode;
+      space.dataset.mode = mode === 'orbit' ? 'orbit' : 'group';
+
+      if (mode === 'orbit') {
+        clusterLabels.innerHTML = '';
+        orbitEntries.forEach((entry, index) => {
+          entry.isFrozen = false;
+          entry.element.classList.remove('grouped');
+          entry.element.style.transform = `${baseTransform} translate3d(${Math.cos(entry.angle) * entry.radius}px, ${entry.elevation}px, ${Math.sin(entry.angle) * entry.radius}px) rotateY(${-entry.angle * (180 / Math.PI) + 90}deg)`;
+        });
+        return;
+      }
+
+      const layout = groupLayouts[mode];
+      clusterLabels.innerHTML = '';
+      const grouped = {};
+
+      orbitEntries.forEach((entry) => {
+        const bucket = entry.data[mode];
+        if (!layout[bucket]) return;
+        if (!grouped[bucket]) {
+          grouped[bucket] = [];
+        }
+        grouped[bucket].push(entry);
+      });
+
+      Object.entries(layout).forEach(([bucket, anchor]) => {
+        if (!grouped[bucket] || grouped[bucket].length === 0) return;
+        const label = document.createElement('div');
+        label.className = 'cluster-label';
+        label.textContent = bucket.toUpperCase();
+        label.style.transform = `${baseTransform} translate3d(${anchor.x}px, ${anchor.y - 120}px, ${anchor.z}px)`;
+        clusterLabels.appendChild(label);
+      });
+
+      Object.entries(grouped).forEach(([bucket, members]) => {
+        const anchor = layout[bucket];
+        members.forEach((entry, index) => {
+          const ring = Math.floor(index / 6);
+          const slot = index % 6;
+          const radius = 70 + ring * 70;
+          const theta = (slot / 6) * Math.PI * 2;
+          const localX = Math.cos(theta) * radius;
+          const localZ = Math.sin(theta) * radius;
+          const localY = ring * 45;
+
+          const targetX = anchor.x + localX;
+          const targetY = anchor.y + localY;
+          const targetZ = anchor.z + localZ;
+
+          entry.element.classList.add('grouped');
+          entry.element.style.transform = `${baseTransform} translate3d(${targetX}px, ${targetY}px, ${targetZ}px) rotateY(0deg)`;
+        });
       });
     }
 
-    updateFaces();
-    setInterval(updateFaces, 1000);
+    buttonEls.forEach((button) => {
+      button.addEventListener('click', () => {
+        buttonEls.forEach((btn) => btn.classList.remove('active'));
+        button.classList.add('active');
+        const group = button.dataset.group;
+        if (group === 'orbit') {
+          setMode('orbit');
+        } else {
+          setMode(group);
+        }
+      });
+    });
   </script>
 </body>
 </html>
