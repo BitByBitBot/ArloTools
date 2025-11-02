@@ -16,7 +16,7 @@
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     }
 
-    * {
+    *, *::before, *::after {
       box-sizing: border-box;
     }
 
@@ -24,8 +24,87 @@
       margin: 0;
       min-height: 100vh;
       background: #fff;
-      color: #111;
+      color: #050505;
       font-family: inherit;
+      overflow: hidden;
+    }
+
+    .site-shell {
+      position: relative;
+      z-index: 1;
+      padding: clamp(28px, 5vw, 48px) clamp(32px, 6vw, 72px) clamp(32px, 6vw, 64px);
+    }
+
+    .site-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: clamp(24px, 4vw, 48px);
+      position: relative;
+      z-index: 3;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(12px, 2vw, 18px);
+      max-width: min(520px, 70vw);
+    }
+
+    .brand-logo {
+      width: clamp(220px, 32vw, 360px);
+      height: auto;
+    }
+
+    .descriptor {
+      margin: 0;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-size: clamp(0.65rem, 1.3vw, 0.8rem);
+      line-height: 1.6;
+    }
+
+    .site-nav {
+      display: flex;
+      gap: clamp(18px, 3vw, 32px);
+      align-items: flex-start;
+      padding-top: clamp(12px, 2vw, 20px);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: clamp(0.7rem, 1.4vw, 0.85rem);
+    }
+
+    .site-nav a {
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      padding-bottom: 4px;
+    }
+
+    .site-nav a::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 1px;
+      background: currentColor;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.2s ease;
+    }
+
+    .site-nav a:hover::after,
+    .site-nav a:focus-visible::after {
+      transform: scaleX(1);
+    }
+
+    .site-nav a:focus-visible {
+      outline: none;
+    }
+
+    .site-nav a[data-active="true"] {
+      color: #d40000;
     }
 
     .stage {
@@ -35,326 +114,361 @@
       z-index: 0;
     }
 
-    header {
-      position: relative;
-      z-index: 2;
-      text-align: center;
-      padding: clamp(32px, 6vw, 72px) clamp(16px, 6vw, 96px) clamp(24px, 4vw, 48px);
-      max-width: 960px;
-      margin: 0 auto;
-    }
-
-    .logo {
-      width: clamp(160px, 28vw, 240px);
-      height: auto;
-      display: block;
-      margin: 0 auto clamp(18px, 3vw, 32px);
-    }
-
-    h1 {
-      font-family: 'FaceOff', 'Helvetica Neue', Arial, sans-serif;
-      font-size: clamp(2.2rem, 6vw, 3.4rem);
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      margin: 0;
-    }
-
-    .tagline {
-      margin: clamp(16px, 2vw, 24px) auto clamp(24px, 4vw, 48px);
-      max-width: 620px;
-      font-size: clamp(1rem, 2.3vw, 1.3rem);
-      line-height: 1.6;
-      letter-spacing: 0.01em;
-    }
-
-    .category-buttons {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      gap: 12px;
-    }
-
-    .category-button {
-      border: 1px solid #111;
-      background: #fff;
-      color: #111;
-      font-size: 0.8rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      padding: 10px 18px;
-      cursor: pointer;
-      transition: transform 0.2s ease, background 0.2s ease, color 0.2s ease;
-      border-radius: 0;
-    }
-
-    .category-button:focus-visible {
-      outline: 2px solid #111;
-      outline-offset: 2px;
-    }
-
-    .category-button:hover,
-    .category-button:focus-visible {
-      transform: translateY(-2px);
-      background: #111;
-      color: #fff;
-    }
-
-    .category-button.active {
-      background: #111;
-      color: #fff;
-    }
-
-    .floating-tools {
+    .glow-layer,
+    .label-layer,
+    .tool-layer {
       position: absolute;
       inset: 0;
     }
 
-    .cluster-labels {
+    .glow {
       position: absolute;
-      inset: 0;
+      border-radius: 50%;
       pointer-events: none;
-      font-size: 0.7rem;
-      letter-spacing: 0.14em;
-      text-transform: uppercase;
-      color: #fff;
-      z-index: 1;
+      mix-blend-mode: multiply;
+      filter: blur(0.5px);
+      opacity: 0.95;
+      transition: transform 0.5s ease, opacity 0.5s ease;
+    }
+
+    .label-layer {
+      pointer-events: none;
+      font-size: clamp(1.8rem, 7vw, 4.4rem);
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.9);
     }
 
     .cluster-label {
       position: absolute;
-      padding: 6px 14px;
-      background: #111;
-      border: 1px solid rgba(255, 255, 255, 0.8);
-      box-shadow: 0 10px 30px rgba(17, 17, 17, 0.18);
       transform: translate(-50%, -50%);
-      pointer-events: none;
+      white-space: nowrap;
+    }
+
+    .tool-layer {
+      position: absolute;
+      inset: 0;
     }
 
     .tool-card {
       position: absolute;
       top: 50%;
       left: 50%;
-      width: clamp(150px, 18vw, 190px);
-      height: clamp(110px, 15vw, 150px);
-      padding: 18px;
+      transform: translate(-50%, -50%);
+      width: clamp(160px, 18vw, 220px);
+      height: clamp(110px, 13vw, 160px);
+      background: linear-gradient(180deg, #f2f2f2 0%, #dedede 100%);
+      border: 2px solid #050505;
+      box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.18);
       display: flex;
       align-items: center;
       justify-content: center;
       text-align: center;
-      text-decoration: none;
-      color: inherit;
-      border: 1px solid #111;
-      background:
-        linear-gradient(130deg, rgba(255, 255, 255, 0.95), rgba(255, 255, 255, 0.85)),
-        linear-gradient(155deg, rgba(255, 214, 248, 0.22), rgba(209, 239, 255, 0.22) 50%, rgba(255, 247, 214, 0.28));
-      box-shadow: 0 16px 44px rgba(17, 17, 17, 0.12);
-      transform: translate(-50%, -50%) scale(1);
-      transform-origin: center;
-      border-radius: 0;
-      letter-spacing: 0.04em;
       font-weight: 600;
-      font-size: clamp(0.92rem, 1.6vw, 1.05rem);
-      transition: box-shadow 0.2s ease;
-      pointer-events: auto;
-    }
-
-    .tool-card:hover,
-    .tool-card:focus-visible {
-      box-shadow: 0 20px 60px rgba(17, 17, 17, 0.18);
-      outline: none;
-    }
-
-    footer {
-      position: relative;
-      z-index: 2;
-      text-align: center;
-      padding: clamp(24px, 6vw, 48px) clamp(16px, 6vw, 96px) clamp(48px, 8vw, 72px);
-      font-size: 0.75rem;
-      letter-spacing: 0.12em;
+      color: #050505;
+      text-decoration: none;
+      letter-spacing: 0.05em;
       text-transform: uppercase;
-      color: #333;
+      line-height: 1.35;
+      padding: 18px;
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+      will-change: transform;
     }
 
-    @media (max-width: 640px) {
-      .category-button {
-        width: 100%;
-        max-width: 220px;
+    .tool-card:focus-visible {
+      outline: 2px solid #d40000;
+      outline-offset: 4px;
+    }
+
+    .tool-card:hover {
+      box-shadow: 12px 12px 0 rgba(0, 0, 0, 0.22);
+    }
+
+    .sort-bar {
+      position: fixed;
+      left: clamp(24px, 5vw, 72px);
+      bottom: clamp(24px, 5vw, 72px);
+      display: flex;
+      align-items: center;
+      gap: clamp(12px, 2vw, 28px);
+      z-index: 3;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-size: clamp(0.62rem, 1.3vw, 0.78rem);
+    }
+
+    .sort-bar span {
+      font-weight: 600;
+    }
+
+    .sort-button {
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      cursor: pointer;
+      color: inherit;
+      position: relative;
+    }
+
+    .sort-button::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 100%;
+      height: 2px;
+      background: currentColor;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.2s ease;
+    }
+
+    .sort-button:focus-visible {
+      outline: none;
+      color: #d40000;
+    }
+
+    .sort-button:hover::after,
+    .sort-button:focus-visible::after {
+      transform: scaleX(1);
+    }
+
+    .sort-button[data-active="true"] {
+      color: #d40000;
+    }
+
+    .sort-button[data-active="true"]::after {
+      transform: scaleX(1);
+    }
+
+    @media (max-width: 720px) {
+      body {
+        overflow: auto;
       }
 
-      .tool-card {
-        padding: 14px;
+      .site-shell {
+        padding: 24px;
+      }
+
+      .site-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .site-nav {
+        order: 3;
+      }
+
+      .sort-bar {
+        position: static;
+        margin-top: 32px;
       }
     }
   </style>
 </head>
 <body>
   <div class="stage" aria-hidden="false">
-    <div class="floating-tools" id="floatingTools" aria-label="Floating tool gallery"></div>
-    <div class="cluster-labels" id="clusterLabels" aria-hidden="true"></div>
+    <div class="glow-layer" id="glowLayer"></div>
+    <div class="label-layer" id="labelLayer" aria-hidden="true"></div>
+    <div class="tool-layer" id="toolLayer" aria-live="polite"></div>
   </div>
 
-  <header>
-    <img src="ArloTools nucourier.svg" alt="ArloTools logo" class="logo" loading="lazy">
-    <h1>ArloTools</h1>
-    <p class="tagline">
-      A rotating collection of Arlo Robbins experiments. Let the tools drift, or gather them by medium and experience to find the
-      right spark.
-    </p>
-    <div class="category-buttons" role="group" aria-label="Tool sorting">
-      <button class="category-button active" data-mode="orbit">All Tools</button>
-      <button class="category-button" data-mode="medium">Sort by Medium</button>
-      <button class="category-button" data-mode="experience">Sort by Experience</button>
-    </div>
-  </header>
+  <div class="site-shell">
+    <header class="site-header">
+      <div class="brand">
+        <a href="index.html" aria-label="ArloTools home">
+          <img src="ArloTools nucourier.svg" alt="ArloTools" class="brand-logo" loading="lazy">
+        </a>
+        <p class="descriptor">A CATALOG OF EXPERIMENTAL ART TOOLS BY ARLO ROBBINS</p>
+      </div>
+      <nav class="site-nav" aria-label="Site">
+        <a href="about.html">About</a>
+        <a href="toolspage.html">Full List</a>
+      </nav>
+    </header>
+  </div>
 
-  <footer>
-    © 2025 Arlo Robbins — Built to share curiosity.
-  </footer>
+  <div class="sort-bar" role="group" aria-label="Sort tools">
+    <span>SORT BY:</span>
+    <button class="sort-button" type="button" data-mode="medium">Medium</button>
+    <button class="sort-button" type="button" data-mode="experience">Experience</button>
+  </div>
 
   <script>
     const toolData = [
       {
         name: 'Archive Roulette',
         link: 'toolspage.html?tool=tools/archive_shuffle.html',
-        medium: 'video',
-        experience: 'in-depth'
+        medium: 'TEXT',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Boid Simulator',
         link: 'toolspage.html?tool=tools/boids.html',
-        medium: 'visual',
-        experience: 'mesmerizing'
+        medium: 'VISUAL',
+        experience: 'MESMERIZING'
       },
       {
         name: 'Border Tool',
         link: 'toolspage.html?tool=tools/medieval_border_generator.html',
-        medium: 'visual',
-        experience: 'practical'
+        medium: 'TEXT',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Chisel Tool',
         link: 'toolspage.html?tool=tools/chisel_pen.html',
-        medium: 'visual',
-        experience: 'practical'
+        medium: 'TEXT',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Colorspace Visualizer',
         link: 'toolspage.html?tool=tools/3_d_color_space.html',
-        medium: 'visual',
-        experience: 'mesmerizing'
+        medium: 'VISUAL',
+        experience: 'PLAYFUL'
       },
       {
         name: 'Fractal Explorer',
         link: 'toolspage.html?tool=tools/Fractal_Lab.html',
-        medium: 'visual',
-        experience: 'in-depth'
+        medium: 'VISUAL',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Heart Generator',
         link: 'toolspage.html?tool=tools/I_<3_WIKI.html',
-        medium: 'visual',
-        experience: 'playful'
+        medium: 'TEXT',
+        experience: 'PLAYFUL'
       },
       {
         name: 'Game of Life Variations',
         link: 'toolspage.html?tool=tools/graded_game_of_life.html',
-        medium: 'visual',
-        experience: 'in-depth'
+        medium: 'VISUAL',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Lissajous Visualizer',
         link: 'toolspage.html?tool=tools/lissajous_figure_grid.html',
-        medium: 'visual',
-        experience: 'mesmerizing'
+        medium: 'VISUAL',
+        experience: 'PLAYFUL'
       },
       {
         name: 'Modern Grid Generator',
         link: 'toolspage.html?tool=tools/auto_modern_grid_layout.html',
-        medium: 'visual',
-        experience: 'practical'
+        medium: 'TEXT',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Neumes Converter',
         link: 'toolspage.html?tool=tools/midi_→_neumes_converter.html',
-        medium: 'audio',
-        experience: 'in-depth'
+        medium: 'AUDIO',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Node Tool',
         link: 'toolspage.html?tool=tools/Node_Net.html',
-        medium: 'visual',
-        experience: 'in-depth'
+        medium: 'TEXT',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Skewer Tool',
         link: 'toolspage.html?tool=tools/GlitchSkewer.html',
-        medium: 'video',
-        experience: 'mesmerizing'
+        medium: 'VISUAL',
+        experience: 'MESMERIZING'
       },
       {
         name: 'Spectrogram Collage',
         link: 'toolspage.html?tool=tools/Spectrogram_Collage.html',
-        medium: 'audio',
-        experience: 'mesmerizing'
+        medium: 'AUDIO',
+        experience: 'MESMERIZING'
       },
       {
         name: 'Spectrogram JPEG Tool',
         link: 'toolspage.html?tool=tools/SpectroJPEG.html',
-        medium: 'audio',
-        experience: 'in-depth'
+        medium: 'AUDIO',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Tiler Tool',
         link: 'toolspage.html?tool=tools/square_tiler.html',
-        medium: 'visual',
-        experience: 'practical'
+        medium: 'TEXT',
+        experience: 'PLAYFUL'
       },
       {
         name: 'Tree Generator',
         link: 'toolspage.html?tool=tools/tree_generator.html',
-        medium: 'visual',
-        experience: 'mesmerizing'
+        medium: 'VISUAL',
+        experience: 'PLAYFUL'
       }
     ];
 
-    const floatingTools = document.getElementById('floatingTools');
-    const clusterLabels = document.getElementById('clusterLabels');
-    const buttons = document.querySelectorAll('.category-button');
+    const stage = document.querySelector('.stage');
+    const toolLayer = document.getElementById('toolLayer');
+    const labelLayer = document.getElementById('labelLayer');
+    const glowLayer = document.getElementById('glowLayer');
+    const buttons = document.querySelectorAll('.sort-button');
+    const header = document.querySelector('.site-header');
 
     const entries = [];
-    const BASE_FLOAT_MIN = 18;
-    const BASE_FLOAT_MAX = 34;
+    const BASE_FLOAT = { min: 12, max: 26 };
     const GROUP_SCALE = 0.78;
-    const ORBIT_SCALE = 1;
 
-    toolData.forEach((tool) => {
-      const el = document.createElement('a');
-      el.className = 'tool-card';
-      el.href = tool.link;
-      el.textContent = tool.name;
-      el.setAttribute('data-medium', tool.medium);
-      el.setAttribute('data-experience', tool.experience);
-      el.setAttribute('title', `${tool.name} — ${tool.medium} · ${tool.experience}`);
-      floatingTools.appendChild(el);
+    const MODE_SETTINGS = {
+      all: {
+        glows: [
+          { x: 0.35, y: 0.55, size: 520, color: 'rgba(255, 160, 184, 0.35)' },
+          { x: 0.58, y: 0.35, size: 460, color: 'rgba(170, 207, 255, 0.35)' },
+          { x: 0.52, y: 0.7, size: 520, color: 'rgba(220, 255, 170, 0.3)' },
+          { x: 0.72, y: 0.52, size: 480, color: 'rgba(255, 214, 170, 0.32)' }
+        ]
+      },
+      medium: {
+        order: ['AUDIO', 'VISUAL', 'TEXT'],
+        glows: {
+          AUDIO: { x: 0.28, y: 0.58, size: 480, color: 'rgba(255, 154, 169, 0.38)' },
+          VISUAL: { x: 0.7, y: 0.42, size: 500, color: 'rgba(171, 210, 255, 0.38)' },
+          TEXT: { x: 0.7, y: 0.72, size: 460, color: 'rgba(215, 255, 186, 0.34)' }
+        }
+      },
+      experience: {
+        order: ['TECHNICAL', 'PLAYFUL', 'MESMERIZING'],
+        glows: {
+          TECHNICAL: { x: 0.32, y: 0.38, size: 520, color: 'rgba(255, 154, 169, 0.36)' },
+          PLAYFUL: { x: 0.32, y: 0.7, size: 460, color: 'rgba(215, 255, 186, 0.32)' },
+          MESMERIZING: { x: 0.72, y: 0.5, size: 520, color: 'rgba(171, 210, 255, 0.4)' }
+        }
+      }
+    };
 
-      entries.push({
-        data: tool,
-        element: el,
-        angle: Math.random() * Math.PI * 2,
-        speed: 0.00012 + Math.random() * 0.00009,
-        baseFloatRadius: BASE_FLOAT_MIN + Math.random() * (BASE_FLOAT_MAX - BASE_FLOAT_MIN),
-        targetFloatRadius: 0,
-        currentFloatRadius: 0,
-        targetX: window.innerWidth / 2,
-        targetY: window.innerHeight / 2,
-        displayX: window.innerWidth / 2,
-        displayY: window.innerHeight / 2,
-        targetScale: ORBIT_SCALE,
-        scale: ORBIT_SCALE,
-        width: 0,
-        height: 0
+    function createToolCards() {
+      toolData.forEach((tool) => {
+        const el = document.createElement('a');
+        el.className = 'tool-card';
+        el.href = tool.link;
+        el.textContent = tool.name;
+        el.setAttribute('data-medium', tool.medium);
+        el.setAttribute('data-experience', tool.experience);
+        el.setAttribute('title', `${tool.name} — ${tool.medium} · ${tool.experience}`);
+        toolLayer.appendChild(el);
+
+        entries.push({
+          data: tool,
+          element: el,
+          width: 0,
+          height: 0,
+          angle: Math.random() * Math.PI * 2,
+          speed: 0.00012 + Math.random() * 0.00008,
+          targetX: window.innerWidth / 2,
+          targetY: window.innerHeight / 2,
+          displayX: window.innerWidth / 2,
+          displayY: window.innerHeight / 2,
+          targetScale: 1,
+          scale: 1,
+          targetFloat: BASE_FLOAT.min,
+          currentFloat: BASE_FLOAT.min
+        });
       });
-    });
+    }
 
     function measureCards() {
       entries.forEach((entry) => {
@@ -364,131 +478,162 @@
       });
     }
 
+    function getBounds(scale = 1) {
+      const headerRect = header.getBoundingClientRect();
+      const topPadding = headerRect.bottom + 40;
+      const bottomPadding = 120;
+      const sidePadding = 120;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const sample = entries[0];
+      const cardWidth = (sample?.width || 200) * scale;
+      const cardHeight = (sample?.height || 140) * scale;
+
+      return {
+        minX: sidePadding + cardWidth / 2,
+        maxX: Math.max(sidePadding + cardWidth / 2, width - sidePadding - cardWidth / 2),
+        minY: topPadding + cardHeight / 2,
+        maxY: Math.max(topPadding + cardHeight / 2, height - bottomPadding - cardHeight / 2)
+      };
+    }
+
     function clamp(value, min, max) {
       return Math.max(min, Math.min(max, value));
     }
 
-    function layoutOrbit() {
-      clusterLabels.innerHTML = '';
-
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      const marginX = Math.max(60, width * 0.08);
-      const marginY = Math.max(80, height * 0.12);
-      const innerWidth = Math.max(200, width - marginX * 2);
-      const innerHeight = Math.max(200, height - marginY * 2);
-
-      const sampleWidth = entries[0]?.width || 160;
-      const sampleHeight = entries[0]?.height || 120;
-      const minSpacingX = sampleWidth + 50;
-      const minSpacingY = sampleHeight + 50;
-
-      let columns = Math.max(1, Math.floor(innerWidth / minSpacingX));
-      columns = Math.min(columns, entries.length);
-      let rows = Math.ceil(entries.length / columns);
-
-      while (columns > 1 && rows * minSpacingY > innerHeight) {
-        columns -= 1;
-        rows = Math.ceil(entries.length / columns);
-      }
-
-      const actualSpacingX = innerWidth / columns;
-      const actualSpacingY = innerHeight / rows;
-
-      entries.forEach((entry, index) => {
-        const col = index % columns;
-        const row = Math.floor(index / columns);
-        const baseX = marginX + (col + 0.5) * actualSpacingX;
-        const baseY = marginY + (row + 0.5) * actualSpacingY;
-        const safeX = clamp(baseX, entry.width / 2 + 40, width - entry.width / 2 - 40);
-        const safeY = clamp(baseY, entry.height / 2 + 40, height - entry.height / 2 - 40);
-
-        entry.targetX = safeX;
-        entry.targetY = safeY;
-        entry.targetScale = ORBIT_SCALE;
-        entry.targetFloatRadius = entry.baseFloatRadius;
+    function renderGlows(defs) {
+      glowLayer.innerHTML = '';
+      defs.forEach((def) => {
+        const el = document.createElement('div');
+        el.className = 'glow';
+        el.style.width = `${def.size}px`;
+        el.style.height = `${def.size}px`;
+        el.style.left = `${def.x * 100}%`;
+        el.style.top = `${def.y * 100}%`;
+        el.style.transform = 'translate(-50%, -50%)';
+        el.style.background = `radial-gradient(circle at center, ${def.color} 0%, rgba(255, 255, 255, 0) 72%)`;
+        glowLayer.appendChild(el);
       });
     }
 
-    function layoutGrouped(key) {
-      const width = window.innerWidth;
-      const height = window.innerHeight;
-      const marginX = Math.max(60, width * 0.08);
-      const marginY = Math.max(120, height * 0.15);
-      const innerWidth = Math.max(200, width - marginX * 2);
-      const innerHeight = Math.max(240, height - marginY * 2);
+    function layoutAll() {
+      labelLayer.innerHTML = '';
+      renderGlows(MODE_SETTINGS.all.glows);
 
-      const groups = new Map();
+      const bounds = getBounds();
+      const placements = [];
+      const attemptsPerCard = 260;
+      const spacingFloor = Math.max((entries[0]?.width || 200) * 0.82, 140);
+
       entries.forEach((entry) => {
-        const bucket = entry.data[key];
-        if (!groups.has(bucket)) {
-          groups.set(bucket, []);
+        let best = {
+          x: (bounds.minX + bounds.maxX) / 2,
+          y: (bounds.minY + bounds.maxY) / 2,
+          distance: 0
+        };
+
+        for (let attempt = 0; attempt < attemptsPerCard; attempt += 1) {
+          const x = bounds.minX + Math.random() * (bounds.maxX - bounds.minX);
+          const y = bounds.minY + Math.random() * (bounds.maxY - bounds.minY);
+          const distance = placements.reduce((min, pt) => {
+            const dx = pt.x - x;
+            const dy = pt.y - y;
+            return Math.min(min, Math.hypot(dx, dy));
+          }, Number.POSITIVE_INFINITY);
+
+          if (distance > best.distance) {
+            best = { x, y, distance };
+          }
+
+          if (distance >= spacingFloor) {
+            best = { x, y, distance };
+            break;
+          }
         }
-        groups.get(bucket).push(entry);
+
+        placements.push({ x: best.x, y: best.y });
+        entry.targetX = best.x;
+        entry.targetY = best.y;
+        entry.targetScale = 1;
+        entry.targetFloat = BASE_FLOAT.min + Math.random() * (BASE_FLOAT.max - BASE_FLOAT.min);
       });
+    }
 
-      const buckets = Array.from(groups.keys());
-      const ratio = width / Math.max(height, 1);
-      const columns = Math.max(1, Math.min(buckets.length, Math.round(Math.sqrt(buckets.length * ratio))));
-      const rows = Math.max(1, Math.ceil(buckets.length / columns));
-      const cellWidth = innerWidth / columns;
-      const cellHeight = innerHeight / rows;
-
-      clusterLabels.innerHTML = '';
-
-      buckets.forEach((bucket, index) => {
-        const col = index % columns;
-        const row = Math.floor(index / columns);
-        const originX = marginX + col * cellWidth + cellWidth / 2;
-        const originY = marginY + row * cellHeight + cellHeight / 2;
-
+    function renderLabels(mode) {
+      labelLayer.innerHTML = '';
+      const settings = MODE_SETTINGS[mode];
+      settings.order.forEach((name) => {
         const label = document.createElement('div');
         label.className = 'cluster-label';
-        label.textContent = bucket;
-        label.style.left = `${originX}px`;
-        label.style.top = `${originY - cellHeight * 0.38}px`;
-        clusterLabels.appendChild(label);
+        label.textContent = name;
+        const cluster = settings.glows[name];
+        const bounds = getBounds(GROUP_SCALE);
+        const x = clamp(cluster.x * window.innerWidth, bounds.minX, bounds.maxX);
+        const y = clamp(cluster.y * window.innerHeight, bounds.minY, bounds.maxY);
+        label.style.left = `${x}px`;
+        label.style.top = `${y - 120}px`;
+        labelLayer.appendChild(label);
+      });
+    }
 
-        const members = groups.get(bucket);
-        const areaWidth = cellWidth * 0.82;
-        const areaHeight = cellHeight * 0.65;
+    function layoutGrouped(mode) {
+      const settings = MODE_SETTINGS[mode];
+      const groups = new Map();
+      entries.forEach((entry) => {
+        const key = mode === 'medium' ? entry.data.medium : entry.data.experience;
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key).push(entry);
+      });
 
-        const cardWidth = (entries[0]?.width || 160) * GROUP_SCALE;
-        const perRow = Math.max(1, Math.floor(areaWidth / (cardWidth + 24)));
-        const rowsNeeded = Math.max(1, Math.ceil(members.length / perRow));
-        const spacingX = areaWidth / perRow;
-        const spacingY = areaHeight / rowsNeeded;
+      const glows = settings.order.map((key) => settings.glows[key]);
+      renderGlows(glows);
+      renderLabels(mode);
 
-        members.forEach((entry, memberIndex) => {
-          const r = Math.floor(memberIndex / perRow);
-          const c = memberIndex % perRow;
-          const x = originX - areaWidth / 2 + spacingX * (c + 0.5);
-          const y = originY - areaHeight / 2 + spacingY * (r + 0.5) + 24;
+      const bounds = getBounds(GROUP_SCALE);
+      const spacingX = (entries[0]?.width || 200) * GROUP_SCALE * 1.15;
+      const spacingY = (entries[0]?.height || 140) * GROUP_SCALE * 1.2;
 
-          entry.targetX = clamp(x, entry.width * GROUP_SCALE / 2 + 32, width - entry.width * GROUP_SCALE / 2 - 32);
-          entry.targetY = clamp(y, entry.height * GROUP_SCALE / 2 + 32, height - entry.height * GROUP_SCALE / 2 - 32);
+      settings.order.forEach((key) => {
+        const members = groups.get(key) || [];
+        const cluster = settings.glows[key];
+        const centerX = clamp(cluster.x * window.innerWidth, bounds.minX, bounds.maxX);
+        const centerY = clamp(cluster.y * window.innerHeight, bounds.minY, bounds.maxY);
+        const columns = Math.max(1, Math.ceil(Math.sqrt(members.length)));
+        const rows = Math.max(1, Math.ceil(members.length / columns));
+
+        members.forEach((entry, index) => {
+          const row = Math.floor(index / columns);
+          const col = index % columns;
+          const offsetX = (col - (columns - 1) / 2) * spacingX + (Math.random() - 0.5) * 24;
+          const offsetY = (row - (rows - 1) / 2) * spacingY + (Math.random() - 0.5) * 24;
+          const targetX = clamp(centerX + offsetX, bounds.minX, bounds.maxX);
+          const targetY = clamp(centerY + offsetY, bounds.minY, bounds.maxY);
+
+          entry.targetX = targetX;
+          entry.targetY = targetY;
           entry.targetScale = GROUP_SCALE;
-          entry.targetFloatRadius = Math.min(12, entry.baseFloatRadius);
+          entry.targetFloat = 6 + Math.random() * 6;
         });
       });
     }
 
-    let mode = 'orbit';
+    let mode = 'all';
     let lastTime = performance.now();
 
     function animate(time) {
       const delta = time - lastTime;
       lastTime = time;
-
       entries.forEach((entry) => {
         entry.angle += entry.speed * delta;
-        entry.currentFloatRadius += (entry.targetFloatRadius - entry.currentFloatRadius) * 0.08;
-        entry.scale += (entry.targetScale - entry.scale) * 0.12;
-        entry.displayX += (entry.targetX - entry.displayX) * 0.1;
-        entry.displayY += (entry.targetY - entry.displayY) * 0.1;
+        entry.currentFloat += (entry.targetFloat - entry.currentFloat) * 0.12;
+        entry.scale += (entry.targetScale - entry.scale) * 0.14;
+        entry.displayX += (entry.targetX - entry.displayX) * 0.12;
+        entry.displayY += (entry.targetY - entry.displayY) * 0.12;
 
-        const offsetX = Math.cos(entry.angle) * entry.currentFloatRadius;
-        const offsetY = Math.sin(entry.angle) * entry.currentFloatRadius;
+        const offsetX = Math.cos(entry.angle) * entry.currentFloat;
+        const offsetY = Math.sin(entry.angle * 1.1) * entry.currentFloat;
         const finalX = entry.displayX + offsetX;
         const finalY = entry.displayY + offsetY;
 
@@ -496,49 +641,50 @@
         entry.element.style.top = `${finalY}px`;
         entry.element.style.transform = `translate(-50%, -50%) scale(${entry.scale})`;
       });
-
       requestAnimationFrame(animate);
     }
 
-    function setMode(nextMode) {
-      if (mode === nextMode) return;
-      mode = nextMode;
+    function setMode(next) {
+      if (mode === next) {
+        mode = 'all';
+        buttons.forEach((btn) => btn.dataset.active = 'false');
+        layoutAll();
+        return;
+      }
 
-      if (mode === 'orbit') {
-        layoutOrbit();
-      } else {
+      mode = next;
+      buttons.forEach((btn) => {
+        const active = btn.dataset.mode === mode;
+        btn.dataset.active = active ? 'true' : 'false';
+      });
+
+      if (mode === 'medium' || mode === 'experience') {
         layoutGrouped(mode);
+      } else {
+        layoutAll();
       }
     }
 
     buttons.forEach((button) => {
+      button.dataset.active = 'false';
       button.addEventListener('click', () => {
-        buttons.forEach((btn) => btn.classList.remove('active'));
-        button.classList.add('active');
-        const modeSelected = button.dataset.mode;
-        if (modeSelected === 'orbit') {
-          setMode('orbit');
-        } else {
-          setMode(modeSelected);
-        }
+        const selected = button.dataset.mode;
+        setMode(selected);
       });
     });
 
-    function handleResize() {
-      measureCards();
-      if (mode === 'orbit') {
-        layoutOrbit();
-      } else {
-        layoutGrouped(mode);
-      }
-    }
-
     window.addEventListener('resize', () => {
-      handleResize();
+      measureCards();
+      if (mode === 'medium' || mode === 'experience') {
+        layoutGrouped(mode);
+      } else {
+        layoutAll();
+      }
     });
 
+    createToolCards();
     measureCards();
-    layoutOrbit();
+    layoutAll();
     requestAnimationFrame(animate);
   </script>
 </body>
