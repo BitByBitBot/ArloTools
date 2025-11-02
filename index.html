@@ -12,14 +12,14 @@
     }
 
     :root {
-      color-scheme: dark light;
-      --bg: radial-gradient(circle at top, #f6f6f6 0%, #e8e8e8 40%, #d9dcff 100%);
-      --fg: #0d0d0d;
-      --accent: #1b20ff;
-      --accent-soft: rgba(27, 32, 255, 0.16);
-      --panel: rgba(255, 255, 255, 0.72);
-      --panel-border: rgba(12, 12, 12, 0.2);
-      --orbit-size: clamp(320px, 70vw, 1024px);
+      color-scheme: light;
+      --bg: radial-gradient(circle at 30% -10%, rgba(255, 255, 255, 0.95) 0%, rgba(244, 248, 255, 0.9) 45%, rgba(255, 247, 240, 0.95) 100%);
+      --fg: #080808;
+      --accent: #131313;
+      --accent-soft: rgba(12, 12, 12, 0.12);
+      --panel: rgba(255, 255, 255, 0.78);
+      --panel-border: rgba(8, 8, 8, 0.28);
+      --line: rgba(8, 8, 8, 0.12);
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     }
 
@@ -32,16 +32,32 @@
       min-height: 100vh;
       background: var(--bg);
       color: var(--fg);
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
+      overflow: hidden;
+      position: relative;
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      background: linear-gradient(0deg, transparent calc(50% - 1px), var(--line) calc(50% - 1px), var(--line) calc(50% + 1px), transparent calc(50% + 1px)),
+                  linear-gradient(90deg, transparent calc(50% - 1px), var(--line) calc(50% - 1px), var(--line) calc(50% + 1px), transparent calc(50% + 1px));
+      pointer-events: none;
+      mix-blend-mode: multiply;
+      opacity: 0.4;
+      z-index: 0;
     }
 
     header {
-      padding: clamp(24px, 5vw, 48px) clamp(20px, 5vw, 64px) 16px;
+      padding: clamp(28px, 6vw, 72px) clamp(24px, 6vw, 96px) clamp(24px, 5vw, 64px);
       display: flex;
       flex-direction: column;
-      gap: 18px;
+      gap: 22px;
+      position: relative;
+      z-index: 4;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.82) 40%, rgba(255, 255, 255, 0) 100%);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--panel-border);
     }
 
     .top-row {
@@ -85,17 +101,18 @@
       text-decoration: none;
       color: inherit;
       padding: 10px 18px;
-      border: 1px solid transparent;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.3);
+      border: 1px solid var(--panel-border);
+      border-radius: 0;
+      background: rgba(255, 255, 255, 0.75);
       transition: all 0.3s ease;
-      backdrop-filter: blur(6px);
+      box-shadow: 8px 8px 0 rgba(8, 8, 8, 0.12);
     }
 
     nav a:hover,
     nav a:focus-visible {
-      border-color: rgba(12, 12, 12, 0.4);
-      background: rgba(255, 255, 255, 0.6);
+      border-color: rgba(8, 8, 8, 0.7);
+      background: rgba(12, 12, 12, 0.08);
+      box-shadow: 12px 12px 0 rgba(8, 8, 8, 0.18);
       outline: none;
     }
 
@@ -103,71 +120,69 @@
       max-width: 680px;
       font-size: clamp(1rem, 2.3vw, 1.35rem);
       line-height: 1.5;
+      border-left: 3px solid rgba(8, 8, 8, 0.85);
+      padding-left: 22px;
+      background: rgba(255, 255, 255, 0.65);
+      box-shadow: 12px 12px 0 rgba(8, 8, 8, 0.1);
     }
 
     .controls {
       display: flex;
       flex-wrap: wrap;
       gap: 12px;
-      margin-top: 12px;
+      margin-top: 4px;
     }
 
     .sort-button {
-      border: 1px solid rgba(12, 12, 12, 0.32);
-      background: var(--panel);
+      border: 1px solid var(--panel-border);
+      background: rgba(255, 255, 255, 0.8);
       color: inherit;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       font-size: 0.75rem;
       padding: 10px 18px;
-      border-radius: 999px;
+      border-radius: 0;
       cursor: pointer;
       transition: all 0.25s ease;
-      backdrop-filter: blur(8px);
+      box-shadow: 8px 8px 0 rgba(8, 8, 8, 0.12);
     }
 
     .sort-button:hover,
     .sort-button:focus-visible {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
+      border-color: rgba(8, 8, 8, 0.7);
+      box-shadow: 10px 10px 0 rgba(8, 8, 8, 0.16);
       outline: none;
     }
 
     .sort-button.active {
-      background: rgba(27, 32, 255, 0.15);
-      border-color: var(--accent);
+      background: linear-gradient(120deg, rgba(255, 209, 226, 0.45), rgba(209, 241, 255, 0.45) 60%, rgba(255, 247, 209, 0.45));
+      border-color: rgba(8, 8, 8, 0.82);
       color: var(--accent);
     }
 
     main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 0 clamp(16px, 4vw, 48px) clamp(32px, 8vw, 64px);
-      gap: clamp(28px, 5vw, 48px);
+      position: fixed;
+      inset: 0;
+      z-index: 1;
     }
 
     .scene-wrapper {
-      flex: 1;
-      min-height: clamp(420px, 60vh, 680px);
-      position: relative;
-      perspective: 1800px;
+      position: absolute;
+      inset: 0;
+      perspective: 2000px;
       perspective-origin: 50% 45%;
-      border-radius: 32px;
-      overflow: hidden;
-      border: 1px solid rgba(12, 12, 12, 0.1);
-      background: linear-gradient(160deg, rgba(255,255,255,0.8) 0%, rgba(210,215,255,0.5) 45%, rgba(228,246,255,0.6) 100%);
-      box-shadow: 0 24px 60px rgba(27, 32, 255, 0.08);
+      overflow: visible;
     }
 
     .scene-wrapper::before {
       content: "";
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.6), transparent 60%),
-                  radial-gradient(circle at 80% 80%, rgba(27, 32, 255, 0.08), transparent 65%);
+      background: radial-gradient(circle at 20% 15%, rgba(255, 210, 230, 0.22), transparent 55%),
+                  radial-gradient(circle at 80% 25%, rgba(210, 240, 255, 0.2), transparent 60%),
+                  radial-gradient(circle at 45% 80%, rgba(255, 244, 214, 0.22), transparent 60%);
       pointer-events: none;
-    }
+      }
 
     .space {
       position: absolute;
@@ -188,9 +203,10 @@
       left: 50%;
       width: clamp(180px, 18vw, 240px);
       aspect-ratio: 4 / 3;
-      background: rgba(255, 255, 255, 0.88);
-      border: 2px solid rgba(12, 12, 12, 0.4);
-      border-radius: 16px;
+      background: linear-gradient(150deg, rgba(255, 255, 255, 0.9), rgba(255, 255, 255, 0.82)),
+                  linear-gradient(120deg, rgba(255, 204, 228, 0.2), rgba(196, 235, 255, 0.2) 60%, rgba(255, 247, 213, 0.2));
+      border: 2px solid rgba(8, 8, 8, 0.55);
+      border-radius: 0;
       padding: 16px;
       display: flex;
       align-items: flex-end;
@@ -202,16 +218,15 @@
                   filter 0.45s ease,
                   box-shadow 0.6s ease,
                   border-color 0.3s ease;
-      box-shadow: 0 16px 40px rgba(13, 13, 13, 0.08);
-      backdrop-filter: blur(10px);
+      box-shadow: 16px 16px 0 rgba(8, 8, 8, 0.18), 0 28px 80px rgba(12, 12, 12, 0.08);
+      pointer-events: auto;
     }
 
     .tool-frame::after {
       content: "";
       position: absolute;
       inset: 0;
-      border-radius: inherit;
-      border: 1px solid rgba(255, 255, 255, 0.6);
+      border: 1px solid rgba(255, 255, 255, 0.5);
       pointer-events: none;
     }
 
@@ -251,9 +266,9 @@
     }
 
     .tool-frame.is-hovered {
-      box-shadow: 0 26px 80px rgba(27, 32, 255, 0.28);
-      border-color: rgba(27, 32, 255, 0.7);
-      filter: brightness(1.08);
+      box-shadow: 22px 22px 0 rgba(8, 8, 8, 0.22), 0 48px 140px rgba(12, 12, 12, 0.18);
+      border-color: rgba(8, 8, 8, 0.82);
+      filter: brightness(1.05);
       z-index: 20;
     }
 
@@ -273,9 +288,9 @@
       top: 50%;
       left: 50%;
       padding: 8px 18px;
-      border-radius: 999px;
-      background: rgba(12, 12, 12, 0.82);
-      color: white;
+      border-radius: 0;
+      background: rgba(12, 12, 12, 0.9);
+      color: #f5f5f5;
       font-size: 0.68rem;
       letter-spacing: 0.12em;
       text-transform: uppercase;
@@ -299,13 +314,18 @@
     }
 
     footer {
-      padding: 24px clamp(20px, 5vw, 48px) 40px;
+      padding: clamp(24px, 5vw, 48px) clamp(24px, 6vw, 96px) 40px;
       letter-spacing: 0.08em;
       text-transform: uppercase;
       font-size: 0.7rem;
       display: flex;
       flex-direction: column;
       gap: 8px;
+      position: relative;
+      z-index: 3;
+      color: rgba(8, 8, 8, 0.75);
+      background: linear-gradient(0deg, rgba(255, 255, 255, 0.94) 0%, rgba(255, 255, 255, 0.85) 45%, rgba(255, 255, 255, 0) 100%);
+      border-top: 1px solid var(--panel-border);
     }
 
     footer a {
@@ -319,7 +339,7 @@
       }
 
       .scene-wrapper {
-        min-height: clamp(520px, 70vh, 720px);
+        min-height: auto;
       }
     }
   </style>
@@ -481,26 +501,51 @@
       }
     ];
 
-    const groupLayouts = {
-      medium: {
-        audio: { x: -280, y: -40, z: -140 },
-        video: { x: 280, y: -10, z: -120 },
-        visual: { x: 0, y: 100, z: 40 }
-      },
-      experience: {
-        mesmerizing: { x: -320, y: 50, z: -60 },
-        'in-depth': { x: 0, y: -60, z: -200 },
-        playful: { x: 320, y: 90, z: -40 },
-        practical: { x: 0, y: 140, z: 80 }
-      }
-    };
-
     const space = document.getElementById('space');
     const clusterLabels = document.getElementById('cluster-labels');
     const buttonEls = document.querySelectorAll('.sort-button');
 
     const orbitEntries = [];
     const baseTransform = 'translate3d(-50%, -50%, 0) ';
+    const baseOrbitSpeed = 0.00011;
+    const wobbleYBase = 12;
+    const wobbleZBase = 10;
+    let orbitDimensions = getOrbitDimensions();
+
+    function getGroupLayout(mode) {
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const minDim = Math.min(width, height);
+      const horizontalSpread = width * 0.28;
+      const verticalSpread = height * 0.18;
+      const depthSpread = minDim * 0.28;
+
+      if (mode === 'medium') {
+        return {
+          audio: { x: -horizontalSpread, y: -verticalSpread * 0.4, z: -depthSpread * 0.6 },
+          video: { x: horizontalSpread, y: -verticalSpread * 0.15, z: -depthSpread * 0.5 },
+          visual: { x: 0, y: verticalSpread * 1.4, z: depthSpread * 0.2 }
+        };
+      }
+
+      const diagonalSpread = width * 0.26;
+      return {
+        mesmerizing: { x: -diagonalSpread, y: verticalSpread * 0.6, z: -depthSpread * 0.25 },
+        'in-depth': { x: 0, y: -verticalSpread * 0.9, z: -depthSpread * 0.7 },
+        playful: { x: diagonalSpread, y: verticalSpread * 1.1, z: depthSpread * 0.1 },
+        practical: { x: 0, y: verticalSpread * 1.8, z: depthSpread * 0.45 }
+      };
+    }
+
+    function getOrbitDimensions() {
+      const minDim = Math.min(window.innerWidth, window.innerHeight);
+      const laneCount = Math.max(4, Math.min(6, Math.round(minDim / 260)));
+      const radiusMax = minDim * 0.42;
+      const radiusStep = minDim * 0.085;
+      const minRadius = minDim * 0.24;
+      const elevationSpread = Math.min(window.innerHeight, 1000) * 0.65;
+      return { laneCount, radiusMax, radiusStep, minRadius, elevationSpread };
+    }
 
     toolData.forEach((tool, index) => {
       const frame = document.createElement('a');
@@ -533,16 +578,17 @@
         video,
         data: tool,
         angle: (index / toolData.length) * Math.PI * 2,
-        radius: 240 + Math.random() * 220,
-        elevation: -60 + Math.random() * 140,
-        speed: 0.00025 + Math.random() * 0.00045,
-        wobble: Math.random() * Math.PI * 2,
-        isFrozen: false
+        radius: 0,
+        elevation: 0,
+        speed: baseOrbitSpeed,
+        wobblePhase: index * 0.45,
+        wobbleYRange: wobbleYBase,
+        wobbleZRange: wobbleZBase,
+        isFrozen: false,
+        index
       };
 
-      const startX = Math.cos(entry.angle) * entry.radius;
-      const startZ = Math.sin(entry.angle) * entry.radius;
-      frame.style.transform = `${baseTransform} translate3d(${startX}px, ${entry.elevation}px, ${startZ}px) rotateY(${-entry.angle * (180 / Math.PI) + 90}deg)`;
+      frame.style.transform = `${baseTransform} translate3d(0px, 0px, 0px) rotateY(0deg)`;
 
       frame.addEventListener('mouseenter', () => {
         entry.isFrozen = true;
@@ -555,7 +601,7 @@
       });
 
       frame.addEventListener('mouseleave', () => {
-        entry.isFrozen = false;
+        entry.isFrozen = currentMode !== 'orbit';
         frame.classList.remove('is-hovered');
         video.pause();
         video.currentTime = 0;
@@ -563,6 +609,33 @@
 
       orbitEntries.push(entry);
     });
+
+    function updateOrbitGeometry() {
+      orbitDimensions = getOrbitDimensions();
+      const { laneCount, radiusMax, radiusStep, minRadius, elevationSpread } = orbitDimensions;
+      const laneStep = laneCount > 1 ? elevationSpread / (laneCount - 1) : 0;
+
+      orbitEntries.forEach((entry) => {
+        const laneIndex = entry.index % laneCount;
+        const ringIndex = Math.floor(entry.index / laneCount);
+        entry.laneIndex = laneIndex;
+        entry.ringIndex = ringIndex;
+        entry.radius = Math.max(radiusMax - ringIndex * radiusStep, minRadius);
+        entry.elevation = (laneIndex - (laneCount - 1) / 2) * laneStep + (ringIndex % 2 === 0 ? 0 : laneStep * 0.22);
+        entry.speed = baseOrbitSpeed + ringIndex * 0.000045 + laneIndex * 0.000018;
+        entry.wobbleYRange = wobbleYBase + laneIndex * 3;
+        entry.wobbleZRange = wobbleZBase + ringIndex * 4;
+      });
+    }
+
+    function applyOrbitTransforms() {
+      orbitEntries.forEach((entry) => {
+        entry.element.classList.remove('grouped');
+        const x = Math.cos(entry.angle) * entry.radius;
+        const z = Math.sin(entry.angle) * entry.radius;
+        entry.element.style.transform = `${baseTransform} translate3d(${x}px, ${entry.elevation}px, ${z}px) rotateY(${-entry.angle * (180 / Math.PI) + 90}deg)`;
+      });
+    }
 
     let currentMode = 'orbit';
     let lastTime = performance.now();
@@ -576,8 +649,8 @@
           if (!entry.isFrozen) {
             entry.angle += entry.speed * delta;
           }
-          const wobbleY = Math.sin(time * 0.001 + entry.wobble) * 28;
-          const wobbleZ = Math.cos(time * 0.0012 + entry.wobble) * 18;
+          const wobbleY = Math.sin(time * 0.001 + entry.wobblePhase) * entry.wobbleYRange;
+          const wobbleZ = Math.cos(time * 0.0012 + entry.wobblePhase) * entry.wobbleZRange;
 
           const x = Math.cos(entry.angle) * entry.radius;
           const z = Math.sin(entry.angle) * entry.radius + wobbleZ;
@@ -591,24 +664,7 @@
       requestAnimationFrame(animate);
     }
 
-    requestAnimationFrame(animate);
-
-    function setMode(mode) {
-      if (mode === currentMode) return;
-      currentMode = mode;
-      space.dataset.mode = mode === 'orbit' ? 'orbit' : 'group';
-
-      if (mode === 'orbit') {
-        clusterLabels.innerHTML = '';
-        orbitEntries.forEach((entry, index) => {
-          entry.isFrozen = false;
-          entry.element.classList.remove('grouped');
-          entry.element.style.transform = `${baseTransform} translate3d(${Math.cos(entry.angle) * entry.radius}px, ${entry.elevation}px, ${Math.sin(entry.angle) * entry.radius}px) rotateY(${-entry.angle * (180 / Math.PI) + 90}deg)`;
-        });
-        return;
-      }
-
-      const layout = groupLayouts[mode];
+    function applyGroupTransforms(mode, layout) {
       clusterLabels.innerHTML = '';
       const grouped = {};
 
@@ -626,29 +682,49 @@
         const label = document.createElement('div');
         label.className = 'cluster-label';
         label.textContent = bucket.toUpperCase();
-        label.style.transform = `${baseTransform} translate3d(${anchor.x}px, ${anchor.y - 120}px, ${anchor.z}px)`;
+        label.style.transform = `${baseTransform} translate3d(${anchor.x}px, ${anchor.y - 140}px, ${anchor.z}px)`;
         clusterLabels.appendChild(label);
       });
 
+      const spacingBase = Math.max(240, Math.min(window.innerWidth, window.innerHeight) * 0.18);
+      const depthStep = spacingBase * 0.45;
+      const verticalStep = spacingBase * 0.6;
+
       Object.entries(grouped).forEach(([bucket, members]) => {
         const anchor = layout[bucket];
-        members.forEach((entry, index) => {
-          const ring = Math.floor(index / 6);
-          const slot = index % 6;
-          const radius = 70 + ring * 70;
-          const theta = (slot / 6) * Math.PI * 2;
-          const localX = Math.cos(theta) * radius;
-          const localZ = Math.sin(theta) * radius;
-          const localY = ring * 45;
+        const columns = Math.ceil(Math.sqrt(members.length));
+        const rows = Math.ceil(members.length / columns);
 
-          const targetX = anchor.x + localX;
-          const targetY = anchor.y + localY;
-          const targetZ = anchor.z + localZ;
+        members.forEach((entry, index) => {
+          entry.isFrozen = true;
+          const row = Math.floor(index / columns);
+          const column = index % columns;
+          const offsetX = (column - (columns - 1) / 2) * spacingBase;
+          const offsetY = (row - (rows - 1) / 2) * verticalStep;
+          const offsetZ = ((row + column) % 2 === 0 ? -1 : 1) * depthStep * 0.6;
 
           entry.element.classList.add('grouped');
-          entry.element.style.transform = `${baseTransform} translate3d(${targetX}px, ${targetY}px, ${targetZ}px) rotateY(0deg)`;
+          entry.element.style.transform = `${baseTransform} translate3d(${anchor.x + offsetX}px, ${anchor.y + offsetY}px, ${anchor.z + offsetZ}px) rotateY(0deg)`;
         });
       });
+    }
+
+    function setMode(mode, { force = false } = {}) {
+      if (!force && mode === currentMode) return;
+      currentMode = mode;
+      space.dataset.mode = mode === 'orbit' ? 'orbit' : 'group';
+
+      if (mode === 'orbit') {
+        clusterLabels.innerHTML = '';
+        orbitEntries.forEach((entry) => {
+          entry.isFrozen = false;
+        });
+        applyOrbitTransforms();
+        return;
+      }
+
+      const layout = getGroupLayout(mode);
+      applyGroupTransforms(mode, layout);
     }
 
     buttonEls.forEach((button) => {
@@ -662,6 +738,19 @@
           setMode(group);
         }
       });
+    });
+
+    updateOrbitGeometry();
+    applyOrbitTransforms();
+    requestAnimationFrame(animate);
+
+    window.addEventListener('resize', () => {
+      updateOrbitGeometry();
+      if (currentMode === 'orbit') {
+        applyOrbitTransforms();
+      } else {
+        setMode(currentMode, { force: true });
+      }
     });
   </script>
 </body>
