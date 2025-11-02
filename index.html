@@ -12,657 +12,680 @@
     }
 
     :root {
-      color-scheme: dark light;
-      --bg: radial-gradient(circle at top, #f6f6f6 0%, #e8e8e8 40%, #d9dcff 100%);
-      --fg: #0d0d0d;
-      --accent: #1b20ff;
-      --accent-soft: rgba(27, 32, 255, 0.16);
-      --panel: rgba(255, 255, 255, 0.72);
-      --panel-border: rgba(12, 12, 12, 0.2);
-      --orbit-size: clamp(320px, 70vw, 1024px);
+      color-scheme: light;
       font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
     }
 
-    * {
+    *, *::before, *::after {
       box-sizing: border-box;
     }
 
     body {
       margin: 0;
       min-height: 100vh;
-      background: var(--bg);
-      color: var(--fg);
-      display: flex;
-      flex-direction: column;
-      overflow-x: hidden;
+      background: #fff;
+      color: #050505;
+      font-family: inherit;
+      overflow: hidden;
     }
 
-    header {
-      padding: clamp(24px, 5vw, 48px) clamp(20px, 5vw, 64px) 16px;
-      display: flex;
-      flex-direction: column;
-      gap: 18px;
+    .site-shell {
+      position: relative;
+      z-index: 1;
+      padding: clamp(28px, 5vw, 48px) clamp(32px, 6vw, 72px) clamp(32px, 6vw, 64px);
     }
 
-    .top-row {
+    .site-header {
       display: flex;
-      flex-wrap: wrap;
-      gap: 16px;
-      align-items: center;
       justify-content: space-between;
+      align-items: flex-start;
+      gap: clamp(24px, 4vw, 48px);
+      position: relative;
+      z-index: 3;
     }
 
     .brand {
       display: flex;
       flex-direction: column;
-      gap: 6px;
+      gap: clamp(12px, 2vw, 18px);
+      max-width: min(520px, 70vw);
     }
 
-    .brand span {
-      letter-spacing: 0.12em;
-      font-size: 0.75rem;
-      text-transform: uppercase;
+    .brand-logo {
+      width: clamp(220px, 32vw, 360px);
+      height: auto;
     }
 
-    .brand h1 {
+    .descriptor {
       margin: 0;
-      font-size: clamp(2.4rem, 8vw, 4.6rem);
-      line-height: 1;
-      font-family: 'FaceOff', 'Helvetica Neue', sans-serif;
-      letter-spacing: 0.1em;
-    }
-
-    nav {
-      display: flex;
-      gap: 14px;
-      align-items: center;
-    }
-
-    nav a {
-      font-size: 0.85rem;
-      letter-spacing: 0.08em;
+      letter-spacing: 0.22em;
       text-transform: uppercase;
+      font-size: clamp(0.65rem, 1.3vw, 0.8rem);
+      line-height: 1.6;
+    }
+
+    .site-nav {
+      display: flex;
+      gap: clamp(18px, 3vw, 32px);
+      align-items: flex-start;
+      padding-top: clamp(12px, 2vw, 20px);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: clamp(0.7rem, 1.4vw, 0.85rem);
+    }
+
+    .site-nav a {
       text-decoration: none;
       color: inherit;
-      padding: 10px 18px;
-      border: 1px solid transparent;
-      border-radius: 999px;
-      background: rgba(255, 255, 255, 0.3);
-      transition: all 0.3s ease;
-      backdrop-filter: blur(6px);
-    }
-
-    nav a:hover,
-    nav a:focus-visible {
-      border-color: rgba(12, 12, 12, 0.4);
-      background: rgba(255, 255, 255, 0.6);
-      outline: none;
-    }
-
-    .hero {
-      max-width: 680px;
-      font-size: clamp(1rem, 2.3vw, 1.35rem);
-      line-height: 1.5;
-    }
-
-    .controls {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 12px;
-      margin-top: 12px;
-    }
-
-    .sort-button {
-      border: 1px solid rgba(12, 12, 12, 0.32);
-      background: var(--panel);
-      color: inherit;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 0.75rem;
-      padding: 10px 18px;
-      border-radius: 999px;
-      cursor: pointer;
-      transition: all 0.25s ease;
-      backdrop-filter: blur(8px);
-    }
-
-    .sort-button:hover,
-    .sort-button:focus-visible {
-      border-color: var(--accent);
-      box-shadow: 0 0 0 3px var(--accent-soft);
-      outline: none;
-    }
-
-    .sort-button.active {
-      background: rgba(27, 32, 255, 0.15);
-      border-color: var(--accent);
-      color: var(--accent);
-    }
-
-    main {
-      flex: 1;
-      display: flex;
-      flex-direction: column;
-      padding: 0 clamp(16px, 4vw, 48px) clamp(32px, 8vw, 64px);
-      gap: clamp(28px, 5vw, 48px);
-    }
-
-    .scene-wrapper {
-      flex: 1;
-      min-height: clamp(420px, 60vh, 680px);
       position: relative;
-      perspective: 1800px;
-      perspective-origin: 50% 45%;
-      border-radius: 32px;
+      padding-bottom: 4px;
+    }
+
+    .site-nav a::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 1px;
+      background: currentColor;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.2s ease;
+    }
+
+    .site-nav a:hover::after,
+    .site-nav a:focus-visible::after {
+      transform: scaleX(1);
+    }
+
+    .site-nav a:focus-visible {
+      outline: none;
+    }
+
+    .site-nav a[data-active="true"] {
+      color: #d40000;
+    }
+
+    .stage {
+      position: fixed;
+      inset: 0;
       overflow: hidden;
-      border: 1px solid rgba(12, 12, 12, 0.1);
-      background: linear-gradient(160deg, rgba(255,255,255,0.8) 0%, rgba(210,215,255,0.5) 45%, rgba(228,246,255,0.6) 100%);
-      box-shadow: 0 24px 60px rgba(27, 32, 255, 0.08);
+      z-index: 0;
     }
 
-    .scene-wrapper::before {
-      content: "";
+    .glow-layer,
+    .label-layer,
+    .tool-layer {
       position: absolute;
       inset: 0;
-      background: radial-gradient(circle at 20% 20%, rgba(255,255,255,0.6), transparent 60%),
-                  radial-gradient(circle at 80% 80%, rgba(27, 32, 255, 0.08), transparent 65%);
+    }
+
+    .glow {
+      position: absolute;
+      border-radius: 50%;
       pointer-events: none;
+      mix-blend-mode: multiply;
+      filter: blur(0.5px);
+      opacity: 0.95;
+      transition: transform 0.5s ease, opacity 0.5s ease;
     }
 
-    .space {
-      position: absolute;
-      inset: 0;
-      transform-style: preserve-3d;
-    }
-
-    #cluster-labels {
-      position: absolute;
-      inset: 0;
-      transform-style: preserve-3d;
+    .label-layer {
       pointer-events: none;
-    }
-
-    .tool-frame {
-      position: absolute;
-      top: 50%;
-      left: 50%;
-      width: clamp(180px, 18vw, 240px);
-      aspect-ratio: 4 / 3;
-      background: rgba(255, 255, 255, 0.88);
-      border: 2px solid rgba(12, 12, 12, 0.4);
-      border-radius: 16px;
-      padding: 16px;
-      display: flex;
-      align-items: flex-end;
-      justify-content: center;
-      text-decoration: none;
-      color: inherit;
-      transform-style: preserve-3d;
-      transition: transform 0.9s cubic-bezier(0.2, 0.9, 0.3, 1),
-                  filter 0.45s ease,
-                  box-shadow 0.6s ease,
-                  border-color 0.3s ease;
-      box-shadow: 0 16px 40px rgba(13, 13, 13, 0.08);
-      backdrop-filter: blur(10px);
-    }
-
-    .tool-frame::after {
-      content: "";
-      position: absolute;
-      inset: 0;
-      border-radius: inherit;
-      border: 1px solid rgba(255, 255, 255, 0.6);
-      pointer-events: none;
-    }
-
-    .tool-frame .frame-info {
-      position: relative;
-      z-index: 2;
-      width: 100%;
-      display: flex;
-      flex-direction: column;
-      gap: 6px;
-      text-transform: uppercase;
-      letter-spacing: 0.1em;
-      font-size: 0.65rem;
-    }
-
-    .tool-frame .frame-info h2 {
-      margin: 0;
-      font-size: clamp(0.95rem, 1.4vw, 1.1rem);
+      font-size: clamp(1.8rem, 7vw, 4.4rem);
       letter-spacing: 0.08em;
-      line-height: 1.2;
-    }
-
-    .tool-frame .frame-info span {
-      opacity: 0.65;
-    }
-
-    .tool-frame video {
-      position: absolute;
-      inset: 0;
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-      border-radius: inherit;
-      opacity: 0;
-      transition: opacity 0.35s ease;
-      filter: saturate(1.2);
-    }
-
-    .tool-frame.is-hovered {
-      box-shadow: 0 26px 80px rgba(27, 32, 255, 0.28);
-      border-color: rgba(27, 32, 255, 0.7);
-      filter: brightness(1.08);
-      z-index: 20;
-    }
-
-    .tool-frame.is-hovered video {
-      opacity: 1;
-    }
-
-    .tool-frame.grouped {
-      transition: transform 1s cubic-bezier(0.2, 0.85, 0.35, 1),
-                  filter 0.45s ease,
-                  box-shadow 0.6s ease,
-                  border-color 0.3s ease;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.9);
     }
 
     .cluster-label {
       position: absolute;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+    }
+
+    .tool-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .tool-card {
+      position: absolute;
       top: 50%;
       left: 50%;
-      padding: 8px 18px;
-      border-radius: 999px;
-      background: rgba(12, 12, 12, 0.82);
-      color: white;
-      font-size: 0.68rem;
-      letter-spacing: 0.12em;
-      text-transform: uppercase;
-      pointer-events: none;
-      transform-style: preserve-3d;
-      box-shadow: 0 8px 20px rgba(12, 12, 12, 0.3);
-      opacity: 0;
-      transition: opacity 0.4s ease;
-    }
-
-    .space[data-mode="group"] .cluster-label {
-      opacity: 1;
-    }
-
-    .cluster-label::after {
-      content: "";
-      position: absolute;
-      inset: -1px;
-      border-radius: inherit;
-      border: 1px solid rgba(255, 255, 255, 0.35);
-    }
-
-    footer {
-      padding: 24px clamp(20px, 5vw, 48px) 40px;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      font-size: 0.7rem;
+      transform: translate(-50%, -50%);
+      width: clamp(160px, 18vw, 220px);
+      height: clamp(110px, 13vw, 160px);
+      background: linear-gradient(180deg, #f2f2f2 0%, #dedede 100%);
+      border: 2px solid #050505;
+      box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.18);
       display: flex;
-      flex-direction: column;
-      gap: 8px;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+      font-weight: 600;
+      color: #050505;
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      line-height: 1.35;
+      padding: 18px;
+      transition: box-shadow 0.2s ease, transform 0.2s ease;
+      will-change: transform;
     }
 
-    footer a {
+    .tool-card:focus-visible {
+      outline: 2px solid #d40000;
+      outline-offset: 4px;
+    }
+
+    .tool-card:hover {
+      box-shadow: 12px 12px 0 rgba(0, 0, 0, 0.22);
+    }
+
+    .sort-bar {
+      position: fixed;
+      left: clamp(24px, 5vw, 72px);
+      bottom: clamp(24px, 5vw, 72px);
+      display: flex;
+      align-items: center;
+      gap: clamp(12px, 2vw, 28px);
+      z-index: 3;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-size: clamp(0.62rem, 1.3vw, 0.78rem);
+    }
+
+    .sort-bar span {
+      font-weight: 600;
+    }
+
+    .sort-button {
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      cursor: pointer;
       color: inherit;
+      position: relative;
     }
 
-    @media (max-width: 768px) {
-      nav {
-        width: 100%;
-        justify-content: flex-start;
+    .sort-button::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 100%;
+      height: 2px;
+      background: currentColor;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.2s ease;
+    }
+
+    .sort-button:focus-visible {
+      outline: none;
+      color: #d40000;
+    }
+
+    .sort-button:hover::after,
+    .sort-button:focus-visible::after {
+      transform: scaleX(1);
+    }
+
+    .sort-button[data-active="true"] {
+      color: #d40000;
+    }
+
+    .sort-button[data-active="true"]::after {
+      transform: scaleX(1);
+    }
+
+    @media (max-width: 720px) {
+      body {
+        overflow: auto;
       }
 
-      .scene-wrapper {
-        min-height: clamp(520px, 70vh, 720px);
+      .site-shell {
+        padding: 24px;
+      }
+
+      .site-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .site-nav {
+        order: 3;
+      }
+
+      .sort-bar {
+        position: static;
+        margin-top: 32px;
       }
     }
   </style>
 </head>
 <body>
-  <header>
-    <div class="top-row">
+  <div class="stage" aria-hidden="false">
+    <div class="glow-layer" id="glowLayer"></div>
+    <div class="label-layer" id="labelLayer" aria-hidden="true"></div>
+    <div class="tool-layer" id="toolLayer" aria-live="polite"></div>
+  </div>
+
+  <div class="site-shell">
+    <header class="site-header">
       <div class="brand">
-        <span>Experimental tools by Arlo Robbins</span>
-        <h1>ArloTools</h1>
+        <a href="index.html" aria-label="ArloTools home">
+          <img src="ArloTools nucourier.svg" alt="ArloTools" class="brand-logo" loading="lazy">
+        </a>
+        <p class="descriptor">A CATALOG OF EXPERIMENTAL ART TOOLS BY ARLO ROBBINS</p>
       </div>
-      <nav>
-        <a href="index.html" aria-current="page">Home</a>
+      <nav class="site-nav" aria-label="Site">
         <a href="about.html">About</a>
-        <a href="toolspage.html">Full Library</a>
+        <a href="toolspage.html">Full List</a>
       </nav>
-    </div>
-    <p class="hero">
-      Explore a constellation of creative experiments. Every tool is a self-contained portal—hover to pause its orbit, watch a live demo, and dive straight into the experience. Use the sorters to coax the swarm into thematic clusters.
-    </p>
-    <div class="controls" role="group" aria-label="Sort tools">
-      <button class="sort-button active" data-group="orbit">Free Orbit</button>
-      <button class="sort-button" data-group="medium">Sort by Medium</button>
-      <button class="sort-button" data-group="experience">Sort by Experience</button>
-    </div>
-  </header>
-  <main>
-    <section class="scene-wrapper" aria-label="Floating tool gallery">
-      <div class="space" id="space" data-mode="orbit">
-        <div id="cluster-labels" aria-hidden="true"></div>
-      </div>
-    </section>
-  </main>
-  <footer>
-    <span>© 2025 Arlo Robbins — Built for curiosity.</span>
-    <span>Hover to preview • Click to launch • Sort to regroup.</span>
-  </footer>
+    </header>
+  </div>
+
+  <div class="sort-bar" role="group" aria-label="Sort tools">
+    <span>SORT BY:</span>
+    <button class="sort-button" type="button" data-mode="medium">Medium</button>
+    <button class="sort-button" type="button" data-mode="experience">Experience</button>
+  </div>
 
   <script>
     const toolData = [
       {
         name: 'Archive Roulette',
         link: 'toolspage.html?tool=tools/archive_shuffle.html',
-        video: 'videos/Archive Demo.mp4',
-        medium: 'video',
-        experience: 'in-depth'
+        medium: 'TEXT',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Boid Simulator',
         link: 'toolspage.html?tool=tools/boids.html',
-        video: 'videos/boids demo.mp4',
-        medium: 'visual',
-        experience: 'mesmerizing'
+        medium: 'VISUAL',
+        experience: 'MESMERIZING'
       },
       {
         name: 'Border Tool',
         link: 'toolspage.html?tool=tools/medieval_border_generator.html',
-        video: 'videos/border demo.mp4',
-        medium: 'visual',
-        experience: 'practical'
+        medium: 'TEXT',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Chisel Tool',
         link: 'toolspage.html?tool=tools/chisel_pen.html',
-        video: 'videos/chisel demo.mp4',
-        medium: 'visual',
-        experience: 'practical'
+        medium: 'TEXT',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Colorspace Visualizer',
         link: 'toolspage.html?tool=tools/3_d_color_space.html',
-        video: 'videos/colorspace demo.mp4',
-        medium: 'visual',
-        experience: 'mesmerizing'
+        medium: 'VISUAL',
+        experience: 'PLAYFUL'
       },
       {
         name: 'Fractal Explorer',
         link: 'toolspage.html?tool=tools/Fractal_Lab.html',
-        video: 'videos/fractal demo.mp4',
-        medium: 'visual',
-        experience: 'in-depth'
+        medium: 'VISUAL',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Heart Generator',
         link: 'toolspage.html?tool=tools/I_<3_WIKI.html',
-        video: 'videos/heart demo.mp4',
-        medium: 'visual',
-        experience: 'playful'
+        medium: 'TEXT',
+        experience: 'PLAYFUL'
       },
       {
         name: 'Game of Life Variations',
         link: 'toolspage.html?tool=tools/graded_game_of_life.html',
-        video: 'videos/life demo.mp4',
-        medium: 'visual',
-        experience: 'in-depth'
+        medium: 'VISUAL',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Lissajous Visualizer',
         link: 'toolspage.html?tool=tools/lissajous_figure_grid.html',
-        video: 'videos/lissajous demo.mp4',
-        medium: 'visual',
-        experience: 'mesmerizing'
+        medium: 'VISUAL',
+        experience: 'PLAYFUL'
       },
       {
         name: 'Modern Grid Generator',
         link: 'toolspage.html?tool=tools/auto_modern_grid_layout.html',
-        video: 'videos/modern grid demo.mp4',
-        medium: 'visual',
-        experience: 'practical'
+        medium: 'TEXT',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Neumes Converter',
         link: 'toolspage.html?tool=tools/midi_→_neumes_converter.html',
-        video: 'videos/neumes demo.mp4',
-        medium: 'audio',
-        experience: 'in-depth'
+        medium: 'AUDIO',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Node Tool',
         link: 'toolspage.html?tool=tools/Node_Net.html',
-        video: 'videos/node demo.mp4',
-        medium: 'visual',
-        experience: 'in-depth'
+        medium: 'TEXT',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Skewer Tool',
         link: 'toolspage.html?tool=tools/GlitchSkewer.html',
-        video: 'videos/skewer demo.mp4',
-        medium: 'video',
-        experience: 'mesmerizing'
+        medium: 'VISUAL',
+        experience: 'MESMERIZING'
       },
       {
         name: 'Spectrogram Collage',
         link: 'toolspage.html?tool=tools/Spectrogram_Collage.html',
-        video: 'videos/spectro collage demo.mp4',
-        medium: 'audio',
-        experience: 'mesmerizing'
+        medium: 'AUDIO',
+        experience: 'MESMERIZING'
       },
       {
         name: 'Spectrogram JPEG Tool',
         link: 'toolspage.html?tool=tools/SpectroJPEG.html',
-        video: 'videos/spectro jpeg demo.mp4',
-        medium: 'audio',
-        experience: 'in-depth'
+        medium: 'AUDIO',
+        experience: 'TECHNICAL'
       },
       {
         name: 'Tiler Tool',
         link: 'toolspage.html?tool=tools/square_tiler.html',
-        video: 'videos/tiler demo.mp4',
-        medium: 'visual',
-        experience: 'practical'
+        medium: 'TEXT',
+        experience: 'PLAYFUL'
       },
       {
         name: 'Tree Generator',
         link: 'toolspage.html?tool=tools/tree_generator.html',
-        video: 'videos/tree demo.mp4',
-        medium: 'visual',
-        experience: 'mesmerizing'
+        medium: 'VISUAL',
+        experience: 'PLAYFUL'
       }
     ];
 
-    const groupLayouts = {
+    const stage = document.querySelector('.stage');
+    const toolLayer = document.getElementById('toolLayer');
+    const labelLayer = document.getElementById('labelLayer');
+    const glowLayer = document.getElementById('glowLayer');
+    const buttons = document.querySelectorAll('.sort-button');
+    const header = document.querySelector('.site-header');
+
+    const entries = [];
+    const BASE_FLOAT = { min: 12, max: 26 };
+    const GROUP_SCALE = 0.78;
+
+    const MODE_SETTINGS = {
+      all: {
+        glows: [
+          { x: 0.35, y: 0.55, size: 520, color: 'rgba(255, 160, 184, 0.35)' },
+          { x: 0.58, y: 0.35, size: 460, color: 'rgba(170, 207, 255, 0.35)' },
+          { x: 0.52, y: 0.7, size: 520, color: 'rgba(220, 255, 170, 0.3)' },
+          { x: 0.72, y: 0.52, size: 480, color: 'rgba(255, 214, 170, 0.32)' }
+        ]
+      },
       medium: {
-        audio: { x: -280, y: -40, z: -140 },
-        video: { x: 280, y: -10, z: -120 },
-        visual: { x: 0, y: 100, z: 40 }
+        order: ['AUDIO', 'VISUAL', 'TEXT'],
+        glows: {
+          AUDIO: { x: 0.28, y: 0.58, size: 480, color: 'rgba(255, 154, 169, 0.38)' },
+          VISUAL: { x: 0.7, y: 0.42, size: 500, color: 'rgba(171, 210, 255, 0.38)' },
+          TEXT: { x: 0.7, y: 0.72, size: 460, color: 'rgba(215, 255, 186, 0.34)' }
+        }
       },
       experience: {
-        mesmerizing: { x: -320, y: 50, z: -60 },
-        'in-depth': { x: 0, y: -60, z: -200 },
-        playful: { x: 320, y: 90, z: -40 },
-        practical: { x: 0, y: 140, z: 80 }
+        order: ['TECHNICAL', 'PLAYFUL', 'MESMERIZING'],
+        glows: {
+          TECHNICAL: { x: 0.32, y: 0.38, size: 520, color: 'rgba(255, 154, 169, 0.36)' },
+          PLAYFUL: { x: 0.32, y: 0.7, size: 460, color: 'rgba(215, 255, 186, 0.32)' },
+          MESMERIZING: { x: 0.72, y: 0.5, size: 520, color: 'rgba(171, 210, 255, 0.4)' }
+        }
       }
     };
 
-    const space = document.getElementById('space');
-    const clusterLabels = document.getElementById('cluster-labels');
-    const buttonEls = document.querySelectorAll('.sort-button');
+    function createToolCards() {
+      toolData.forEach((tool) => {
+        const el = document.createElement('a');
+        el.className = 'tool-card';
+        el.href = tool.link;
+        el.textContent = tool.name;
+        el.setAttribute('data-medium', tool.medium);
+        el.setAttribute('data-experience', tool.experience);
+        el.setAttribute('title', `${tool.name} — ${tool.medium} · ${tool.experience}`);
+        toolLayer.appendChild(el);
 
-    const orbitEntries = [];
-    const baseTransform = 'translate3d(-50%, -50%, 0) ';
+        entries.push({
+          data: tool,
+          element: el,
+          width: 0,
+          height: 0,
+          angle: Math.random() * Math.PI * 2,
+          speed: 0.00012 + Math.random() * 0.00008,
+          targetX: window.innerWidth / 2,
+          targetY: window.innerHeight / 2,
+          displayX: window.innerWidth / 2,
+          displayY: window.innerHeight / 2,
+          targetScale: 1,
+          scale: 1,
+          targetFloat: BASE_FLOAT.min,
+          currentFloat: BASE_FLOAT.min
+        });
+      });
+    }
 
-    toolData.forEach((tool, index) => {
-      const frame = document.createElement('a');
-      frame.className = 'tool-frame';
-      frame.href = tool.link;
-      frame.dataset.medium = tool.medium;
-      frame.dataset.experience = tool.experience;
-      frame.setAttribute('aria-label', `${tool.name} — ${tool.medium} / ${tool.experience}`);
+    function measureCards() {
+      entries.forEach((entry) => {
+        const rect = entry.element.getBoundingClientRect();
+        entry.width = rect.width;
+        entry.height = rect.height;
+      });
+    }
 
-      const info = document.createElement('div');
-      info.className = 'frame-info';
-      info.innerHTML = `
-        <h2>${tool.name}</h2>
-        <span>${tool.medium.toUpperCase()} • ${tool.experience.toUpperCase()}</span>
-      `;
+    function getBounds(scale = 1) {
+      const headerRect = header.getBoundingClientRect();
+      const topPadding = headerRect.bottom + 40;
+      const bottomPadding = 120;
+      const sidePadding = 120;
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const sample = entries[0];
+      const cardWidth = (sample?.width || 200) * scale;
+      const cardHeight = (sample?.height || 140) * scale;
 
-      const video = document.createElement('video');
-      video.src = tool.video;
-      video.muted = true;
-      video.playsInline = true;
-      video.loop = true;
-      video.preload = 'metadata';
-
-      frame.appendChild(info);
-      frame.appendChild(video);
-      space.appendChild(frame);
-
-      const entry = {
-        element: frame,
-        video,
-        data: tool,
-        angle: (index / toolData.length) * Math.PI * 2,
-        radius: 240 + Math.random() * 220,
-        elevation: -60 + Math.random() * 140,
-        speed: 0.00025 + Math.random() * 0.00045,
-        wobble: Math.random() * Math.PI * 2,
-        isFrozen: false
+      return {
+        minX: sidePadding + cardWidth / 2,
+        maxX: Math.max(sidePadding + cardWidth / 2, width - sidePadding - cardWidth / 2),
+        minY: topPadding + cardHeight / 2,
+        maxY: Math.max(topPadding + cardHeight / 2, height - bottomPadding - cardHeight / 2)
       };
+    }
 
-      const startX = Math.cos(entry.angle) * entry.radius;
-      const startZ = Math.sin(entry.angle) * entry.radius;
-      frame.style.transform = `${baseTransform} translate3d(${startX}px, ${entry.elevation}px, ${startZ}px) rotateY(${-entry.angle * (180 / Math.PI) + 90}deg)`;
+    function clamp(value, min, max) {
+      return Math.max(min, Math.min(max, value));
+    }
 
-      frame.addEventListener('mouseenter', () => {
-        entry.isFrozen = true;
-        frame.classList.add('is-hovered');
-        video.currentTime = 0;
-        const playPromise = video.play();
-        if (playPromise) {
-          playPromise.catch(() => {});
+    function renderGlows(defs) {
+      glowLayer.innerHTML = '';
+      defs.forEach((def) => {
+        const el = document.createElement('div');
+        el.className = 'glow';
+        el.style.width = `${def.size}px`;
+        el.style.height = `${def.size}px`;
+        el.style.left = `${def.x * 100}%`;
+        el.style.top = `${def.y * 100}%`;
+        el.style.transform = 'translate(-50%, -50%)';
+        el.style.background = `radial-gradient(circle at center, ${def.color} 0%, rgba(255, 255, 255, 0) 72%)`;
+        glowLayer.appendChild(el);
+      });
+    }
+
+    function layoutAll() {
+      labelLayer.innerHTML = '';
+      renderGlows(MODE_SETTINGS.all.glows);
+
+      const bounds = getBounds();
+      const placements = [];
+      const attemptsPerCard = 260;
+      const spacingFloor = Math.max((entries[0]?.width || 200) * 0.82, 140);
+
+      entries.forEach((entry) => {
+        let best = {
+          x: (bounds.minX + bounds.maxX) / 2,
+          y: (bounds.minY + bounds.maxY) / 2,
+          distance: 0
+        };
+
+        for (let attempt = 0; attempt < attemptsPerCard; attempt += 1) {
+          const x = bounds.minX + Math.random() * (bounds.maxX - bounds.minX);
+          const y = bounds.minY + Math.random() * (bounds.maxY - bounds.minY);
+          const distance = placements.reduce((min, pt) => {
+            const dx = pt.x - x;
+            const dy = pt.y - y;
+            return Math.min(min, Math.hypot(dx, dy));
+          }, Number.POSITIVE_INFINITY);
+
+          if (distance > best.distance) {
+            best = { x, y, distance };
+          }
+
+          if (distance >= spacingFloor) {
+            best = { x, y, distance };
+            break;
+          }
         }
+
+        placements.push({ x: best.x, y: best.y });
+        entry.targetX = best.x;
+        entry.targetY = best.y;
+        entry.targetScale = 1;
+        entry.targetFloat = BASE_FLOAT.min + Math.random() * (BASE_FLOAT.max - BASE_FLOAT.min);
+      });
+    }
+
+    function renderLabels(mode) {
+      labelLayer.innerHTML = '';
+      const settings = MODE_SETTINGS[mode];
+      settings.order.forEach((name) => {
+        const label = document.createElement('div');
+        label.className = 'cluster-label';
+        label.textContent = name;
+        const cluster = settings.glows[name];
+        const bounds = getBounds(GROUP_SCALE);
+        const x = clamp(cluster.x * window.innerWidth, bounds.minX, bounds.maxX);
+        const y = clamp(cluster.y * window.innerHeight, bounds.minY, bounds.maxY);
+        label.style.left = `${x}px`;
+        label.style.top = `${y - 120}px`;
+        labelLayer.appendChild(label);
+      });
+    }
+
+    function layoutGrouped(mode) {
+      const settings = MODE_SETTINGS[mode];
+      const groups = new Map();
+      entries.forEach((entry) => {
+        const key = mode === 'medium' ? entry.data.medium : entry.data.experience;
+        if (!groups.has(key)) {
+          groups.set(key, []);
+        }
+        groups.get(key).push(entry);
       });
 
-      frame.addEventListener('mouseleave', () => {
-        entry.isFrozen = false;
-        frame.classList.remove('is-hovered');
-        video.pause();
-        video.currentTime = 0;
+      const glows = settings.order.map((key) => settings.glows[key]);
+      renderGlows(glows);
+      renderLabels(mode);
+
+      const bounds = getBounds(GROUP_SCALE);
+      const spacingX = (entries[0]?.width || 200) * GROUP_SCALE * 1.15;
+      const spacingY = (entries[0]?.height || 140) * GROUP_SCALE * 1.2;
+
+      settings.order.forEach((key) => {
+        const members = groups.get(key) || [];
+        const cluster = settings.glows[key];
+        const centerX = clamp(cluster.x * window.innerWidth, bounds.minX, bounds.maxX);
+        const centerY = clamp(cluster.y * window.innerHeight, bounds.minY, bounds.maxY);
+        const columns = Math.max(1, Math.ceil(Math.sqrt(members.length)));
+        const rows = Math.max(1, Math.ceil(members.length / columns));
+
+        members.forEach((entry, index) => {
+          const row = Math.floor(index / columns);
+          const col = index % columns;
+          const offsetX = (col - (columns - 1) / 2) * spacingX + (Math.random() - 0.5) * 24;
+          const offsetY = (row - (rows - 1) / 2) * spacingY + (Math.random() - 0.5) * 24;
+          const targetX = clamp(centerX + offsetX, bounds.minX, bounds.maxX);
+          const targetY = clamp(centerY + offsetY, bounds.minY, bounds.maxY);
+
+          entry.targetX = targetX;
+          entry.targetY = targetY;
+          entry.targetScale = GROUP_SCALE;
+          entry.targetFloat = 6 + Math.random() * 6;
+        });
       });
+    }
 
-      orbitEntries.push(entry);
-    });
-
-    let currentMode = 'orbit';
+    let mode = 'all';
     let lastTime = performance.now();
 
     function animate(time) {
       const delta = time - lastTime;
       lastTime = time;
+      entries.forEach((entry) => {
+        entry.angle += entry.speed * delta;
+        entry.currentFloat += (entry.targetFloat - entry.currentFloat) * 0.12;
+        entry.scale += (entry.targetScale - entry.scale) * 0.14;
+        entry.displayX += (entry.targetX - entry.displayX) * 0.12;
+        entry.displayY += (entry.targetY - entry.displayY) * 0.12;
 
-      if (currentMode === 'orbit') {
-        orbitEntries.forEach((entry) => {
-          if (!entry.isFrozen) {
-            entry.angle += entry.speed * delta;
-          }
-          const wobbleY = Math.sin(time * 0.001 + entry.wobble) * 28;
-          const wobbleZ = Math.cos(time * 0.0012 + entry.wobble) * 18;
+        const offsetX = Math.cos(entry.angle) * entry.currentFloat;
+        const offsetY = Math.sin(entry.angle * 1.1) * entry.currentFloat;
+        const finalX = entry.displayX + offsetX;
+        const finalY = entry.displayY + offsetY;
 
-          const x = Math.cos(entry.angle) * entry.radius;
-          const z = Math.sin(entry.angle) * entry.radius + wobbleZ;
-          const y = entry.elevation + wobbleY;
-
-          const facing = -entry.angle * (180 / Math.PI) + 90;
-          entry.element.style.transform = `${baseTransform} translate3d(${x}px, ${y}px, ${z}px) rotateY(${facing}deg)`;
-        });
-      }
-
+        entry.element.style.left = `${finalX}px`;
+        entry.element.style.top = `${finalY}px`;
+        entry.element.style.transform = `translate(-50%, -50%) scale(${entry.scale})`;
+      });
       requestAnimationFrame(animate);
     }
 
-    requestAnimationFrame(animate);
-
-    function setMode(mode) {
-      if (mode === currentMode) return;
-      currentMode = mode;
-      space.dataset.mode = mode === 'orbit' ? 'orbit' : 'group';
-
-      if (mode === 'orbit') {
-        clusterLabels.innerHTML = '';
-        orbitEntries.forEach((entry, index) => {
-          entry.isFrozen = false;
-          entry.element.classList.remove('grouped');
-          entry.element.style.transform = `${baseTransform} translate3d(${Math.cos(entry.angle) * entry.radius}px, ${entry.elevation}px, ${Math.sin(entry.angle) * entry.radius}px) rotateY(${-entry.angle * (180 / Math.PI) + 90}deg)`;
-        });
+    function setMode(next) {
+      if (mode === next) {
+        mode = 'all';
+        buttons.forEach((btn) => btn.dataset.active = 'false');
+        layoutAll();
         return;
       }
 
-      const layout = groupLayouts[mode];
-      clusterLabels.innerHTML = '';
-      const grouped = {};
-
-      orbitEntries.forEach((entry) => {
-        const bucket = entry.data[mode];
-        if (!layout[bucket]) return;
-        if (!grouped[bucket]) {
-          grouped[bucket] = [];
-        }
-        grouped[bucket].push(entry);
+      mode = next;
+      buttons.forEach((btn) => {
+        const active = btn.dataset.mode === mode;
+        btn.dataset.active = active ? 'true' : 'false';
       });
 
-      Object.entries(layout).forEach(([bucket, anchor]) => {
-        if (!grouped[bucket] || grouped[bucket].length === 0) return;
-        const label = document.createElement('div');
-        label.className = 'cluster-label';
-        label.textContent = bucket.toUpperCase();
-        label.style.transform = `${baseTransform} translate3d(${anchor.x}px, ${anchor.y - 120}px, ${anchor.z}px)`;
-        clusterLabels.appendChild(label);
-      });
-
-      Object.entries(grouped).forEach(([bucket, members]) => {
-        const anchor = layout[bucket];
-        members.forEach((entry, index) => {
-          const ring = Math.floor(index / 6);
-          const slot = index % 6;
-          const radius = 70 + ring * 70;
-          const theta = (slot / 6) * Math.PI * 2;
-          const localX = Math.cos(theta) * radius;
-          const localZ = Math.sin(theta) * radius;
-          const localY = ring * 45;
-
-          const targetX = anchor.x + localX;
-          const targetY = anchor.y + localY;
-          const targetZ = anchor.z + localZ;
-
-          entry.element.classList.add('grouped');
-          entry.element.style.transform = `${baseTransform} translate3d(${targetX}px, ${targetY}px, ${targetZ}px) rotateY(0deg)`;
-        });
-      });
+      if (mode === 'medium' || mode === 'experience') {
+        layoutGrouped(mode);
+      } else {
+        layoutAll();
+      }
     }
 
-    buttonEls.forEach((button) => {
+    buttons.forEach((button) => {
+      button.dataset.active = 'false';
       button.addEventListener('click', () => {
-        buttonEls.forEach((btn) => btn.classList.remove('active'));
-        button.classList.add('active');
-        const group = button.dataset.group;
-        if (group === 'orbit') {
-          setMode('orbit');
-        } else {
-          setMode(group);
-        }
+        const selected = button.dataset.mode;
+        setMode(selected);
       });
     });
+
+    window.addEventListener('resize', () => {
+      measureCards();
+      if (mode === 'medium' || mode === 'experience') {
+        layoutGrouped(mode);
+      } else {
+        layoutAll();
+      }
+    });
+
+    createToolCards();
+    measureCards();
+    layoutAll();
+    requestAnimationFrame(animate);
   </script>
 </body>
 </html>
