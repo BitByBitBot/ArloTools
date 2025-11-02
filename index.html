@@ -83,7 +83,7 @@
     .brand h1 {
       margin: 0;
       font-size: clamp(2.4rem, 8vw, 4.6rem);
-      line-height: 1;
+      line-height: 2;
       font-family: 'FaceOff', 'Helvetica Neue', sans-serif;
       letter-spacing: 0.1em;
     }
@@ -547,6 +547,12 @@
       return { laneCount, radiusMax, radiusStep, minRadius, elevationSpread };
     }
 
+    const elevationPattern = [-120, -60, 0, 60, 120];
+    const radiusBase = 220;
+    const radiusStep = 34;
+    const speedBase = 0.00018;
+    const speedStep = 0.00003;
+
     toolData.forEach((tool, index) => {
       const frame = document.createElement('a');
       frame.className = 'tool-frame';
@@ -572,6 +578,13 @@
       frame.appendChild(info);
       frame.appendChild(video);
       space.appendChild(frame);
+
+      const radius = radiusBase + index * radiusStep;
+      const elevation = elevationPattern[index % elevationPattern.length];
+      const speed = speedBase + (index % 7) * speedStep;
+      const wobblePhase = index * 0.45;
+      const wobbleYRange = 12 + (index % 4) * 3;
+      const wobbleZRange = 8 + ((index + 2) % 4) * 2;
 
       const entry = {
         element: frame,
