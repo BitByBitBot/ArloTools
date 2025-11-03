@@ -178,6 +178,10 @@
       transform-style: preserve-3d;
     }
 
+    .tool-card.is-hovered {
+      box-shadow: 16px 16px 0 rgba(0, 0, 0, 0.24);
+    }
+
     .tool-card:focus-visible {
       outline: 2px solid #d40000;
       outline-offset: 4px;
@@ -514,6 +518,9 @@
         toolLayer.appendChild(el);
 
         const initialDepth = 260 + Math.random() * 160;
+        const orbitIndex = entries.length;
+        const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+        const normalizedIndex = (orbitIndex + 0.5) / toolData.length;
         const entry = {
           data: tool,
           element: el,
@@ -523,6 +530,8 @@
           speed: 0.00012 + Math.random() * 0.00008,
           depthAngle: Math.random() * Math.PI * 2,
           depthSpeed: 0.00016 + Math.random() * 0.0001,
+          verticalAngle: Math.random() * Math.PI * 2,
+          verticalSpeed: 0.00018 + Math.random() * 0.00012,
           targetX: window.innerWidth / 2,
           targetY: window.innerHeight / 2,
           displayX: window.innerWidth / 2,
@@ -533,15 +542,26 @@
           currentFloat: BASE_FLOAT.min,
           targetDepth: initialDepth,
           depth: initialDepth,
-          paused: false
+          paused: false,
+          hovered: false,
+          orbitPhase: orbitIndex * goldenAngle,
+          orbitInclination: (normalizedIndex - 0.5) * 1.1,
+          orbitRadiusBias: 0.86 + (orbitIndex % 5) * 0.12,
+          orbitAltitude: (orbitIndex - (toolData.length - 1) / 2) * 28,
+          verticalPhase: Math.random() * Math.PI * 2,
+          verticalBias: 0.6 + ((orbitIndex * 1.37) % 1) * 0.6
         };
 
         el.addEventListener('mouseenter', () => {
           entry.paused = true;
+          entry.hovered = true;
+          entry.element.classList.add('is-hovered');
         });
 
         el.addEventListener('mouseleave', () => {
           entry.paused = false;
+          entry.hovered = false;
+          entry.element.classList.remove('is-hovered');
         });
 
         entries.push(entry);
@@ -709,6 +729,7 @@
         if (!entry.paused) {
           entry.angle += entry.speed * delta;
           entry.depthAngle += entry.depthSpeed * delta;
+          entry.verticalAngle += entry.verticalSpeed * delta;
         }
 
         entry.currentFloat += (entry.targetFloat - entry.currentFloat) * 0.12;
@@ -717,22 +738,31 @@
         entry.displayX += (entry.targetX - entry.displayX) * 0.12;
         entry.displayY += (entry.targetY - entry.displayY) * 0.12;
 
-        const orbit = entry.currentFloat;
-        const offsetX = Math.cos(entry.angle) * orbit * 5.6;
-        const offsetY = Math.sin(entry.angle * 0.85) * orbit * 3.4;
-        const rawZ = Math.sin(entry.depthAngle) * entry.depth;
+        const orbitRadius = entry.currentFloat * 11 * entry.orbitRadiusBias;
+        const angle = entry.angle + entry.orbitPhase;
+        const sinAngle = Math.sin(angle);
+        const cosAngle = Math.cos(angle);
+        const sinInc = Math.sin(entry.orbitInclination);
+        const cosInc = Math.cos(entry.orbitInclination);
+        const wave = Math.sin(entry.verticalAngle + entry.verticalPhase);
+
+        const offsetX = cosAngle * orbitRadius;
+        const offsetY = sinAngle * orbitRadius * cosInc + wave * entry.currentFloat * 6 * entry.verticalBias;
+        const rawZ = sinAngle * orbitRadius * sinInc + wave * entry.depth + entry.orbitAltitude;
         const offsetZ = Math.max(-520, Math.min(520, rawZ));
         const finalX = entry.displayX + offsetX;
         const finalY = entry.displayY + offsetY;
 
         const depthScale = 1 + offsetZ / 1100;
-        const tiltX = Math.sin(entry.depthAngle) * 5;
-        const tiltY = Math.cos(entry.angle * 0.6) * 6;
+        const hovered = entry.hovered;
+        const tiltX = hovered ? 0 : Math.sin(entry.verticalAngle) * 6;
+        const tiltY = hovered ? 0 : Math.cos(angle) * 8;
+        const scale = entry.scale * depthScale * (hovered ? 1.04 : 1);
 
         entry.element.style.left = `${finalX}px`;
         entry.element.style.top = `${finalY}px`;
-        entry.element.style.zIndex = `${Math.round(1000 + offsetZ)}`;
-        entry.element.style.transform = `translate3d(-50%, -50%, ${offsetZ}px) scale(${entry.scale * depthScale}) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
+        entry.element.style.zIndex = hovered ? '4000' : `${Math.round(1000 + offsetZ)}`;
+        entry.element.style.transform = `translate3d(-50%, -50%, ${offsetZ}px) scale(${scale}) rotateX(${tiltX}deg) rotateY(${tiltY}deg)`;
       });
       requestAnimationFrame(animate);
     }
