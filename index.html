@@ -154,15 +154,18 @@
     }
 
     .tool-card {
+      /* Base card styles: cards orbit around the scene.  They are wider than
+         tall, semi‑transparent, and have no drop shadows. */
       position: absolute;
       top: 50%;
       left: 50%;
       transform: translate(-50%, -50%);
-      width: clamp(190px, 20vw, 240px);
-      height: clamp(210px, 24vw, 280px);
-      background: #f5f5f5;
-      border: 2px solid #050505;
-      box-shadow: 8px 8px 0 rgba(0, 0, 0, 0.18);
+      width: clamp(200px, 18vw, 240px);
+      height: clamp(150px, 14vw, 180px);
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid #050505;
+      /* Remove any box‑shadow so cards have clean edges. */
+      box-shadow: none;
       display: flex;
       flex-direction: column;
       text-align: left;
@@ -172,15 +175,17 @@
       letter-spacing: 0.05em;
       text-transform: uppercase;
       line-height: 1.3;
-      transition: box-shadow 0.2s ease;
+      transition: border-color 0.2s ease, opacity 0.2s ease;
       will-change: transform;
       overflow: hidden;
       transform-style: preserve-3d;
-      backface-visibility: hidden;
+      backface-visibility: visible;
+      pointer-events: auto;
     }
 
+    /* When a card is hovered, subtly change the border colour to draw focus. */
     .tool-card.is-hovered {
-      box-shadow: 16px 16px 0 rgba(0, 0, 0, 0.24);
+      border-color: #d40000;
     }
 
     .tool-card:focus-visible {
@@ -188,8 +193,9 @@
       outline-offset: 4px;
     }
 
+    /* Remove hover shadow entirely – focus is handled in JS */
     .tool-card:hover {
-      box-shadow: 12px 12px 0 rgba(0, 0, 0, 0.22);
+      border-color: #d40000;
     }
 
     .tool-media {
@@ -458,7 +464,9 @@
 
     const entries = [];
     const BASE_FLOAT = { min: 14, max: 28 };
-    const GROUP_SCALE = 0.78;
+    // When grouping tools by medium or experience, shrink them so clusters fit
+    // comfortably without overlapping.  A smaller value yields tighter clusters.
+    const GROUP_SCALE = 0.55;
 
     const MODE_SETTINGS = {
       all: {
@@ -518,57 +526,52 @@
         el.appendChild(title);
         toolLayer.appendChild(el);
 
+        // Each entry controls a single floating card.  We intentionally keep
+        // movement parameters simple: cards orbit horizontally around the Y
+        // axis, spinning only around their vertical axis.  Additional fields
+        // needed for random inclination/tilt/roll have been removed to avoid
+        // unwanted rotations and to keep the animation predictable.
         const initialDepth = 260 + Math.random() * 160;
         const orbitIndex = entries.length;
         const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-        const normalizedIndex = (orbitIndex + 0.5) / toolData.length;
         const entry = {
           data: tool,
           element: el,
           width: 0,
           height: 0,
+          // Angle around the Y axis for orbital motion
           angle: Math.random() * Math.PI * 2,
+          // Orbital speed (radians per ms)
           speed: 0.00012 + Math.random() * 0.00008,
-          depthAngle: Math.random() * Math.PI * 2,
-          depthSpeed: 0.00016 + Math.random() * 0.0001,
-          verticalAngle: Math.random() * Math.PI * 2,
-          verticalSpeed: 0.00018 + Math.random() * 0.00012,
+          // Baseline X and Y coordinates the orbit is centered on
           targetX: window.innerWidth / 2,
           targetY: window.innerHeight / 2,
           displayX: window.innerWidth / 2,
           displayY: window.innerHeight / 2,
+          // Scaling and float animation values
           targetScale: 1,
           scale: 1,
           targetFloat: BASE_FLOAT.min,
           currentFloat: BASE_FLOAT.min,
+          // Depth for perspective (unused for orbital placement)
           targetDepth: initialDepth,
           depth: initialDepth,
+          // Interaction flags
           paused: false,
           hovered: false,
+          // Each card is offset by a golden angle to distribute orbits evenly
           orbitPhase: orbitIndex * goldenAngle,
-          orbitInclination: (normalizedIndex - 0.5) * 1.1,
-          orbitRadiusBias: 0.86 + (orbitIndex % 5) * 0.12,
-          orbitAltitude: (orbitIndex - (toolData.length - 1) / 2) * 28,
-          verticalPhase: Math.random() * Math.PI * 2,
-          verticalBias: 0.6 + ((orbitIndex * 1.37) % 1) * 0.6,
-          rotationX: 0,
+          // These will be computed in updateOrbitParams()
+          orbitRadius: 100,
+          orbitAltitude: 0,
+          // Rotation values around axes
           rotationY: 0,
-          rotationZ: 0,
+          // Spin state for rotation around Y
           spinAngle: Math.random() * Math.PI * 2,
           spinSpeed: 0.00016 + Math.random() * 0.00014,
-          spinRange: 55 + Math.random() * 55,
-          spinOffset: (Math.random() - 0.5) * 24,
-          tiltAngle: Math.random() * Math.PI * 2,
-          tiltSpeed: 0.00012 + Math.random() * 0.0001,
-          tiltRange: 10 + Math.random() * 14,
-          rollAngle: Math.random() * Math.PI * 2,
-          rollSpeed: 0.00018 + Math.random() * 0.00012,
-          rollRange: 4 + Math.random() * 8
+          spinRange: 40 + Math.random() * 30,
+          spinOffset: (Math.random() - 0.5) * 12
         };
-
-        entry.rotationX = Math.sin(entry.tiltAngle) * entry.tiltRange;
-        entry.rotationY = Math.sin(entry.spinAngle) * entry.spinRange + entry.spinOffset;
-        entry.rotationZ = Math.sin(entry.rollAngle) * entry.rollRange;
 
         el.addEventListener('mouseenter', () => {
           entry.paused = true;
@@ -591,6 +594,30 @@
         const rect = entry.element.getBoundingClientRect();
         entry.width = rect.width;
         entry.height = rect.height;
+      });
+    }
+
+    // Assign radii and altitudes for each tool's orbit.  The radius spacing
+    // scales with the viewport size to keep the cards visible and prevent
+    // intersections.  Altitudes distribute the cards vertically to further
+    // reduce overlap.  This function should be called after cards are
+    // measured and whenever the viewport size changes.
+    function updateOrbitParams() {
+      const total = entries.length;
+      if (total === 0) return;
+      // Maximum radius is a fraction of the smaller viewport dimension so
+      // orbits remain inside the screen.
+      // Increase the maximum radius slightly so that cards orbit further from the
+      // center, reducing overlap.  Cap at 40% of the smaller dimension.
+      const maxRadius = Math.min(window.innerWidth, window.innerHeight) * 0.45;
+      const radiusStep = maxRadius / (total + 1);
+      // Spread cards vertically across roughly one‑third of the viewport height.
+      // Cap the total range so cards don't leave the screen.
+      const altRange = Math.min(window.innerHeight * 0.4, 450);
+      const altStep = altRange / (total + 1);
+      entries.forEach((entry, index) => {
+        entry.orbitRadius = radiusStep * (index + 1);
+        entry.orbitAltitude = -altRange / 2 + altStep * (index + 1);
       });
     }
 
@@ -744,58 +771,128 @@
     function animate(time) {
       const delta = time - lastTime;
       lastTime = time;
+      const positions = [];
+
+      // First update each entry's internal state and compute its tentative
+      // position, scale and rotation.  These positions will later be
+      // adjusted to avoid overlapping cards.
       entries.forEach((entry) => {
+        // Advance orbital angle if not paused (hovering pauses motion).
         if (!entry.paused) {
-          entry.angle += entry.speed * delta;
-          entry.depthAngle += entry.depthSpeed * delta;
-          entry.verticalAngle += entry.verticalSpeed * delta;
+          entry.angle = (entry.angle + entry.speed * delta) % TAU;
         }
 
+        // Advance the spin (rotation about Y) only when not hovered.  When
+        // hovered, cards smoothly rotate to face the viewer.
         if (!entry.hovered) {
           entry.spinAngle = (entry.spinAngle + entry.spinSpeed * delta) % TAU;
-          entry.tiltAngle = (entry.tiltAngle + entry.tiltSpeed * delta) % TAU;
-          entry.rollAngle = (entry.rollAngle + entry.rollSpeed * delta) % TAU;
         }
 
+        // Interpolate towards target values for floating, depth, scale and
+        // baseline positions (these targets are set by layoutAll/grouped).
         entry.currentFloat += (entry.targetFloat - entry.currentFloat) * 0.12;
         entry.depth += (entry.targetDepth - entry.depth) * 0.12;
         entry.scale += (entry.targetScale - entry.scale) * 0.14;
         entry.displayX += (entry.targetX - entry.displayX) * 0.12;
         entry.displayY += (entry.targetY - entry.displayY) * 0.12;
 
-        const orbitRadius = entry.currentFloat * 11 * entry.orbitRadiusBias;
-        const angle = entry.angle + entry.orbitPhase;
-        const sinAngle = Math.sin(angle);
-        const cosAngle = Math.cos(angle);
-        const sinInc = Math.sin(entry.orbitInclination);
-        const cosInc = Math.cos(entry.orbitInclination);
-        const wave = Math.sin(entry.verticalAngle + entry.verticalPhase);
+        // Calculate orbital offsets.  Each card has a fixed radius and
+        // altitude computed in updateOrbitParams().  OrbitPhase spreads
+        // entries around a circle.
+        const radius = entry.orbitRadius || 0;
+        const a = entry.angle + entry.orbitPhase;
+        const offsetX = Math.cos(a) * radius;
+        const offsetZ = Math.sin(a) * radius;
+        const offsetY = entry.orbitAltitude || 0;
+        // Base position derived from the layout target plus orbital offsets.
+        const tentativeX = entry.displayX + offsetX;
+        const tentativeY = entry.displayY + offsetY;
 
-        const offsetX = cosAngle * orbitRadius;
-        const offsetY = sinAngle * orbitRadius * cosInc + wave * entry.currentFloat * 6 * entry.verticalBias;
-        const rawZ = sinAngle * orbitRadius * sinInc + wave * entry.depth + entry.orbitAltitude;
-        const offsetZ = Math.max(-520, Math.min(520, rawZ));
-        const finalX = entry.displayX + offsetX;
-        const finalY = entry.displayY + offsetY;
-
-        const depthScale = 1 + offsetZ / 1100;
+        // Depth scaling to simulate perspective: cards slightly grow or
+        // shrink as they move closer/farther in the Z axis.
+        const depthScale = 1 + offsetZ / 1500;
         const hovered = entry.hovered;
-        const heading = hovered ? 0 : Math.atan2(offsetX, Math.max(40, orbitRadius)) * (180 / Math.PI) * 0.4;
-        const lift = hovered ? 0 : Math.atan2(offsetY, Math.max(80, orbitRadius)) * (180 / Math.PI) * 0.3;
-        const targetRotationX = hovered ? 0 : (Math.sin(entry.tiltAngle) * entry.tiltRange + lift);
-        const targetRotationY = hovered ? 0 : (Math.sin(entry.spinAngle) * entry.spinRange + entry.spinOffset + heading);
-        const targetRotationZ = hovered ? 0 : Math.sin(entry.rollAngle) * entry.rollRange;
-        const lerpStrength = hovered ? 0.24 : 0.12;
-        entry.rotationX += (targetRotationX - entry.rotationX) * lerpStrength;
-        entry.rotationY += (targetRotationY - entry.rotationY) * lerpStrength;
-        entry.rotationZ += (targetRotationZ - entry.rotationZ) * lerpStrength;
-        const scale = entry.scale * depthScale * (hovered ? 1.05 : 1);
 
-        entry.element.style.left = `${finalX}px`;
-        entry.element.style.top = `${finalY}px`;
-        entry.element.style.zIndex = hovered ? '4000' : `${Math.round(1000 + offsetZ)}`;
-        entry.element.style.transform = `translate3d(-50%, -50%, ${offsetZ}px) rotateX(${entry.rotationX}deg) rotateY(${entry.rotationY}deg) rotateZ(${entry.rotationZ}deg) scale(${scale})`;
+        // Determine the desired rotation around the Y axis.  When hovered,
+        // cards rotate to face forward (0deg).  Otherwise they spin within a
+        // limited range defined per card.
+        const targetRotationY = hovered ? 0 : (Math.sin(entry.spinAngle) * entry.spinRange + entry.spinOffset);
+        const lerpStrength = hovered ? 0.24 : 0.12;
+        entry.rotationY += (targetRotationY - entry.rotationY) * lerpStrength;
+
+        // Calculate a provisional scale.  Hovered cards scale up more to
+        // emphasise focus, but never become excessively large or small.
+        let scaleVal = entry.scale * depthScale * (hovered ? 1.35 : 1);
+        scaleVal = Math.max(0.45, Math.min(scaleVal, 1.0));
+
+        positions.push({
+          entry,
+          x: tentativeX,
+          y: tentativeY,
+          z: offsetZ,
+          rotationY: entry.rotationY,
+          scaleVal
+        });
       });
+
+      // Simple repulsion: iterate over pairs of cards and gently push
+      // overlapping cards away from each other.  To improve separation
+      // stability, perform two passes over the list.  The threshold distance
+      // is based on the larger dimension of each card.
+      for (let pass = 0; pass < 2; pass++) {
+        for (let i = 0; i < positions.length; i++) {
+          for (let j = i + 1; j < positions.length; j++) {
+            const a = positions[i];
+            const b = positions[j];
+            let dx = b.x - a.x;
+            let dy = b.y - a.y;
+            const dist = Math.hypot(dx, dy);
+            // Determine a minimum separation based on the average of both
+            // cards' widths and heights.  Use the larger of the two to
+            // approximate the card's diagonal footprint.  Multiply by a factor
+            // slightly less than one to allow a hint of overlap while still
+            // preserving separation.
+            const avgWidth = ((a.entry.width * a.scaleVal) + (b.entry.width * b.scaleVal)) * 0.5;
+            const avgHeight = ((a.entry.height * a.scaleVal) + (b.entry.height * b.scaleVal)) * 0.5;
+            const diag = Math.max(avgWidth, avgHeight);
+            // Require almost the full diagonal distance between card centers to
+            // prevent any visual overlap.  Increasing this factor reduces
+            // chances of intersection at the cost of spreading orbits further.
+            const minDist = diag * 1.05;
+            if (dist < minDist && dist > 0.0001) {
+              const overlap = minDist - dist;
+              const shiftX = (dx / dist) * (overlap / 2);
+              const shiftY = (dy / dist) * (overlap / 2);
+              a.x -= shiftX;
+              a.y -= shiftY;
+              b.x += shiftX;
+              b.y += shiftY;
+            } else if (dist === 0) {
+              // If two cards occupy exactly the same position, nudge them in random directions
+              const angle = Math.random() * TAU;
+              const separation = diag * 0.3;
+              const nx = Math.cos(angle) * separation;
+              const ny = Math.sin(angle) * separation;
+              a.x -= nx / 2;
+              a.y -= ny / 2;
+              b.x += nx / 2;
+              b.y += ny / 2;
+            }
+          }
+        }
+      }
+
+      // Apply the final positions, scale and rotation to each element.
+      positions.forEach((pos) => {
+        const { entry, x, y, z, rotationY, scaleVal } = pos;
+        entry.element.style.left = `${x}px`;
+        entry.element.style.top = `${y}px`;
+        // Hovered cards always draw on top of all others.
+        entry.element.style.zIndex = entry.hovered ? '10000' : `${Math.round(1000 + z)}`;
+        entry.element.style.transform =
+          `translate3d(-50%, -50%, ${z}px) rotateY(${rotationY}deg) scale(${scaleVal})`;
+      });
+
       requestAnimationFrame(animate);
     }
 
@@ -830,6 +927,7 @@
 
     window.addEventListener('resize', () => {
       measureCards();
+      updateOrbitParams();
       if (mode === 'medium' || mode === 'experience') {
         layoutGrouped(mode);
       } else {
@@ -839,6 +937,7 @@
 
     createToolCards();
     measureCards();
+    updateOrbitParams();
     layoutAll();
     requestAnimationFrame(animate);
   </script>
