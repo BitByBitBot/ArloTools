@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Random Word Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 40px;
+      background-color: #f7f7f7;
+    }
+    h1 {
+      text-align: center;
+      color: #333;
+    }
+    .container {
+      max-width: 600px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+      box-shadow: 0 0 10px rgba(0, 0, 0, 0.1);
+    }
+    label {
+      display: block;
+      margin-bottom: 8px;
+      font-weight: bold;
+    }
+    input[type="number"] {
+      width: 100%;
+      padding: 8px;
+      margin-bottom: 10px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+    }
+    button {
+      display: inline-block;
+      padding: 10px 20px;
+      margin-top: 10px;
+      font-size: 16px;
+      color: #fff;
+      background-color: #007bff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+    }
+    button:hover {
+      background-color: #0056b3;
+    }
+    #results {
+      margin-top: 20px;
+      font-size: 18px;
+      white-space: pre-wrap;
+    }
+    #uploadLabel {
+      margin-top: 15px;
+      margin-bottom: 5px;
+    }
+    input[type="file"] {
+      margin-bottom: 10px;
+    }
+    .note {
+      margin-top: 15px;
+      font-size: 14px;
+      color: #666;
+    }
+
+    /* Layout wrapper to place the main generator next to the favorites panel */
+    .wrapper {
+      display: flex;
+      align-items: flex-start;
+    }
+
+    /* Styling for the favorites panel on the right */
+    .favorites-panel {
+      margin-left: 30px;
+      border-left: 1px solid #ddd;
+      padding-left: 20px;
+      min-width: 180px;
+    }
+
+    .favorites-panel h2 {
+      margin-top: 0;
+    }
+
+    .favorites-panel ul {
+      list-style: none;
+      padding-left: 0;
+      margin: 0;
+    }
+
+    /* Styling for interactive word elements */
+    .word {
+      cursor: pointer;
+      margin-right: 4px;
+    }
+
+    /* Hover color for non-favorited words */
+    .word:not(.favorited):hover {
+      color: red;
+    }
+
+    /* Hover color for favorited words */
+    .word.favorited:hover {
+      color: green;
+    }
+  </style>
+</head>
+<body>
+  <h1>Random Word Generator</h1>
+  <div class="wrapper">
+    <div class="container">
+    <label for="numWords">Number of words to generate:</label>
+    <input type="number" id="numWords" min="1" max="100" value="5" />
+
+    <label for="maxLength">Maximum word length (letters):</label>
+    <input type="number" id="maxLength" min="3" max="20" value="8" />
+
+    <!-- Output format selector: list of words or arrange as a sentence -->
+    <label for="mode">Output format:</label>
+    <select id="mode">
+      <option value="list">List of words</option>
+      <option value="sentence">Sentence</option>
+    </select>
+
+    <label id="uploadLabel" for="fileInput">Upload custom letter probability JSON (optional):</label>
+    <input type="file" id="fileInput" accept="application/json" />
+
+    <button id="generateBtn">Generate Words</button>
+
+    <div id="results"></div>
+
+    <p class="note">
+      This tool uses a simple Markov chain based on letter bigram probabilities to generate made‑up words. A default
+      probability table derived from a sample dictionary is included. You can upload your own JSON file mapping
+      characters to the probabilities of their possible successors to customize the generator.
+    </p>
+    </div>
+    <!-- Favorites panel displayed on the right -->
+    <div class="favorites-panel">
+      <h2>Favorites</h2>
+      <ul id="favoritesList"></ul>
+    </div>
+  </div>
+
+  <script>
+    // Default letter probability table computed from a sample of common English words.
+    // Each key represents the current character; '^' marks the start of a word and '$' marks the end.
+    let letterProbabilities = {
+      "^": {"t": 0.1, "o": 0.05, "a": 0.075, "i": 0.020833333333333332, "y": 0.0125, "h": 0.06666666666666667, "w": 0.0875, "f": 0.05, "b": 0.041666666666666664, "n": 0.0375, "m": 0.04583333333333333, "s": 0.029166666666666667, "d": 0.029166666666666667, "c": 0.03333333333333333, "l": 0.041666666666666664, "p": 0.008333333333333333, "r": 0.016666666666666666, "g": 0.016666666666666666, "j": 0.004166666666666667, "k": 0.004166666666666667, "e": 0.004166666666666667, "v": 0.004166666666666667, "u": 0.004166666666666667 },
+      "a": {"n": 1.0},
+      "b": {"u": 0.1111111111111111, "y": 0.2222222222222222, "e": 0.2222222222222222, "$": 0.3333333333333333, "o": 0.1111111111111111},
+      "c": {"o": 0.18181818181818182, "a": 0.22727272727272727, "t": 0.13636363636363635, "k": 0.045454545454545456, "r": 0.09090909090909091, "h": 0.09090909090909091, "e": 0.045454545454545456, "i": 0.18181818181818182},
+      "d": {"i": 0.13333333333333333, "o": 0.06666666666666667, "e": 0.13333333333333333, "$": 0.3333333333333333, "y": 0.06666666666666667, "r": 0.13333333333333333, "a": 0.06666666666666667, "u": 0.06666666666666667},
+      "e": {"r": 0.16666666666666666, "n": 0.125, "$": 0.25, "y": 0.08333333333333333, "m": 0.041666666666666664, "l": 0.08333333333333333, "a": 0.08333333333333333, "d": 0.041666666666666664, "i": 0.041666666666666664, "s": 0.041666666666666664, "v": 0.041666666666666664},
+      "f": {"o": 0.125, "r": 0.375, "i": 0.125, "e": 0.125, "u": 0.125, "$": 0.125},
+      "g": {"o": 0.36363636363636365, "e": 0.2727272727272727, "h": 0.09090909090909091, "i": 0.09090909090909091, "u": 0.09090909090909091, "r": 0.09090909090909091},
+      "h": {"e": 0.26666666666666666, "i": 0.13333333333333333, "o": 0.13333333333333333, "a": 0.2, "u": 0.06666666666666667, "r": 0.2},
+      "i": {"s": 0.15, "t": 0.1, "n": 0.25, "g": 0.05, "v": 0.05, "$": 0.1, "l": 0.15, "c": 0.05, "m": 0.05, "d": 0.05},
+      "j": {"u": 0.5, "o": 0.25, "e": 0.25},
+      "k": {"e": 0.25, "n": 0.25, "i": 0.25, "$": 0.25},
+      "l": {"e": 0.3, "i": 0.1, "l": 0.05, "o": 0.1, "$": 0.25, "y": 0.05, "a": 0.05, "u": 0.05, "f": 0.05},
+      "m": {"e": 0.3, "o": 0.3, "a": 0.2, "$": 0.2},
+      "n": {"d": 0.125, "$": 0.125, "g": 0.08333333333333333, "t": 0.08333333333333333, "e": 0.08333333333333333, "o": 0.08333333333333333, "y": 0.041666666666666664, "i": 0.08333333333333333, "c": 0.041666666666666664, "u": 0.041666666666666664, "m": 0.08333333333333333, "a": 0.041666666666666664},
+      "o": {"u": 0.16666666666666666, "r": 0.08333333333333333, "t": 0.08333333333333333, "$": 0.25, "n": 0.08333333333333333, "m": 0.08333333333333333, "f": 0.08333333333333333, "d": 0.08333333333333333, "g": 0.08333333333333333},
+      "p": {"e": 0.25, "l": 0.25, "o": 0.25, "$": 0.25},
+      "r": {"e": 0.21428571428571427, "$": 0.21428571428571427, "i": 0.14285714285714285, "o": 0.14285714285714285, "a": 0.14285714285714285, "d": 0.07142857142857142, "y": 0.07142857142857142},
+      "s": {"e": 0.28, "i": 0.12, "o": 0.2, "t": 0.12, "c": 0.08, "$": 0.2, "a": 0.04, "k": 0.04, "h": 0.04},
+      "t": {"h": 0.2564102564102564, "o": 0.038461538461538464, "$": 0.3974358974358974, "i": 0.02564102564102564, "e": 0.08974358974358974, "w": 0.02564102564102564, "a": 0.05128205128205128, "t": 0.01282051282051282, "l": 0.01282051282051282, "u": 0.038461538461538464, "r": 0.038461538461538464, "y": 0.01282051282051282},
+      "u": {"n": 0.2631578947368421, "s": 0.21052631578947367, "r": 0.05263157894736842, "$": 0.10526315789473684, "l": 0.05263157894736842, "d": 0.05263157894736842, "p": 0.05263157894736842, "e": 0.05263157894736842, "t": 0.05263157894736842, "a": 0.05263157894736842, "g": 0.05263157894736842},
+      "v": {"e": 0.5, "i": 0.16666666666666666, "o": 0.16666666666666666, "a": 0.16666666666666666},
+      "w": {"o": 0.3125, "e": 0.25, "a": 0.25, "h": 0.0625, "i": 0.0625, "r": 0.0625},
+      "y": {"o": 0.2, "$": 0.4, "e": 0.2, "p": 0.06666666666666667, "i": 0.06666666666666667, "a": 0.06666666666666667},
+      "$": {}
+    };
+
+    // Function to choose next character based on probability weights
+    function pickNext(current) {
+      const transitions = letterProbabilities[current];
+      if (!transitions) return null;
+      const rand = Math.random();
+      let cumulative = 0;
+      for (const [ch, prob] of Object.entries(transitions)) {
+        cumulative += prob;
+        if (rand <= cumulative) {
+          return ch;
+        }
+      }
+      return null;
+    }
+
+    // Set to store favorited words
+    const favorites = new Set();
+
+    // Update the favorites panel UI whenever favorites change
+    function updateFavoritesUI() {
+      const list = document.getElementById('favoritesList');
+      list.innerHTML = '';
+      favorites.forEach(word => {
+        const li = document.createElement('li');
+        li.textContent = word;
+        list.appendChild(li);
+      });
+    }
+
+    // Create a span element for a given word, attach events for favoriting and hover states
+    function createWordSpan(word) {
+      const span = document.createElement('span');
+      span.textContent = word;
+      span.classList.add('word');
+      if (favorites.has(word)) {
+        span.classList.add('favorited');
+      }
+      span.addEventListener('click', function () {
+        if (!favorites.has(word)) {
+          favorites.add(word);
+          span.classList.add('favorited');
+          updateFavoritesUI();
+        }
+      });
+      return span;
+    }
+
+    // Create a document fragment for list mode, each word on its own line
+    function createListElements(words) {
+      const frag = document.createDocumentFragment();
+      words.forEach((word, index) => {
+        const span = createWordSpan(word);
+        frag.appendChild(span);
+        if (index < words.length - 1) {
+          frag.appendChild(document.createElement('br'));
+        }
+      });
+      return frag;
+    }
+
+    // Create a document fragment for sentence mode with generated punctuation
+    function createSentenceElements(words) {
+      const frag = document.createDocumentFragment();
+      const midPuncts = [',', ';', ':', '—'];
+      const endPuncts = ['.', '!', '?'];
+      const finalPunct = endPuncts[Math.floor(Math.random() * endPuncts.length)];
+      words.forEach((word, index) => {
+        const span = createWordSpan(word);
+        frag.appendChild(span);
+        if (index < words.length - 1) {
+          if (Math.random() < 0.25) {
+            const punct = midPuncts[Math.floor(Math.random() * midPuncts.length)];
+            frag.appendChild(document.createTextNode(punct));
+          }
+          frag.appendChild(document.createTextNode(' '));
+        }
+      });
+      frag.appendChild(document.createTextNode(finalPunct));
+      return frag;
+    }
+
+    // Generate a single word up to a maximum length. Ensures the result has at least two letters.
+    function generateWord(maxLength) {
+      let word = "";
+      let attempts = 0;
+      // Keep generating until the word has at least two characters or attempts exceed a threshold
+      do {
+        word = "";
+        let current = "^";
+        while (word.length < maxLength) {
+          const nextChar = pickNext(current);
+          // If we reach an end token and the word is too short, ignore it and continue
+          if (!nextChar) break;
+          if (nextChar === "$") {
+            // If the word is already long enough, stop; otherwise ignore this end marker
+            if (word.length >= 2) {
+              break;
+            } else {
+              // skip this termination and continue generating
+              continue;
+            }
+          }
+          word += nextChar;
+          current = nextChar;
+        }
+        attempts++;
+        // To prevent infinite loops if the model rarely produces longer words, give up after 10 attempts
+        if (attempts > 10) {
+          break;
+        }
+      } while (word.length < 2);
+      return word;
+    }
+
+    // Generate multiple words and display them. Supports list and sentence modes.
+    function generateWords() {
+      const num = parseInt(document.getElementById("numWords").value) || 1;
+      const maxLength = parseInt(document.getElementById("maxLength").value) || 8;
+      const mode = document.getElementById("mode").value;
+      let words = [];
+      for (let i = 0; i < num; i++) {
+        words.push(generateWord(maxLength));
+      }
+      const resultsEl = document.getElementById('results');
+      // Clear any previous content
+      resultsEl.innerHTML = '';
+      if (mode === 'sentence') {
+        // Capitalise the first letter of the first word
+        if (words.length > 0) {
+          words[0] = words[0].charAt(0).toUpperCase() + words[0].slice(1);
+        }
+        const sentenceFrag = createSentenceElements(words);
+        resultsEl.appendChild(sentenceFrag);
+      } else {
+        const listFrag = createListElements(words);
+        resultsEl.appendChild(listFrag);
+      }
+    }
+
+    // Handle uploading a custom probability table
+    document.getElementById("fileInput").addEventListener("change", function (event) {
+      const file = event.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = function (e) {
+        try {
+          const data = JSON.parse(e.target.result);
+          if (typeof data === "object") {
+            letterProbabilities = data;
+            alert("Custom probability table loaded successfully!");
+          } else {
+            alert("Invalid JSON format. Please provide an object mapping characters to successor probabilities.");
+          }
+        } catch (err) {
+          alert("Error parsing JSON: " + err.message);
+        }
+      };
+      reader.readAsText(file);
+    });
+
+    document.getElementById("generateBtn").addEventListener("click", generateWords);
+  </script>
+</body>
+</html>

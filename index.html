@@ -338,8 +338,8 @@
       {
         name: 'Archive Roulette',
         link: 'toolspage.html?tool=tools/archive_shuffle.html',
-        medium: 'TEXT',
-        experience: 'TECHNICAL',
+        medium: 'VISUAL',
+        experience: 'PLAYFUL',
         video: 'videos/Archive Demo.mp4'
       },
       {
@@ -352,14 +352,14 @@
       {
         name: 'Border Tool',
         link: 'toolspage.html?tool=tools/medieval_border_generator.html',
-        medium: 'TEXT',
+        medium: 'VISUAL',
         experience: 'TECHNICAL',
         video: 'videos/border demo.mp4'
       },
       {
         name: 'Chisel Tool',
         link: 'toolspage.html?tool=tools/chisel_pen.html',
-        medium: 'TEXT',
+        medium: 'VISUAL',
         experience: 'TECHNICAL',
         video: 'videos/chisel demo.mp4'
       },
@@ -401,7 +401,7 @@
       {
         name: 'Modern Grid Generator',
         link: 'toolspage.html?tool=tools/auto_modern_grid_layout.html',
-        medium: 'TEXT',
+        medium: 'VISUAL',
         experience: 'TECHNICAL',
         video: 'videos/modern grid demo.mp4'
       },
@@ -415,7 +415,7 @@
       {
         name: 'Node Tool',
         link: 'toolspage.html?tool=tools/Node_Net.html',
-        medium: 'TEXT',
+        medium: 'VISUAL',
         experience: 'TECHNICAL',
         video: 'videos/node demo.mp4'
       },
@@ -430,7 +430,7 @@
         name: 'Spectrogram Collage',
         link: 'toolspage.html?tool=tools/Spectrogram_Collage.html',
         medium: 'AUDIO',
-        experience: 'MESMERIZING',
+        experience: 'TECHNICAL',
         video: 'videos/spectro collage demo.mp4'
       },
       {
@@ -443,7 +443,7 @@
       {
         name: 'Tiler Tool',
         link: 'toolspage.html?tool=tools/square_tiler.html',
-        medium: 'TEXT',
+        medium: 'VISUAL',
         experience: 'PLAYFUL',
         video: 'videos/tiler demo.mp4'
       },
@@ -454,6 +454,21 @@
         experience: 'PLAYFUL',
         video: 'videos/tree demo.mp4'
       }
+      {
+//        name: 'Word Generator',
+  //      link: 'toolspage.html?tool=tools/word_generator.html',
+    //    medium: 'TEXT',
+      //  experience: 'PLAYFUL',
+//        video: 'tiler demo.mp4'
+//      }
+//      {
+ //       name: 'Grid Permutations',
+ //       link: 'toolspage.html?tool=tools/grid_permutations.html',
+ //       medium: 'VISUAL',
+ //       experience: 'TECHNICAL',
+ //       video: 'tiler demo.mp4'
+  //    }
+	 
     ];
 
     const toolLayer = document.getElementById('toolLayer');
@@ -858,7 +873,7 @@
             // Require almost the full diagonal distance between card centers to
             // prevent any visual overlap.  Increasing this factor reduces
             // chances of intersection at the cost of spreading orbits further.
-            const minDist = diag * 1.05;
+            const minDist = diag;
             if (dist < minDist && dist > 0.0001) {
               const overlap = minDist - dist;
               const shiftX = (dx / dist) * (overlap / 2);
@@ -940,6 +955,7 @@
     updateOrbitParams();
     layoutAll();
     requestAnimationFrame(animate);
+	
   </script>
 </body>
 </html>

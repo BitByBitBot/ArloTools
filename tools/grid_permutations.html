@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Grid Permutations — Optimized Balanced Mode</title>
+<style>
+  body { font-family: ui-monospace, monospace; background: #fff; color: #111; }
+  canvas { border: 2px solid #000; image-rendering: pixelated; display: block; margin: 12px 0; }
+  input, button, select { margin: 4px; padding: 4px; }
+  #warning { font-weight: bold; margin-top: 8px; }
+  .safe { color: green; }
+  .unsafe { color: red; }
+  #mirrorContainer { display: none; }
+</style>
+</head>
+<body>
+  <h1>Grid Permutations — Optimized Balanced Mode</h1>
+
+  <label>Grid Width: <input id="width" type="number" min="1" max="10" value="5" /></label>
+  <label>Grid Height: <input id="height" type="number" min="1" max="10" value="5" /></label>
+  <label>Cell Size (px): <input id="cell" type="number" min="1" value="6" /></label>
+  <label>Grid Padding (px): <input id="gridPad" type="number" min="0" value="1" /></label><br>
+
+  <label>Number of Colors: <input id="colorCount" type="number" min="2" max="6" value="3" /></label>
+  <div id="colorInputs"></div>
+
+  <label>Padding Color: <input id="padColor" type="color" value="#0000ff" /></label><br>
+
+  <label>Symmetry:
+    <select id="symmetry">
+      <option value="both">Both</option>
+      <option value="vertical">Vertical Only</option>
+      <option value="horizontal">Horizontal Only</option>
+      <option value="none">None</option>
+    </select>
+  </label><br>
+
+  <label><input id="uniqueRotation" type="checkbox" checked> Remove Rotated Duplicates</label><br>
+  <div id="mirrorContainer"><label><input id="uniqueMirror" type="checkbox"> Remove Symmetrical Duplicates</label></div><br>
+  <label><input id="uniqueRearranged" type="checkbox"> Remove Rearranged Duplicates</label><br>
+
+  <label>Layout Mode:
+    <select id="layoutMode">
+      <option value="balanced">Balanced (optimized for near-square)</option>
+      <option value="square">Perfect Square Frame</option>
+      <option value="stretched">Balanced Image Stretched to Square</option>
+    </select>
+  </label><br>
+
+  <button id="render">Render</button>
+  <button id="export">Export PNG</button>
+  <div id="warning"></div>
+  <canvas id="canvas"></canvas>
+
+<script>
+const c = document.getElementById('canvas');
+const ctx = c.getContext('2d');
+const renderBtn = document.getElementById('render');
+const exportBtn = document.getElementById('export');
+const warning = document.getElementById('warning');
+const colorInputs = document.getElementById('colorInputs');
+const uniqueMirror = document.getElementById('uniqueMirror');
+const mirrorContainer = document.getElementById('mirrorContainer');
+
+function updateColorInputs() {
+  const count = Number(document.getElementById('colorCount').value);
+  colorInputs.innerHTML = '';
+  for (let i = 0; i < count; i++) {
+    const input = document.createElement('input');
+    input.type = 'color';
+    input.id = `color${i}`;
+    input.value = i === 0 ? '#ffffff' : i === 1 ? '#000000' : i === 2 ? '#ff0000' : '#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0');
+    colorInputs.appendChild(document.createTextNode(`Color ${i}: `));
+    colorInputs.appendChild(input);
+  }
+}
+
+document.getElementById('colorCount').addEventListener('input', updateColorInputs);
+updateColorInputs();
+
+function estimateTotal(w, h, symmetry, colors) {
+  let halfW = Math.ceil(w / 2);
+  let halfH = Math.ceil(h / 2);
+  if (symmetry === 'vertical') halfH = h;
+  else if (symmetry === 'horizontal') halfW = w;
+  else if (symmetry === 'none') { halfW = w; halfH = h; }
+  const uniqueCells = halfW * halfH;
+  return Math.pow(colors, uniqueCells);
+}
+
+// Optimized balanced layout finder — picks width closest to sqrt(total) but still divides evenly
+function optimizedBalancedFactors(total) {
+  if (total <= 0) return [0, 0];
+  const sqrt = Math.sqrt(total);
+  let best = [1, total];
+  let bestDiff = total;
+  for (let i = 1; i <= total; i++) {
+    if (total % i === 0) {
+      const j = total / i;
+      const diff = Math.abs(i - sqrt);
+      if (diff < bestDiff) {
+        bestDiff = diff;
+        best = [i, j];
+      }
+    }
+  }
+  if (best[0] > best[1]) best.reverse();
+  return best;
+}
+
+function perfectSquareFrame(n){
+  const side = Math.ceil(Math.sqrt(n));
+  return [side, side];
+}
+
+function checkSafety(w, h, symmetry, colors, cell, gridPad) {
+  const total = estimateTotal(w, h, symmetry, colors);
+  const safeLimit = 30000;
+  const estimatedPixels = total * (w * h);
+  const layoutMode = document.getElementById('layoutMode').value;
+  let [cols, rows] = layoutMode === 'square' ? perfectSquareFrame(total) : optimizedBalancedFactors(total);
+  const tileW = w * cell;
+  const tileH = h * cell;
+  const width = cols * (tileW + gridPad) + gridPad;
+  const height = rows * (tileH + gridPad) + gridPad;
+
+  if (total > safeLimit || estimatedPixels > 2000000) {
+    renderBtn.style.background = 'red';
+    renderBtn.disabled = true;
+    warning.innerHTML = `⚠️ Too powerful to render (${total.toLocaleString()} grids, ${estimatedPixels.toLocaleString()} pixels)<br>Estimated resolution: <b>${width}×${height}</b>px.`;
+    warning.className = 'unsafe';
+    return false;
+  } else {
+    renderBtn.style.background = '';
+    renderBtn.disabled = false;
+    warning.innerHTML = `✅ Estimated ${total.toLocaleString()} grids (${estimatedPixels.toLocaleString()} pixels)<br>Resolution: <b>${width}×${height}</b>px — safe.`;
+    warning.className = 'safe';
+    return true;
+  }
+}
+
+document.getElementById('width').addEventListener('input', updateSafety);
+document.getElementById('height').addEventListener('input', updateSafety);
+document.getElementById('symmetry').addEventListener('change', () => {
+  const symmetry = document.getElementById('symmetry').value;
+  if (symmetry === 'none') mirrorContainer.style.display = 'block';
+  else { mirrorContainer.style.display = 'none'; uniqueMirror.checked = false; }
+  updateSafety();
+});
+document.getElementById('colorCount').addEventListener('change', updateSafety);
+document.getElementById('layoutMode').addEventListener('change', updateSafety);
+function updateSafety(){
+  const w = Number(document.getElementById('width').value);
+  const h = Number(document.getElementById('height').value);
+  const symmetry = document.getElementById('symmetry').value;
+  const colors = Number(document.getElementById('colorCount').value);
+  const cell = Number(document.getElementById('cell').value);
+  const gridPad = Number(document.getElementById('gridPad').value);
+  checkSafety(w, h, symmetry, colors, cell, gridPad);
+}
+
+function rotateGrid(grid){
+  const h = grid.length;
+  const w = grid[0].length;
+  const rotated = Array.from({length:w},()=>Array(h).fill(0));
+  for(let y=0;y<h;y++) for(let x=0;x<w;x++) rotated[x][h-1-y] = grid[y][x];
+  return rotated;
+}
+
+function flipGrid(grid){
+  const h = grid.length;
+  const w = grid[0].length;
+  return Array.from({ length: h }, (_, y) => grid[y].slice().reverse());
+}
+
+function gridToString(grid){
+  return grid.map(row=>row.join('')).join('');
+}
+
+function colorHistogramKey(grid, colorCount){
+  const counts = Array(colorCount).fill(0);
+  for (let row of grid) for (let val of row) counts[val]++;
+  return counts.join('-');
+}
+
+function generateSymmetricalGrids(w, h, symmetry, colorCount, removeRotations, removeMirrors, removeRearranged) {
+  let halfW = Math.ceil(w / 2);
+  let halfH = Math.ceil(h / 2);
+  if (symmetry === 'vertical') halfH = h;
+  else if (symmetry === 'horizontal') halfW = w;
+  else if (symmetry === 'none') { halfW = w; halfH = h; }
+
+  const uniqueCells = halfW * halfH;
+  const total = Math.pow(colorCount, uniqueCells);
+  const grids = [];
+  const seen = new Set();
+  const seenHist = new Set();
+
+  for (let i = 0; i < total; i++) {
+    const grid = Array.from({ length: h }, () => Array(w).fill(0));
+    let temp = i;
+    for (let y = 0; y < halfH; y++) {
+      for (let x = 0; x < halfW; x++) {
+        const colorState = temp % colorCount;
+        temp = Math.floor(temp / colorCount);
+        grid[y][x] = colorState;
+        if (symmetry === 'vertical' || symmetry === 'both') grid[y][w - 1 - x] = colorState;
+        if (symmetry === 'horizontal' || symmetry === 'both') {
+          grid[h - 1 - y][x] = colorState;
+          if (symmetry === 'both') grid[h - 1 - y][w - 1 - x] = colorState;
+        }
+      }
+    }
+
+    const variants = [gridToString(grid)];
+    if (removeRotations) {
+      let r1 = rotateGrid(grid), r2 = rotateGrid(r1), r3 = rotateGrid(r2);
+      variants.push(gridToString(r1), gridToString(r2), gridToString(r3));
+    }
+    if (removeMirrors && symmetry === 'none') {
+      const flipped = flipGrid(grid);
+      variants.push(gridToString(flipped));
+    }
+
+    if (variants.some(v => seen.has(v))) continue;
+    variants.forEach(v => seen.add(v));
+
+    if (removeRearranged) {
+      const histKey = colorHistogramKey(grid, colorCount);
+      if (seenHist.has(histKey)) continue;
+      seenHist.add(histKey);
+    }
+
+    grids.push(grid);
+  }
+  return grids;
+}
+
+function drawGridScaled(grid, offsetX, offsetY, cellW, cellH, colors) {
+  const h = grid.length;
+  const w = grid[0].length;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      ctx.fillStyle = colors[grid[y][x]];
+      ctx.fillRect(offsetX + x * cellW, offsetY + y * cellH, cellW, cellH);
+    }
+  }
+}
+
+function render() {
+  const w = Number(document.getElementById('width').value);
+  const h = Number(document.getElementById('height').value);
+  const cell = Number(document.getElementById('cell').value);
+  const gridPad = Number(document.getElementById('gridPad').value);
+  const colorCount = Number(document.getElementById('colorCount').value);
+  const padColor = document.getElementById('padColor').value;
+  const symmetry = document.getElementById('symmetry').value;
+  const removeRotations = document.getElementById('uniqueRotation').checked;
+  const removeMirrors = document.getElementById('uniqueMirror').checked;
+  const removeRearranged = document.getElementById('uniqueRearranged').checked;
+  const layoutMode = document.getElementById('layoutMode').value;
+
+  if (!checkSafety(w, h, symmetry, colorCount, cell, gridPad)) return;
+
+  const colors = [];
+  for (let i = 0; i < colorCount; i++) colors.push(document.getElementById(`color${i}`).value);
+
+  const grids = generateSymmetricalGrids(w, h, symmetry, colorCount, removeRotations, removeMirrors, removeRearranged);
+  const total = grids.length;
+
+  if (total === 0) {
+    warning.innerHTML = 'ℹ️ 0 grids generated with the current settings.';
+    warning.className = '';
+    c.width = c.height = 0;
+    return;
+  }
+
+  let [cols, rows] = layoutMode === 'square' ? perfectSquareFrame(total) : optimizedBalancedFactors(total);
+  const tileW = w * cell;
+  const tileH = h * cell;
+
+  c.width = cols * (tileW + gridPad) + gridPad;
+  c.height = rows * (tileH + gridPad) + gridPad;
+
+  ctx.fillStyle = padColor;
+  ctx.fillRect(0, 0, c.width, c.height);
+
+  let i = 0;
+  function drawBatch() {
+    const batchSize = 500;
+    const end = Math.min(total, i + batchSize);
+    for (; i < end; i++) {
+      const col = i % cols;
+      const row = Math.floor(i / cols);
+      const x = gridPad + col * (tileW + gridPad);
+      const y = gridPad + row * (tileH + gridPad);
+      drawGridScaled(grids[i], x, y, cell, cell, colors);
+    }
+    if (i < total) requestAnimationFrame(drawBatch);
+    else if (layoutMode === 'stretched') {
+      const side = Math.max(c.width, c.height);
+      const temp = document.createElement('canvas');
+      temp.width = side;
+      temp.height = side;
+      const tctx = temp.getContext('2d');
+      tctx.imageSmoothingEnabled = false;
+      tctx.drawImage(c, 0, 0, c.width, c.height, 0, 0, side, side);
+      c.width = side;
+      c.height = side;
+      ctx.drawImage(temp, 0, 0);
+    }
+  }
+  drawBatch();
+}
+
+function exportPNG() {
+  const link = document.createElement('a');
+  const w = document.getElementById('width').value;
+  const h = document.getElementById('height').value;
+  const symmetry = document.getElementById('symmetry').value;
+  const colorCount = document.getElementById('colorCount').value;
+  link.download = `grid-${w}x${h}-${symmetry}-${colorCount}colors-unique.png`;
+  link.href = c.toDataURL('image/png', 1.0);
+  link.click();
+}
+
+renderBtn.addEventListener('click', render);
+exportBtn.addEventListener('click', exportPNG);
+updateSafety();
+</script>
+</body>
+</html>
