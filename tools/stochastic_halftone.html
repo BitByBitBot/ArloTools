@@ -1,0 +1,610 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Stochastic Halftone (Standalone)</title>
+<style>
+  :root {
+    --fg: #000; --bg: #fff; --muted:#666; --accent:#000;
+  }
+  * { box-sizing: border-box; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
+  header { padding: 12px 16px; border-bottom: 2px solid var(--fg); display:flex; align-items:center; gap:12px; }
+  header h1 { margin:0; font-size: 18px; letter-spacing: .5px; }
+  .wrap { display:grid; grid-template-columns: 320px 1fr; height: calc(100% - 54px); }
+  aside { border-right: 2px solid var(--fg); padding: 12px; overflow:auto; }
+  main { display:grid; grid-template-rows: auto 1fr; }
+  .toolbar { padding: 8px 12px; border-bottom:2px solid var(--fg); display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
+  .canvasWrap { position: relative; overflow:auto; background: #f6f6f6; }
+  canvas { display:block; image-rendering: pixelated; margin: 0 auto; background: #fff; }
+  fieldset { border:2px solid var(--fg); margin: 0 0 12px 0; padding: 10px; }
+  legend { padding: 0 6px; }
+  label { display:flex; align-items:center; justify-content:space-between; gap:10px; margin: 6px 0; }
+  input[type="range"] { width: 160px; }
+  input[type="number"], input[type="text"] { width: 92px; padding: 4px; border: 2px solid var(--fg); background: #fff; color: #000; }
+  select, button { padding: 6px 8px; border: 2px solid var(--fg); background: #fff; color: #000; cursor: pointer; }
+  button:hover { background: #000; color:#fff; }
+  .muted { color: var(--muted); font-size: 12px; }
+  .drop { border: 2px dashed var(--fg); padding: 12px; text-align: center; margin-bottom: 12px; }
+  .row { display:flex; gap:8px; align-items:center; }
+  .hint { font-size: 12px; line-height:1.2; margin-top:6px; }
+  .mono { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; }
+  .divider { height:2px; background:#000; margin:10px 0; }
+  @media (max-width: 920px) {
+    .wrap { grid-template-columns: 1fr; grid-template-rows:auto 1fr; }
+    aside { border-right:none; border-bottom:2px solid var(--fg); height:auto; }
+  }
+</style>
+</head>
+<body>
+  <header>
+    <h1>Stochastic Halftone</h1>
+    <span class="muted">FM stipple + stochastic dithering • all local, no uploads</span>
+  </header>
+  <div class="wrap">
+    <aside>
+      <div class="drop" id="drop">Drop image here or <label style="display:inline; gap:6px; align-items:center;"> <input type="file" id="file" accept="image/*" style="display:none;"/> <button id="pick">Choose file</button> </label></div>
+
+      <fieldset>
+        <legend>Pipeline</legend>
+        <label>Mode
+          <select id="mode">
+            <option value="stipple">FM Stipple (dots)</option>
+            <option value="dither">Stochastic Dither (pixels)</option>
+            <option value="rd">Reaction–Diffusion (organic)</option>
+          </select>
+        </label>
+        <label>Working width <input type="number" id="workW" min="64" max="4096" step="16" value="800"></label>
+        <label>Gamma <input type="range" id="gamma" min="0.3" max="3" step="0.05" value="1.0"></label>
+        <label title="Swap ink/paper">Invert <input type="checkbox" id="invert"></label>
+        <div class="hint">Gamma is applied to luminance before density mapping (lower = more contrast in darks).</div>
+      </fieldset>
+
+      <fieldset id="stipplePanel">
+        <legend>FM Stipple Controls</legend>
+        <label>Dot radius (px)
+          <input type="range" id="dotRadius" min="0.5" max="6" step="0.1" value="1.5">
+        </label>
+        <label>Min spacing (px)
+          <input type="range" id="minSpacing" min="1" max="20" step="0.5" value="4">
+        </label>
+        <label>Density (0–2)
+          <input type="range" id="density" min="0" max="2" step="0.02" value="1">
+        </label>
+        <label>Attempts/pixel (0.1–3)
+          <input type="range" id="attempts" min="0.1" max="3" step="0.05" value="1.0">
+        </label>
+        <label>Seed <input type="text" id="seed" value="HALFTONE"></label>
+        <div class="hint">Constant dot size, density varies by tone. Attempt count × image area controls total points. Spacing avoids clumps.</div>
+      </fieldset>
+
+      <fieldset id="ditherPanel" style="display:none;">
+        <legend>Stochastic Dither Controls</legend>
+        <label>Scale (px per cell)
+          <input type="range" id="dScale" min="1" max="6" step="1" value="1">
+        </label>
+        <label>Noise type
+          <select id="noiseType">
+            <option value="white">White noise (random threshold)</option>
+            <option value="blue">Blue-ish noise (HPF mask)</option>
+          </select>
+        </label>
+        <label id="blueCfg" style="display:none;">HPF passes
+          <input type="range" id="bluePasses" min="1" max="8" step="1" value="4">
+        </label>
+        <label>Seed <input type="text" id="seed2" value="HALFTONE"></label>
+        <div class="hint">Pixel-level stochastic halftone. Blue-ish noise reduces low-frequency artifacts.</div>
+      </fieldset>
+
+      <fieldset id="rdPanel" style="display:none;">
+        <legend>Reaction–Diffusion Halftone</legend>
+        <label>Preset
+          <select id="rdPreset">
+            <option value="worms">Worms / Labyrinth</option>
+            <option value="spots">Spots</option>
+            <option value="mix">Mix</option>
+          </select>
+        </label>
+        <label>RD grid scale (px/cell)
+          <input type="range" id="rdScale" min="2" max="8" step="1" value="3">
+        </label>
+        <label>Steps per render
+          <input type="range" id="rdSteps" min="20" max="1500" step="10" value="300">
+        </label>
+        <label>dt (time step)
+          <input type="range" id="rdDt" min="0.2" max="2" step="0.1" value="1.0">
+        </label>
+        <label>Du (U diffusion)
+          <input type="range" id="rdDu" min="0.02" max="1" step="0.01" value="0.16">
+        </label>
+        <label>Dv (V diffusion)
+          <input type="range" id="rdDv" min="0.02" max="1" step="0.01" value="0.08">
+        </label>
+        <label>Feed F
+          <input type="range" id="rdF" min="0.0" max="0.1" step="0.001" value="0.037">
+        </label>
+        <label>Kill K
+          <input type="range" id="rdK" min="0.0" max="0.1" step="0.001" value="0.06">
+        </label>
+        <label>Seed amount
+          <input type="range" id="rdSeedAmt" min="0" max="1" step="0.01" value="0.7">
+        </label>
+        <label>Tone bias on seed
+          <input type="range" id="rdTone" min="0" max="1" step="0.01" value="0.85">
+        </label>
+        <label>Threshold
+          <input type="range" id="rdThr" min="0" max="1" step="0.01" value="0.25">
+        </label>
+        <label>Seed <input type="text" id="seed3" value="HALFTONE"></label>
+        <div class="hint">Gray–Scott simulation guided by image tone. Works at a reduced grid for speed; upscales cleanly.
+          Try presets, then nudge F/K for more stripes (lower F/K) or more spots (higher F/lower K).</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Output</legend>
+        <label>Preview zoom
+          <input type="range" id="zoom" min="0.2" max="4" step="0.1" value="1">
+        </label>
+        <div class="row">
+          <button id="render">Render</button>
+          <button id="downloadPNG">Download PNG</button>
+          <button id="downloadSVG">Download SVG</button>
+        </div>
+        <div class="hint">SVG contains vector circles (stipple mode). PNG is the exact raster preview.</div>
+      </fieldset>
+      <div class="divider"></div>
+      <div class="muted">Tip: For a classic FM screen look, try radius 1.2–1.6, spacing 3–6, attempts ≈ 0.8–1.5, and gamma 0.8–1.2.</div>
+    </aside>
+
+    <main>
+      <div class="toolbar">
+        <span class="muted">Image:</span>
+        <span id="imgInfo" class="mono">none</span>
+      </div>
+      <div class="canvasWrap">
+        <canvas id="out"></canvas>
+      </div>
+    </main>
+  </div>
+
+<script>
+// ===== Utilities =====
+function hashStringToSeed(str) {
+  let h = 2166136261 >>> 0;
+  for (let i = 0; i < str.length; i++) { h ^= str.charCodeAt(i); h = Math.imul(h, 16777619); }
+  return h >>> 0;
+}
+function mulberry32(a) {
+  return function() { let t = a += 0x6D2B79F5; t = Math.imul(t ^ (t >>> 15), t | 1); t ^= t + Math.imul(t ^ (t >>> 7), t | 61); return ((t ^ (t >>> 14)) >>> 0) / 4294967296; };
+}
+function clamp(v, lo, hi){ return Math.max(lo, Math.min(hi, v)); }
+function lerp(a,b,t){ return a + (b-a)*t; }
+
+// Draw helpers
+function downloadBlob(filename, blob){ const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download=filename; document.body.appendChild(a); a.click(); setTimeout(()=>{ URL.revokeObjectURL(a.href); a.remove(); }, 100); }
+
+// Global state
+const img = new Image();
+let imgCanvas = document.createElement('canvas');
+let imgCtx = imgCanvas.getContext('2d', { willReadFrequently: true });
+let grayscale = null, gW=0, gH=0; // working luminance buffer (0..1)
+let currentPoints = []; // for SVG export in stipple mode
+
+// DOM
+const file = document.getElementById('file');
+const pick = document.getElementById('pick');
+const drop = document.getElementById('drop');
+const out = document.getElementById('out');
+const ctx = out.getContext('2d');
+const imgInfo = document.getElementById('imgInfo');
+
+// Controls
+const mode = document.getElementById('mode');
+const workW = document.getElementById('workW');
+const gamma = document.getElementById('gamma');
+const invert = document.getElementById('invert');
+
+const stipplePanel = document.getElementById('stipplePanel');
+const dotRadius = document.getElementById('dotRadius');
+const minSpacing = document.getElementById('minSpacing');
+const density = document.getElementById('density');
+const attempts = document.getElementById('attempts');
+const seed = document.getElementById('seed');
+
+const ditherPanel = document.getElementById('ditherPanel');
+const dScale = document.getElementById('dScale');
+const noiseType = document.getElementById('noiseType');
+const blueCfg = document.getElementById('blueCfg');
+const bluePasses = document.getElementById('bluePasses');
+const seed2 = document.getElementById('seed2');
+
+// RD controls
+const rdPanel = document.getElementById('rdPanel');
+const rdPreset = document.getElementById('rdPreset');
+const rdScale = document.getElementById('rdScale');
+const rdSteps = document.getElementById('rdSteps');
+const rdDt = document.getElementById('rdDt');
+const rdDu = document.getElementById('rdDu');
+const rdDv = document.getElementById('rdDv');
+const rdF = document.getElementById('rdF');
+const rdK = document.getElementById('rdK');
+const rdSeedAmt = document.getElementById('rdSeedAmt');
+const rdTone = document.getElementById('rdTone');
+const rdThr = document.getElementById('rdThr');
+const seed3 = document.getElementById('seed3');
+
+const zoom = document.getElementById('zoom');
+const renderBtn = document.getElementById('render');
+const dlPNG = document.getElementById('downloadPNG');
+const dlSVG = document.getElementById('downloadSVG');
+
+// ===== Image Loading =====
+function loadFile(f){ return new Promise((resolve, reject)=>{ const r = new FileReader(); r.onload = () => { img.onload = () => resolve(); img.onerror = reject; img.src = r.result; }; r.onerror = reject; r.readAsDataURL(f); }); }
+
+pick.addEventListener('click', ()=> file.click());
+file.addEventListener('change', async (e)=>{ if(e.target.files && e.target.files[0]){ await loadFile(e.target.files[0]); setupImage(); } });
+
+;['dragenter','dragover'].forEach(ev=> drop.addEventListener(ev, (e)=>{ e.preventDefault(); drop.style.background='#fafafa'; }));
+;['dragleave','drop'].forEach(ev=> drop.addEventListener(ev, (e)=>{ e.preventDefault(); drop.style.background=''; }));
+drop.addEventListener('drop', async (e)=>{ const f = e.dataTransfer.files?.[0]; if(!f) return; await loadFile(f); setupImage(); });
+
+function setupImage(){
+  imgCanvas.width = img.naturalWidth; imgCanvas.height = img.naturalHeight;
+  imgCtx.drawImage(img, 0, 0);
+  imgInfo.textContent = `${img.naturalWidth}×${img.naturalHeight}`;
+  buildGrayscale();
+  render();
+}
+
+function buildGrayscale(){
+  if(!img.naturalWidth) return;
+  const targetW = clamp(parseInt(workW.value)||800, 64, 4096);
+  const aspect = img.naturalHeight / img.naturalWidth;
+  gW = targetW; gH = Math.round(targetW * aspect);
+
+  const tmp = document.createElement('canvas');
+  tmp.width = gW; tmp.height = gH;
+  const tctx = tmp.getContext('2d', { willReadFrequently:true });
+  tctx.imageSmoothingEnabled = true;
+  tctx.drawImage(imgCanvas, 0, 0, gW, gH);
+  const data = tctx.getImageData(0, 0, gW, gH).data;
+  grayscale = new Float32Array(gW * gH);
+  const inv = invert.checked ? 1 : 0; // invert later by flipping mapping
+  const gam = parseFloat(gamma.value) || 1;
+  for(let i=0, j=0; i<data.length; i+=4, j++){
+    const r = data[i]/255, g = data[i+1]/255, b = data[i+2]/255;
+    let y = 0.2126*r + 0.7152*g + 0.0722*b; // 0=black, 1=white
+    y = Math.pow(y, gam);
+    if(inv) y = 1 - y;
+    grayscale[j] = y; // store as paper whiteness
+  }
+}
+
+// ===== Stochastic Dither (pixel) =====
+function renderDither(){
+  if(!grayscale) return;
+  const scale = parseInt(dScale.value)||1;
+  const W = gW, H = gH;
+  out.width = W; out.height = H; ctx.setTransform(1,0,0,1,0,0);
+  const imgData = ctx.createImageData(W, H);
+  const buf = imgData.data;
+
+  const rng = mulberry32(hashStringToSeed(seed2.value||'0'));
+
+  // Blue-ish noise mask generation (optional)
+  let blueMask = null;
+  if(noiseType.value === 'blue'){
+    blueMask = generateBlueishNoise(W, H, parseInt(bluePasses.value)||4, rng);
+  }
+
+  // For each pixel, compute ink probability = darkness = 1 - grayscale
+  for(let y=0; y<H; y++){
+    for(let x=0; x<W; x++){
+      const idx = y*W + x;
+      const whiteness = grayscale[idx];
+      const darkness = 1 - whiteness; // 0..1
+      let thr;
+      if(noiseType.value === 'white'){
+        thr = rng();
+      } else {
+        thr = blueMask[idx];
+      }
+      // Optional sub-sampling by scale: use same threshold for blocks of pixels
+      const ink = (darkness >= thr);
+      const v = ink ? 0 : 255;
+      const k = idx*4;
+      buf[k] = v; buf[k+1]=v; buf[k+2]=v; buf[k+3]=255;
+    }
+  }
+
+  // If scale>1, upscale with nearest-neighbor
+  if(scale>1){
+    const tmp = document.createElement('canvas');
+    tmp.width = W; tmp.height = H; tmp.getContext('2d').putImageData(imgData,0,0);
+    out.width = W*scale; out.height = H*scale;
+    ctx.imageSmoothingEnabled = false;
+    ctx.drawImage(tmp, 0,0, out.width, out.height);
+  } else {
+    ctx.putImageData(imgData,0,0);
+  }
+}
+
+function generateBlueishNoise(W, H, passes, rng){
+  // Start with white noise 0..1
+  const arr = new Float32Array(W*H);
+  for(let i=0;i<arr.length;i++) arr[i]=rng();
+  let src = arr, dst = new Float32Array(W*H);
+  // repeated high-pass filter: HP = src - blur(src)
+  for(let p=0;p<passes;p++){
+    boxBlur(src, dst, W, H, 1);
+    for(let i=0;i<src.length;i++) src[i] = src[i] - dst[i];
+  }
+  // normalize to 0..1
+  let min=Infinity,max=-Infinity; for(let i=0;i<src.length;i++){ const v=src[i]; if(v<min)min=v; if(v>max)max=v; }
+  const out = new Float32Array(W*H);
+  const range = (max-min)||1;
+  for(let i=0;i<src.length;i++) out[i] = (src[i]-min)/range;
+  return out;
+}
+
+function boxBlur(src, dst, W, H, r){
+  // separable box blur radius r
+  // temp horizontal
+  const tmp = new Float32Array(W*H);
+  const w = 2*r+1;
+  // horizontal
+  for(let y=0;y<H;y++){
+    let acc=0;
+    let i0 = y*W;
+    for(let x=-r;x<=r;x++) acc += src[i0+clamp(x,0,W-1)];
+    for(let x=0;x<W;x++){
+      tmp[i0+x] = acc / w;
+      const add = x+r+1; const rem = x-r;
+      acc += src[i0+clamp(add,0,W-1)] - src[i0+clamp(rem,0,W-1)];
+    }
+  }
+  // vertical
+  for(let x=0;x<W;x++){
+    let acc=0;
+    for(let y=-r;y<=r;y++) acc += tmp[clamp(y,0,H-1)*W + x];
+    for(let y=0;y<H;y++){
+      dst[y*W+x] = acc / w;
+      const add = y+r+1; const rem = y-r;
+      acc += tmp[clamp(add,0,H-1)*W + x] - tmp[clamp(rem,0,H-1)*W + x];
+    }
+  }
+}
+
+// ===== FM Stipple (dots) =====
+function renderStipple(){
+  if(!grayscale) return;
+  const W = gW, H = gH;
+  out.width = W; out.height = H; ctx.setTransform(1,0,0,1,0,0);
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = '#fff'; ctx.fillRect(0,0,W,H);
+  ctx.fillStyle = '#000';
+
+  const minDist = parseFloat(minSpacing.value)||4; // in working pixels
+  const radius = clamp(parseFloat(dotRadius.value)||1.5, 0.25, minDist/2);
+  const dens = parseFloat(density.value)||1; // multiplier on acceptance prob
+  const attPerPx = parseFloat(attempts.value)||1; // attempts per pixel
+  const rng = mulberry32(hashStringToSeed(seed.value||'0'));
+
+  // spatial hash grid
+  const cell = Math.max(1, Math.floor(minDist));
+  const cols = Math.ceil(W / cell); const rows = Math.ceil(H / cell);
+  const grid = new Array(cols*rows); for(let i=0;i<grid.length;i++) grid[i]=[];
+
+  function canPlace(x,y){
+    const gx = Math.floor(x / cell), gy = Math.floor(y / cell);
+    const r2 = (minDist)*(minDist);
+    for(let yy = Math.max(0, gy-1); yy <= Math.min(rows-1, gy+1); yy++){
+      for(let xx = Math.max(0, gx-1); xx <= Math.min(cols-1, gx+1); xx++){
+        const cellArr = grid[yy*cols+xx];
+        for(let k=0;k<cellArr.length;k++){
+          const p = cellArr[k];
+          const dx = p.x - x, dy = p.y - y;
+          if(dx*dx + dy*dy < r2) return false;
+        }
+      }
+    }
+    return true;
+  }
+
+  currentPoints = [];
+  const totalAttempts = Math.floor(W * H * attPerPx);
+  for(let i=0;i<totalAttempts;i++){
+    const x = rng() * W; const y = rng() * H;
+    const idx = (Math.floor(y)*W + Math.floor(x));
+    const whiteness = grayscale[idx];
+    const darkness = 1 - whiteness; // 0..1
+    // probabilistic acceptance -> density control
+    if(rng() < darkness * dens){
+      if(canPlace(x,y)){
+        const gx = Math.floor(x / cell), gy = Math.floor(y / cell);
+        grid[gy*cols+gx].push({x,y});
+        currentPoints.push({x,y,r:radius});
+      }
+    }
+  }
+
+  // Draw circles
+  ctx.fillStyle = '#000';
+  for(let i=0;i<currentPoints.length;i++){
+    const p = currentPoints[i];
+    ctx.beginPath();
+    ctx.arc(p.x, p.y, radius, 0, Math.PI*2);
+    ctx.fill();
+  }
+}
+
+// ===== Reaction–Diffusion (Gray–Scott) =====
+function renderRD(){
+  if(!grayscale) return;
+  const W = gW, H = gH;
+  const cell = parseInt(rdScale.value)||3;
+  const rW = Math.max(4, Math.floor(W / cell));
+  const rH = Math.max(4, Math.floor(H / cell));
+  const size = rW * rH;
+
+  // Build downsampled darkness map
+  const darkness = new Float32Array(size);
+  const bx = cell, by = cell;
+  for(let j=0;j<rH;j++){
+    for(let i=0;i<rW;i++){
+      let sum=0, cnt=0;
+      const x0 = i*bx, y0 = j*by;
+      for(let yy=y0; yy<Math.min(y0+by, H); yy++){
+        for(let xx=x0; xx<Math.min(x0+bx, W); xx++){
+          sum += 1 - grayscale[yy*W + xx];
+          cnt++;
+        }
+      }
+      darkness[j*rW+i] = cnt? (sum/cnt) : 0;
+    }
+  }
+
+  // RD parameters
+  const Du = parseFloat(rdDu.value)||0.16;
+  const Dv = parseFloat(rdDv.value)||0.08;
+  const F = parseFloat(rdF.value)||0.037;
+  const K = parseFloat(rdK.value)||0.06;
+  const dt = parseFloat(rdDt.value)||1.0;
+  const steps = parseInt(rdSteps.value)||300;
+  const thr = parseFloat(rdThr.value)||0.25;
+  const toneBias = parseFloat(rdTone.value)||0.85; // 0..1
+  const seedAmt = parseFloat(rdSeedAmt.value)||0.7; // 0..1
+  const rng = mulberry32(hashStringToSeed((seed3.value||'0') + ':' + cell + ':' + steps));
+
+  let U = new Float32Array(size);
+  let V = new Float32Array(size);
+  let U2 = new Float32Array(size);
+  let V2 = new Float32Array(size);
+
+  for(let i=0;i<size;i++){
+    U[i] = 1.0;
+    const d = darkness[i];
+    const s = toneBias * d + (1 - toneBias) * 0.5; // blend image tone with flat 0.5 base
+    V[i] = seedAmt * s * (0.5 + 0.5*rng());
+  }
+
+  function idx(x,y){ return y*rW + x; }
+  function lap(A,x,y){
+    const xm = (x>0?x-1:x), xp = (x<rW-1?x+1:x);
+    const ym = (y>0?y-1:y), yp = (y<rH-1?y+1:y);
+    return A[idx(xm,y)] + A[idx(xp,y)] + A[idx(x,ym)] + A[idx(x,yp)] - 4*A[idx(x,y)];
+  }
+
+  for(let s=0;s<steps;s++){
+    for(let y=0;y<rH;y++){
+      for(let x=0;x<rW;x++){
+        const i = idx(x,y);
+        const u = U[i], v = V[i];
+        const uvv = u*v*v;
+        const du = Du * lap(U,x,y) - uvv + F * (1 - u);
+        const dv = Dv * lap(V,x,y) + uvv - (F + K) * v;
+        U2[i] = clamp(u + du*dt, 0, 1);
+        V2[i] = clamp(v + dv*dt, 0, 1);
+      }
+    }
+    // swap
+    let t = U; U = U2; U2 = t;
+    t = V; V = V2; V2 = t;
+  }
+
+  // Binarize by threshold
+  const imgData = new ImageData(rW, rH);
+  for(let i=0;i<size;i++){
+    const ink = (V[i] > thr) ? 0 : 255;
+    const k4 = i*4; imgData.data[k4]=ink; imgData.data[k4+1]=ink; imgData.data[k4+2]=ink; imgData.data[k4+3]=255;
+  }
+
+  // Draw upscaled to working size
+  const tmp = document.createElement('canvas');
+  tmp.width = rW; tmp.height = rH; tmp.getContext('2d').putImageData(imgData,0,0);
+  out.width = W; out.height = H; ctx.setTransform(1,0,0,1,0,0);
+  ctx.imageSmoothingEnabled = false;
+  ctx.drawImage(tmp, 0, 0, W, H);
+}
+
+// ===== Render Orchestrator =====
+function render(){
+  if(!img.naturalWidth){
+    // nothing yet
+    out.width = 800; out.height = 600; ctx.fillStyle='#fff'; ctx.fillRect(0,0,out.width,out.height); ctx.fillStyle='#000'; ctx.fillText('Load an image to begin', 20, 24); return;
+  }
+  buildGrayscale();
+  if(mode.value === 'stipple') renderStipple(); else if(mode.value === 'dither') renderDither(); else renderRD();
+  applyZoom();
+}
+
+function applyZoom(){
+  const z = parseFloat(zoom.value)||1;
+  // We'll resize via CSS transform for speed
+  out.style.transformOrigin = 'top left';
+  out.style.transform = `scale(${z})`;
+}
+
+// ===== Downloads =====
+dlPNG.addEventListener('click', ()=>{
+  out.toBlob(b=> downloadBlob('stochastic-halftone.png', b), 'image/png');
+});
+
+dlSVG.addEventListener('click', ()=>{
+  if(mode.value !== 'stipple'){
+    alert('SVG export is available for FM Stipple mode (vector dots).');
+    return;
+  }
+  // Build SVG with viewBox = working canvas size
+  const W = gW, H = gH; const radius = clamp(parseFloat(dotRadius.value)||1.5, 0.25, (parseFloat(minSpacing.value)||4)/2);
+  let svg = `<?xml version="1.0" encoding="UTF-8"?>\n`;
+  svg += `<svg xmlns="http://www.w3.org/2000/svg" width="${W}" height="${H}" viewBox="0 0 ${W} ${H}" fill="none">`;
+  svg += `<rect width="100%" height="100%" fill="#ffffff"/>`;
+  svg += `<g fill="#000000">`;
+  for(let i=0;i<currentPoints.length;i++){
+    const p = currentPoints[i];
+    svg += `<circle cx="${p.x.toFixed(3)}" cy="${p.y.toFixed(3)}" r="${radius.toFixed(3)}"/>`;
+  }
+  svg += `</g></svg>`;
+  const blob = new Blob([svg], {type:'image/svg+xml'});
+  downloadBlob('stochastic-halftone.svg', blob);
+});
+
+// ===== Wiring =====
+renderBtn.addEventListener('click', render);
+;[mode].forEach(el=> el.addEventListener('change', ()=>{
+  const m = mode.value;
+  const isStipple = m === 'stipple';
+  const isDither = m === 'dither';
+  const isRD = m === 'rd';
+  stipplePanel.style.display = isStipple ? '' : 'none';
+  ditherPanel.style.display = isDither ? '' : 'none';
+  rdPanel.style.display = isRD ? '' : 'none';
+  render();
+}));
+
+;[workW, gamma, invert, dotRadius, minSpacing, density, attempts, seed, dScale, noiseType, bluePasses, seed2,
+  rdPreset, rdScale, rdSteps, rdDt, rdDu, rdDv, rdF, rdK, rdSeedAmt, rdTone, rdThr, seed3, zoom]
+.forEach(el=> el.addEventListener('input', (e)=>{
+  if(e.target === noiseType) blueCfg.style.display = (noiseType.value==='blue') ? '' : 'none';
+  if(e.target === rdPreset){
+    // apply simple presets
+    if(rdPreset.value==='worms'){ rdDu.value=0.16; rdDv.value=0.08; rdF.value=0.037; rdK.value=0.060; }
+    if(rdPreset.value==='spots'){ rdDu.value=0.14; rdDv.value=0.06; rdF.value=0.025; rdK.value=0.055; }
+    if(rdPreset.value==='mix'){ rdDu.value=0.20; rdDv.value=0.10; rdF.value=0.040; rdK.value=0.065; }
+  }
+  if(e.target === zoom) { applyZoom(); return; }
+  if(!img.naturalWidth) return;
+  scheduleRender();
+}));
+
+let renderTimer = null;
+function scheduleRender(){ clearTimeout(renderTimer); renderTimer = setTimeout(render, 60); }
+
+// Initialize blank
+render();
+</script>
+</body>
+</html>

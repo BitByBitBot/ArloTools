@@ -1,0 +1,225 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ASCII Sound Sequencer</title>
+  <style>
+    body {
+      font-family: 'Courier New', monospace;
+      background-color: #fdfdfd;
+      color: #111;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+    }
+    header, footer {
+      width: 100%;
+      background: #fff;
+      border: 2px solid #000;
+      text-align: center;
+      padding: 15px 0;
+      box-shadow: 4px 4px 0 #000;
+    }
+    main {
+      width: 90%;
+      max-width: 1200px;
+      display: flex;
+      flex-direction: column;
+      gap: 30px;
+      padding: 30px 0;
+    }
+    section {
+      border: 2px solid #000;
+      background: #fff;
+      padding: 20px;
+      box-shadow: 6px 6px 0 #000;
+    }
+    textarea {
+      width: 100%;
+      height: 140px;
+      border: 2px solid #000;
+      font-size: 16px;
+      background: #fff;
+      color: #000;
+      padding: 8px;
+      resize: none;
+      box-sizing: border-box;
+    }
+    button {
+      background: #fff;
+      border: 2px solid #000;
+      padding: 8px 14px;
+      font-size: 14px;
+      cursor: pointer;
+      transition: all 0.15s ease;
+    }
+    button:hover {
+      background: #000;
+      color: #fff;
+    }
+    .control-bar {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      flex-wrap: wrap;
+    }
+    input[type=range] {
+      width: 200px;
+    }
+    .assignment {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      margin-bottom: 8px;
+    }
+  </style>
+</head>
+<body>
+  <header><h1>ASCII Sound Sequencer</h1></header>
+  <main>
+    <section>
+      <div id="sequencesContainer"></div>
+      <button id="addSequenceBtn">+ Add Sequence</button>
+    </section>
+
+    <section>
+      <div class="control-bar">
+        <label>Note Duration: <span id="durationValue">150</span> ms</label>
+        <input type="range" id="duration" min="50" max="1000" value="150">
+      </div>
+      <div class="control-bar">
+        <button id="playBtn">▶ Play</button>
+        <button id="stopBtn">■ Stop</button>
+        <button id="loopBtn">Loop: Off</button>
+      </div>
+    </section>
+
+    <section>
+      <h2>Sample Assignments</h2>
+      <div id="assignmentsContainer"></div>
+      <button id="addAssignmentBtn">+ Add Character Sample</button>
+    </section>
+  </main>
+  <footer>ASCII Sound Sequencer © 2025</footer>
+
+  <script>
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+    let stopPlayback = false;
+    let looping = false;
+    const sampleMap = {};
+
+    function freqForChar(char) {
+      return 220 + (char.charCodeAt(0) % 60) * 10;
+    }
+
+    function playTone(freq, duration) {
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(freq, audioCtx.currentTime);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      gain.gain.setValueAtTime(0.2, audioCtx.currentTime);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration / 1000);
+    }
+
+    function playSample(buffer) {
+      const src = audioCtx.createBufferSource();
+      src.buffer = buffer;
+      src.connect(audioCtx.destination);
+      src.start();
+    }
+
+    async function loadSamples(files) {
+      const buffers = [];
+      for (const file of files) {
+        const ab = await file.arrayBuffer();
+        const buf = await audioCtx.decodeAudioData(ab);
+        buffers.push(buf);
+      }
+      return buffers;
+    }
+
+    async function playSequence(text, dur) {
+      for (let c of text) {
+        if (stopPlayback) break;
+        if (sampleMap[c] && sampleMap[c].length > 0) {
+          const b = sampleMap[c][Math.floor(Math.random() * sampleMap[c].length)];
+          playSample(b);
+        } else {
+          playTone(freqForChar(c), dur);
+        }
+        await new Promise(r => setTimeout(r, dur));
+      }
+    }
+
+    async function playAllSequences(dur) {
+      const seqs = Array.from(document.querySelectorAll('.sequence-block textarea')).map(t => t.value);
+      stopPlayback = false;
+      do {
+        await Promise.all(seqs.map(t => playSequence(t, dur)));
+      } while (looping && !stopPlayback);
+    }
+
+    document.getElementById('playBtn').onclick = async () => {
+      stopPlayback = true;
+      await new Promise(r => setTimeout(r, 50));
+      playAllSequences(parseInt(document.getElementById('duration').value));
+    };
+
+    document.getElementById('stopBtn').onclick = () => stopPlayback = true;
+
+    document.getElementById('loopBtn').onclick = e => {
+      looping = !looping;
+      e.target.textContent = looping ? 'Loop: On' : 'Loop: Off';
+    };
+
+    document.getElementById('duration').oninput = e => {
+      document.getElementById('durationValue').textContent = e.target.value;
+    };
+
+    document.getElementById('addAssignmentBtn').onclick = () => {
+      const div = document.createElement('div');
+      div.className = 'assignment';
+      const charIn = document.createElement('input');
+      charIn.type = 'text';
+      charIn.maxLength = 1;
+      const fileIn = document.createElement('input');
+      fileIn.type = 'file';
+      fileIn.accept = 'audio/*';
+      fileIn.multiple = true;
+      fileIn.onchange = async e => {
+        const bufs = await loadSamples(Array.from(e.target.files));
+        sampleMap[charIn.value] = bufs;
+      };
+      const del = document.createElement('button');
+      del.textContent = 'Delete';
+      del.onclick = () => {
+        if (sampleMap[charIn.value]) delete sampleMap[charIn.value];
+        div.remove();
+      };
+      div.append(charIn, fileIn, del);
+      document.getElementById('assignmentsContainer').appendChild(div);
+    };
+
+    document.getElementById('addSequenceBtn').onclick = () => {
+      const div = document.createElement('div');
+      div.className = 'sequence-block';
+      const ta = document.createElement('textarea');
+      ta.placeholder = 'Type ASCII sequence...';
+      const c = document.createElement('div');
+      c.textContent = 'Characters: 0';
+      ta.oninput = () => c.textContent = 'Characters: ' + ta.value.length;
+      div.append(ta, c);
+      document.getElementById('sequencesContainer').appendChild(div);
+    };
+
+    document.getElementById('addSequenceBtn').click();
+  </script>
+</body>
+</html>
