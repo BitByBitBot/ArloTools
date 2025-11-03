@@ -72,31 +72,21 @@
       text-transform: uppercase;
       letter-spacing: 0.18em;
       font-size: clamp(0.7rem, 1.4vw, 0.85rem);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: 700;
     }
 
     .site-nav a {
       text-decoration: none;
       color: inherit;
       position: relative;
-      padding-bottom: 4px;
+      padding: 0;
+      transition: color 0.2s ease;
     }
 
-    .site-nav a::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      bottom: 0;
-      width: 100%;
-      height: 1px;
-      background: currentColor;
-      transform: scaleX(0);
-      transform-origin: left;
-      transition: transform 0.2s ease;
-    }
-
-    .site-nav a:hover::after,
-    .site-nav a:focus-visible::after {
-      transform: scaleX(1);
+    .site-nav a:hover,
+    .site-nav a:focus-visible {
+      color: #d40000;
     }
 
     .site-nav a:focus-visible {
@@ -105,6 +95,23 @@
 
     .site-nav a[data-active="true"] {
       color: #d40000;
+    }
+
+    .site-nav a[data-active="true"]::before,
+    .site-nav a[data-active="true"]::after {
+      font-weight: inherit;
+      font-family: inherit;
+      letter-spacing: 0;
+    }
+
+    .site-nav a[data-active="true"]::before {
+      content: '[';
+      margin-right: 0.25em;
+    }
+
+    .site-nav a[data-active="true"]::after {
+      content: ']';
+      margin-left: 0.25em;
     }
 
     .stage {
@@ -175,7 +182,7 @@
       letter-spacing: 0.05em;
       text-transform: uppercase;
       line-height: 1.3;
-      transition: border-color 0.2s ease, opacity 0.2s ease;
+      transition: border-color 0.2s ease, opacity 0.2s ease, background-color 0.2s ease;
       will-change: transform;
       overflow: hidden;
       transform-style: preserve-3d;
@@ -186,6 +193,7 @@
     /* When a card is hovered, subtly change the border colour to draw focus. */
     .tool-card.is-hovered {
       border-color: #d40000;
+      background: rgba(255, 255, 255, 0.98);
     }
 
     .tool-card:focus-visible {
@@ -820,9 +828,9 @@
         const lerpStrength = hovered ? 0.24 : 0.12;
         entry.rotationY += (targetRotationY - entry.rotationY) * lerpStrength;
 
-        // Calculate a provisional scale.  Hovered cards scale up more to
-        // emphasise focus, but never become excessively large or small.
-        let scaleVal = entry.scale * depthScale * (hovered ? 1.35 : 1);
+        // Calculate a provisional scale without enlarging hovered cards so the
+        // frames stay steady while they rotate toward the camera.
+        let scaleVal = entry.scale * depthScale;
         scaleVal = Math.max(0.45, Math.min(scaleVal, 1.0));
 
         positions.push({

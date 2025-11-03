@@ -73,39 +73,46 @@
       letter-spacing: 0.18em;
       font-size: clamp(0.7rem, 1.2vw, 0.82rem);
       padding-top: clamp(10px, 1.8vw, 18px);
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+      font-weight: 700;
     }
 
     nav a {
       text-decoration: none;
       color: inherit;
       position: relative;
-      padding-bottom: 4px;
+      padding: 0;
+      transition: color 0.2s ease;
+    }
+
+    nav a:hover,
+    nav a:focus-visible {
+      color: #d40000;
+    }
+
+    nav a:focus-visible {
+      outline: none;
     }
 
     nav a[data-active="true"] {
       color: #d40000;
     }
 
-    nav a::after {
-      content: '';
-      position: absolute;
-      left: 0;
-      bottom: 0;
-      width: 100%;
-      height: 1px;
-      background: currentColor;
-      transform: scaleX(0);
-      transform-origin: left;
-      transition: transform 0.2s ease;
+    nav a[data-active="true"]::before,
+    nav a[data-active="true"]::after {
+      font-weight: inherit;
+      font-family: inherit;
+      letter-spacing: 0;
     }
 
-    nav a:hover::after,
-    nav a:focus-visible::after {
-      transform: scaleX(1);
+    nav a[data-active="true"]::before {
+      content: '[';
+      margin-right: 0.25em;
     }
 
-    nav a:focus-visible {
-      outline: none;
+    nav a[data-active="true"]::after {
+      content: ']';
+      margin-left: 0.25em;
     }
 
     main {
