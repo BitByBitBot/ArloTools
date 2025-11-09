@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>Division Art Generator</title>
+<style>
+ body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;background:#f6f6f6;margin:0;padding:20px}
+ .controls{background:#fff;padding:15px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);margin-bottom:15px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:end}
+ .controls label{font-size:12px;display:block;margin-bottom:2px}
+ .controls input,.controls select,.controls button{padding:4px;font-size:12px}
+ #colors{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
+ .colorWrapper{display:flex;align-items:center;gap:3px;cursor:grab;}
+ .colorWrapper.dragging{opacity:0.5;}
+ canvas{background:white;max-height:600px;height:80vh;width:auto;}
+</style>
+</head>
+<body>
+<h2>Algorithmic Division Art Generator</h2>
+<div class="controls">
+ <div>
+  <label>Height Resolution</label>
+  <input id="resH" type="number" value="600" min="64" step="16">
+ </div>
+ <div>
+  <label>Width Resolution</label>
+  <input id="resW" type="number" value="600" min="64" step="16">
+ </div>
+ <div>
+  <label>Columns</label>
+  <input id="cols" type="number" value="10" min="1">
+ </div>
+ <div>
+  <label>Row Progression</label>
+  <select id="rowMode">
+    <option value="linear" selected>Linear (step)</option>
+    <option value="geometric">Geometric (ratio)</option>
+  </select>
+ </div>
+ <div>
+  <label>Base Rows</label>
+  <input id="baseRows" type="number" value="1" min="1">
+ </div>
+ <div id="linearWrap">
+  <label>Rows Step</label>
+  <input id="rowStep" type="number" value="1" min="0">
+ </div>
+ <div id="geoWrap" style="display:none">
+  <label>Rows Ratio</label>
+  <input id="rowRatio" type="number" value="2" min="1" step="1">
+ </div>
+ <div>
+  <label>Line Width</label>
+  <input id="lw" type="number" value="2" min="0" step="1">
+ </div>
+ <div>
+  <label>Column Width Mode</label>
+  <select id="widthMode">
+   <option value="equal">Equal</option>
+   <option value="inverse">Inverse</option>
+   <option value="proportional">Proportional</option>
+   <option value="square">Square Segments</option>
+  </select>
+ </div>
+ <div>
+  <label>Fill Mode</label>
+  <select id="fillMode">
+   <option value="none">None</option>
+   <option value="gradient">Vertical Gradient</option>
+   <option value="checker">Checker</option>
+  </select>
+ </div>
+ <div>
+  <label>Rotation</label>
+  <select id="rotationSelect">
+    <option value="0">Right (0°)</option>
+    <option value="90">Down (90°)</option>
+    <option value="180">Left (180°)</option>
+    <option value="270">Up (270°)</option>
+  </select>
+ </div>
+ <div id="colorContainer">
+  <label>Colors</label>
+  <div id="colors"></div>
+  <button id="addColor">Add Color</button>
+ </div>
+</div>
+<canvas id="c"></canvas>
+<script>
+const colorsDiv=document.getElementById('colors');
+let colorInputs=[];
+const canvas=document.getElementById('c');
+const rotationSelect=document.getElementById('rotationSelect');
+rotationSelect.addEventListener('change',()=>{
+ canvas.style.transform=`rotate(${rotationSelect.value}deg)`;
+});
+
+function createColorWrapper(value='#000000'){
+ const wrapper=document.createElement('div');
+ wrapper.className='colorWrapper';
+ wrapper.draggable=true;
+
+ const input=document.createElement('input');
+ input.type='color';
+ input.value=value;
+ input.className='colorInput';
+ input.addEventListener('input',draw);
+
+ const remove=document.createElement('button');
+ remove.textContent='×';
+ remove.style.fontSize='10px';
+ remove.addEventListener('click',()=>{
+   wrapper.remove();
+   colorInputs=colorInputs.filter(i=>i!==input);
+   draw();
+ });
+
+ wrapper.appendChild(input);
+ wrapper.appendChild(remove);
+ colorsDiv.appendChild(wrapper);
+ colorInputs.push(input);
+
+ wrapper.addEventListener('dragstart',()=>wrapper.classList.add('dragging'));
+ wrapper.addEventListener('dragend',()=>{
+   wrapper.classList.remove('dragging');
+   reorderColors();
+   draw();
+ });
+}
+
+function reorderColors(){
+ colorInputs=[...document.querySelectorAll('.colorInput')];
+}
+
+colorsDiv.addEventListener('dragover',e=>{
+ e.preventDefault();
+ const dragging=document.querySelector('.dragging');
+ const afterElement=getDragAfterElement(colorsDiv,e.clientX);
+ if(afterElement==null){colorsDiv.appendChild(dragging);} else {colorsDiv.insertBefore(dragging,afterElement);}
+});
+
+function getDragAfterElement(container,x){
+ const els=[...container.querySelectorAll('.colorWrapper:not(.dragging)')];
+ return els.reduce((closest,child)=>{
+   const box=child.getBoundingClientRect();
+   const offset=x-box.left-box.width/2;
+   if(offset<0&&offset>closest.offset){return{offset:offset,element:child};} else{return closest;}
+ },{offset:Number.NEGATIVE_INFINITY}).element;
+}
+
+document.getElementById('addColor').addEventListener('click',()=>{
+ createColorWrapper('#'+Math.floor(Math.random()*16777215).toString(16).padStart(6,'0'));
+ draw();
+});
+
+function getColors(){return colorInputs.map(c=>c.value);}
+function clampInt(n,min){n=Math.floor(n);return (n<min)?min:n;}
+
+function draw(){
+ const H=+resH.value; const Winit=+resW.value; const C=clampInt(+cols.value,1);
+ const mode=rowMode.value; const BR=clampInt(+baseRows.value,1);
+ const RS=Math.max(0,+rowStep.value); const ratio=Math.max(1,Math.floor(+rowRatio.value||1));
+ const LW=Math.max(0,+lw.value);
+ const fm=fillMode.value, wm=widthMode.value;
+ const ctx=c.getContext('2d');
+ const colsList=getColors();
+ if(colsList.length<2) return;
+
+ let widths=[];
+
+ if(wm==='square'){
+   const rowsPerCol=[];
+   for(let i=0;i<C;i++){
+     let n=(mode==='linear')?(BR+i*RS):(BR*Math.pow(ratio,i));
+     n=clampInt(n,1);
+     rowsPerCol.push(n);
+   }
+   widths=rowsPerCol.map(n=>H/n);
+   const totalW=widths.reduce((a,b)=>a+b,0);
+   c.width=Winit>0?totalW*(Winit/H):totalW;
+   c.height=H;
+   c.style.height='80vh'; c.style.width='auto';
+   ctx.clearRect(0,0,c.width,c.height);
+   ctx.lineWidth=LW; ctx.strokeStyle=LW>0?'#000':'transparent';
+   let x=0;
+   for(let i=0;i<C;i++){
+     const cw=widths[i]*(Winit/H);
+     const numRows=rowsPerCol[i];
+     let y=0;
+     for(let r=0;r<numRows;r++){
+       const rh=cw;
+       if(fm==='gradient'){
+         const g=ctx.createLinearGradient(0,y,0,y+rh);
+         colsList.forEach((c,j)=>g.addColorStop(j/(colsList.length-1),c));
+         ctx.fillStyle=g;
+         ctx.fillRect(x,y,cw,rh);
+       } else if(fm==='checker'){
+         const idx=(r)%colsList.length;
+         ctx.fillStyle=colsList[idx];
+         ctx.fillRect(x,y,cw,rh);
+       }
+       if(LW>0) ctx.strokeRect(x,y,cw,rh);
+       y+=rh;
+     }
+     x+=cw;
+   }
+   return;
+ }
+ const W=Winit,Hh=H; c.width=W; c.height=Hh; c.style.height='80vh'; c.style.width='auto';
+ ctx.clearRect(0,0,W,Hh);
+ ctx.lineWidth=LW; ctx.strokeStyle=LW>0?'#000':'transparent';
+ if(wm==='equal') widths=Array(C).fill(W/C);
+ else if(wm==='inverse'){
+   let total=0;for(let i=1;i<=C;i++)total+=1/i;for(let i=1;i<=C;i++)widths.push((1/i)/total*W);
+ } else if(wm==='proportional'){
+   let total=0;for(let i=1;i<=C;i++)total+=i;for(let i=1;i<=C;i++)widths.push(i/total*W);
+ }
+ let x=0;
+ for(let i=0;i<C;i++){
+   let cw=widths[i];
+   let numRows=(mode==='linear')?(BR+i*RS):(BR*Math.pow(ratio,i));
+   numRows=clampInt(numRows,1);
+   let y=0;
+   for(let r=0;r<numRows;r++){
+     let rh=Hh/numRows;
+     if(fm==='gradient'){
+       const g=ctx.createLinearGradient(0,y,0,y+rh);
+       colsList.forEach((c,j)=>g.addColorStop(j/(colsList.length-1),c));
+       ctx.fillStyle=g;
+       ctx.fillRect(x,y,cw,rh);
+     } else if(fm==='checker'){
+       const idx=(r)%colsList.length;
+       ctx.fillStyle=colsList[idx];
+       ctx.fillRect(x,y,cw,rh);
+     }
+     if(LW>0) ctx.strokeRect(x,y,cw,rh);
+     y+=rh;
+   }
+   x+=cw;
+ }
+}
+
+document.querySelectorAll('input, select').forEach(el=>{
+ el.addEventListener('input',()=>{if(el.id==='rowMode') syncRowUI();draw();});
+ el.addEventListener('change',()=>{if(el.id==='rowMode') syncRowUI();draw();});
+});
+
+function syncRowUI(){
+ const m=rowMode.value;
+ document.getElementById('linearWrap').style.display=(m==='linear')?'':'none';
+ document.getElementById('geoWrap').style.display=(m==='geometric')?'':'none';
+}
+
+window.addEventListener('DOMContentLoaded',()=>{
+ createColorWrapper('#ffffff');
+ createColorWrapper('#000000');
+ syncRowUI();
+ draw();
+});
+</script>
+</body>
+</html>
