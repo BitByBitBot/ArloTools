@@ -1,0 +1,461 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>Punch Tape Generator (Standalone)</title>
+<style>
+  :root{
+    --bg:#f4f5f6;
+    --panel:#ffffff;
+    --ink:#111111;
+    --muted:#7a7a7a;
+    --ring:#e5e5e5;
+    --tape:#f5ead7;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%}
+  body{margin:0;background:var(--bg);color:#0b0b0b;font:14px/1.45 system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif}
+  h1{font-size:22px;margin:0}
+  h2{font-size:16px;margin:0 0 8px}
+  .wrap{max-width:1120px;margin:0 auto;padding:20px}
+  header{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:16px}
+  .btn{appearance:none;border:none;background:#0f0f10;color:#fff;padding:10px 14px;border-radius:12px;cursor:pointer}
+  .btn:active{transform:translateY(1px)}
+  .grid{display:grid;grid-template-columns:1fr 320px;gap:16px}
+  @media (max-width: 980px){.grid{grid-template-columns:1fr}}
+  .card{background:var(--panel);border:1px solid var(--ring);border-radius:16px;padding:14px}
+  .row{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+  textarea{width:100%;height:160px;padding:10px;border:1px solid var(--ring);border-radius:12px;resize:vertical;font-family:ui-monospace, SFMono-Regular, Menlo, Consolas, monospace}
+  input[type="number"], select{width:100%;padding:8px;border:1px solid var(--ring);border-radius:10px;background:#fff}
+  input[type="range"]{width:100%}
+  .preview{overflow-y:auto;overflow-x:hidden;white-space:normal;border:1px solid var(--ring);border-radius:12px;background:#fafafa;max-width:100%;max-height:70vh;}
+  .meta{color:var(--muted);font-size:12px;margin-top:6px}
+  .controls{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+  .toggles{display:flex;flex-wrap:wrap;gap:10px;margin-top:8px}
+  .toggle{display:flex;align-items:center;gap:6px;font-size:13px}
+  .color{display:flex;gap:10px;margin-top:8px}
+  .color input{height:36px}
+  .file-btn{display:inline-block;padding:7px 10px;border-radius:10px;background:#ececec;cursor:pointer}
+  .tips{color:#555;font-size:12px;margin-top:6px}
+  svg{display:inline-block;}
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <h1>Punch Tape Generator</h1>
+      <button id="downloadBtn" class="btn">Download SVG</button>
+      <button id="downloadJpgBtn" class="btn">Download JPEG</button>
+    </header>
+
+    <div class="grid">
+      <div>
+        <div class="card">
+          <div class="row">
+            <h2>Input Text</h2>
+            <label class="file-btn">Import .txt
+              <input id="fileInput" type="file" accept=".txt" style="display:none" />
+            </label>
+          </div>
+          <textarea id="textInput"></textarea>
+          <div class="tips">7-bit ASCII is used for data rows. If 8 channels are selected, the top row shows a parity bit (even/odd).</div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h2 style="margin-bottom:8px">Preview</h2>
+          <div id="preview" class="preview"></div>
+          <div id="meta" class="meta"></div>
+        </div>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>Encoding</h2>
+          <div class="controls">
+            <label>Channels
+              <select id="channels">
+                <option value="7">7 (ASCII)</option>
+                <option value="8" selected>8 (ASCII + parity)</option>
+              </select>
+            </label>
+            <label>Parity
+              <select id="parity">
+                <option value="none">None</option>
+                <option value="even" selected>Even</option>
+                <option value="odd">Odd</option>
+              </select>
+            </label>
+            <label>Bit order (left→right)
+              <select id="bitOrder">
+                <option value="lsb-top" selected>LSB at top</option>
+                <option value="msb-top">MSB at top</option>
+              </select>
+            </label>
+            <label>Gap columns
+              <input id="gapCols" type="number" min="0" max="6" value="1" />
+            </label>
+            <label>Sprocket clearance (slots)
+              <input id="sprocketSlots" type="number" min="1" max="4" value="1" />
+            </label>
+            <label>Sprocket position (slot index)
+              <input id="sprocketPos" type="number" min="0" value="0" />
+            </label>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h2>Appearance</h2>
+          <div class="controls">
+            <label>Hole radius
+              <input id="holeRadius" type="range" min="2" max="8" value="4" />
+            </label>
+            <label>Sprocket radius
+              <input id="sprocketRadius" type="range" min="1" max="12" value="3" />
+            </label>
+            <label>Column pitch
+              <input id="colPitch" type="range" min="10" max="24" value="14" />
+            </label>
+            <label>Row pitch
+              <input id="rowPitch" type="range" min="10" max="24" value="12" />
+            </label>
+            <label>Tape padding
+              <input id="tapePadding" type="range" min="8" max="60" value="24" />
+            </label>
+          </div>
+          <div class="color">
+            <label style="flex:1">Tape color<br/>
+              <input id="tapeColor" type="color" value="#f5ead7" />
+            </label>
+            <label style="flex:1">Hole color<br/>
+              <input id="holeColor" type="color" value="#111111" />
+            </label>
+          </div>
+          <div class="toggles">
+            <label class="toggle"><input id="sprocket" type="checkbox" checked> Sprocket holes</label>
+            <label class="toggle"><input id="rowGuides" type="checkbox" checked> Row guides</label>
+            <label class="toggle"><input id="roundedEnds" type="checkbox" checked> Rounded tape edges</label>
+            <label class="toggle"><input id="roundedCorners" type="checkbox" checked> Rounded corners</label>
+          </div>
+        </div>
+
+        <div class="card" style="margin-top:12px">
+          <h2>How it works</h2>
+          <ul style="margin:6px 0 0 18px; padding:0">
+            <li>Each character maps to 7 data bits (ASCII). If 8 channels are chosen, a parity bit is added.</li>
+            <li>Parity bit ensures total 1s per column are even/odd (when enabled).</li>
+            <li>Reserved sprocket lane prevents feed/data collisions; you can move its position and size.</li>
+            <li>Bit order only changes left/right visual ordering of significance.</li>
+          </ul>
+          <div class="tips">Want a 5-track Baudot/ITA2 mode? I can add Letters/Figures shifts next.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+<script>
+(function(){
+  const DEFAULT_TEXT = `Hello, world!\nThis is a demo of paper tape.\nASCII 7-bit with optional parity.`;
+
+  const els = {
+    text: document.getElementById('textInput'),
+    file: document.getElementById('fileInput'),
+    preview: document.getElementById('preview'),
+    meta: document.getElementById('meta'),
+    download: document.getElementById('downloadBtn'),
+    downloadJpg: document.getElementById('downloadJpgBtn'),
+
+    channels: document.getElementById('channels'),
+    parity: document.getElementById('parity'),
+    bitOrder: document.getElementById('bitOrder'),
+    gapCols: document.getElementById('gapCols'),
+    sprocketSlots: document.getElementById('sprocketSlots'),
+    sprocketPos: document.getElementById('sprocketPos'),
+
+    holeRadius: document.getElementById('holeRadius'),
+    sprocketRadius: document.getElementById('sprocketRadius'),
+    colPitch: document.getElementById('colPitch'), // horizontal spacing between channels
+    rowPitch: document.getElementById('rowPitch'), // vertical spacing between characters
+    tapePadding: document.getElementById('tapePadding'),
+
+    sprocket: document.getElementById('sprocket'),
+    rowGuides: document.getElementById('rowGuides'),
+    roundedEnds: document.getElementById('roundedEnds'),
+    roundedCorners: document.getElementById('roundedCorners'),
+
+    tapeColor: document.getElementById('tapeColor'),
+    holeColor: document.getElementById('holeColor'),
+  };
+
+  els.text.value = DEFAULT_TEXT;
+
+  function toBits7(n){
+    const v = n & 0x7f;
+    const out = [];
+    for(let i=0;i<7;i++) out.push((v >> i) & 1); // LSB-first
+    return out;
+  }
+  function computeParityBit(bits, mode){
+    if(mode === 'none') return 0;
+    const ones = bits.reduce((s,b)=> s + (b?1:0), 0);
+    const evenDesired = (mode === 'even');
+    const isEven = (ones % 2) === 0;
+    return evenDesired ? (isEven ? 0 : 1) : (isEven ? 1 : 0);
+  }
+  function buildColumnsFromText(text, channels, parity, gapCols){
+    // Each character becomes an element with `channels` bits
+    const cols = [];
+    for(let i=0;i<text.length;i++){
+      const code = text.charCodeAt(i) & 0xff; // basic Latin
+      const bits7 = toBits7(code);
+      let colBits;
+      if(channels === 7){
+        colBits = bits7.slice();
+      } else {
+        const p = computeParityBit(bits7, parity);
+        colBits = bits7.concat([p]);
+      }
+      cols.push(colBits);
+      for(let g=0; g<gapCols; g++) cols.push(new Array(channels).fill(0));
+    }
+    return cols;
+  }
+
+  let currentSVG = null;
+  let sprocketPosTouched = false;
+
+  function render(){
+    const text = els.text.value || '';
+    const channels = parseInt(els.channels.value,10);
+    const parity = (channels === 8) ? els.parity.value : 'none';
+    els.parity.disabled = (channels === 7);
+
+    const bitOrder = els.bitOrder.value; // 'lsb-top' | 'msb-top' (used as left/right here)
+    const gapCols = Math.max(0, Math.min(6, parseInt(els.gapCols.value || '0',10)));
+
+    const holeRadius = parseFloat(els.holeRadius.value);
+    const sprocketRadius = parseFloat(els.sprocketRadius.value) || holeRadius*0.65;
+    const colPitch = parseFloat(els.colPitch.value); // horizontal spacing between channels
+    const rowPitch = parseFloat(els.rowPitch.value); // vertical spacing between characters
+    const tapePadding = parseFloat(els.tapePadding.value);
+
+    const sprocket = els.sprocket.checked;
+    const rowGuides = els.rowGuides.checked;
+    const roundedEnds = els.roundedEnds.checked;
+    const roundedCorners = els.roundedCorners ? els.roundedCorners.checked : true; // default on
+
+    const sprocketSlotsInput = parseInt(els.sprocketSlots.value || '1', 10);
+    const sprocketSlots = sprocket ? Math.max(1, Math.min(4, sprocketSlotsInput)) : 0; // at least one slot if sprocket enabled
+
+    const tapeColor = els.tapeColor.value;
+    const holeColor = els.holeColor.value;
+
+    const rows = buildColumnsFromText(text, channels, parity, gapCols); // treat as rows vertically
+    const totalRows = rows.length;
+
+    // total horizontal slots = data channels + reserved sprocket lane (in colPitch units)
+    const totalSlots = channels + sprocketSlots;
+
+    // geometry (vertical growth): width depends on totalSlots; height depends on characters
+    const width = tapePadding*2 + (totalSlots - 1) * colPitch + colPitch; // same form as before
+    const height = tapePadding*2 + totalRows * rowPitch;
+
+    // Build slot Xs
+    const slotXs = Array.from({length: totalSlots}, (_,i)=> tapePadding + i*colPitch + colPitch*0.5);
+
+    // Determine sprocket start position and clamp based on current totalSlots
+    const maxPos = Math.max(0, totalSlots - sprocketSlots);
+    els.sprocketPos.max = String(maxPos);
+    els.sprocketPos.disabled = !sprocket;
+    els.sprocketSlots.disabled = !sprocket;
+    els.sprocketRadius.disabled = !sprocket;
+
+    if(!sprocketPosTouched){
+      // default to centered lane
+      els.sprocketPos.value = String(Math.floor(maxPos/2));
+    }
+
+    let sprocketStart = sprocket ? Math.max(0, Math.min(maxPos, parseInt(els.sprocketPos.value || '0', 10))) : 0;
+    const sprocketEnd = sprocketStart + Math.max(0, sprocketSlots - 1);
+
+    // Sprocket X is the center of its lane
+    let sprocketX = null;
+    if(sprocket && sprocketSlots > 0){
+      if(sprocketSlots === 1){
+        sprocketX = slotXs[sprocketStart];
+      } else {
+        const left = slotXs[sprocketStart];
+        const right = slotXs[sprocketEnd];
+        sprocketX = (left + right) / 2;
+      }
+    }
+
+    // Visual order of channels left→right according to bit significance
+    const order = Array.from({length: channels}, (_,i)=>i);
+    const dataCols = (bitOrder === 'lsb-top') ? order : order.slice().reverse();
+
+    // Map channels to slot positions skipping the sprocket lane
+    let visualSlots = slotXs.slice();
+    if(sprocket && sprocketSlots > 0){
+      visualSlots = slotXs.filter((_,i)=> i < sprocketStart || i > sprocketEnd);
+    }
+    const colXs = visualSlots; // channels mapped in left→right order to these positions
+
+    const xmlns = 'http://www.w3.org/2000/svg';
+    const svg = document.createElementNS(xmlns,'svg');
+    svg.setAttribute('width', width);
+    svg.setAttribute('height', height);
+    svg.setAttribute('viewBox', `0 0 ${width} ${height}`);
+
+    // tape body (vertical strip)
+    const rect = document.createElementNS(xmlns,'rect');
+    rect.setAttribute('x', String(width*0.08));
+    rect.setAttribute('y', '0');
+    rect.setAttribute('width', String(width*0.84));
+    rect.setAttribute('height', String(height));
+    rect.setAttribute('rx', roundedEnds ? '18' : '2');
+    rect.setAttribute('fill', tapeColor);
+    rect.setAttribute('stroke', '#d0c4ad');
+    rect.setAttribute('stroke-width', '1');
+    svg.appendChild(rect);
+
+    // guides (vertical lines at each channel only, not at sprocket)
+    if(rowGuides){
+      for(let i=0;i<colXs.length;i++){
+        const ln = document.createElementNS(xmlns,'line');
+        ln.setAttribute('x1', String(colXs[i]));
+        ln.setAttribute('x2', String(colXs[i]));
+        ln.setAttribute('y1', String(tapePadding));
+        ln.setAttribute('y2', String(height - tapePadding));
+        ln.setAttribute('stroke', '#d4d4d4');
+        ln.setAttribute('stroke-dasharray', '3 4');
+        svg.appendChild(ln);
+      }
+    }
+
+    // rows of data + sprocket
+    for(let rowIdx=0; rowIdx<rows.length; rowIdx++){
+      const bits = rows[rowIdx];
+      const cy = tapePadding + rowIdx * rowPitch + rowPitch/2;
+
+      if(sprocket && sprocketX !== null){
+        const sp = document.createElementNS(xmlns,'circle');
+        sp.setAttribute('cx', String(sprocketX));
+        sp.setAttribute('cy', String(cy));
+        sp.setAttribute('r', String(sprocketRadius));
+        sp.setAttribute('fill', holeColor);
+        svg.appendChild(sp);
+      }
+
+      for(let internal=0; internal<bits.length; internal++){
+        if(!bits[internal]) continue;
+        const visualIdx = dataCols.indexOf(internal);
+        const cx = colXs[visualIdx];
+        if(roundedCorners){
+          const c = document.createElementNS(xmlns,'circle');
+          c.setAttribute('cx', String(cx));
+          c.setAttribute('cy', String(cy));
+          c.setAttribute('r', String(holeRadius));
+          c.setAttribute('fill', holeColor);
+          svg.appendChild(c);
+        } else {
+          const r = document.createElementNS(xmlns,'rect');
+          const size = holeRadius * 2;
+          r.setAttribute('x', String(cx - holeRadius));
+          r.setAttribute('y', String(cy - holeRadius));
+          r.setAttribute('width', String(size));
+          r.setAttribute('height', String(size));
+          r.setAttribute('rx', '0');
+          r.setAttribute('fill', holeColor);
+          svg.appendChild(r);
+        }
+      }
+    }
+
+    els.preview.innerHTML = '';
+    els.preview.appendChild(svg);
+    els.meta.textContent = `Rows: ${totalRows} • Characters: ${text.length}`;
+    currentSVG = svg;
+  }
+
+  function downloadSVG(){
+    if(!currentSVG) return;
+    const clone = currentSVG.cloneNode(true);
+    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
+    const data = `<?xml version="1.0" encoding="UTF-8"?>\n${clone.outerHTML}`;
+    const blob = new Blob([data], {type:'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'punch_tape.svg';
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+  }
+
+  function downloadJPEG(){
+    if(!currentSVG) return;
+    const clone = currentSVG.cloneNode(true);
+    clone.setAttribute('xmlns','http://www.w3.org/2000/svg');
+    clone.setAttribute('xmlns:xlink','http://www.w3.org/1999/xlink');
+    const data = `<?xml version="1.0" encoding="UTF-8"?>\n${clone.outerHTML}`;
+    const svgBlob = new Blob([data], {type:'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(svgBlob);
+    const img = new Image();
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      // Fill white background since JPEG has no alpha
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(0, 0, canvas.width, canvas.height);
+      ctx.drawImage(img, 0, 0);
+      canvas.toBlob((jpgBlob)=>{
+        const a = document.createElement('a');
+        const jpgUrl = URL.createObjectURL(jpgBlob);
+        a.href = jpgUrl;
+        a.download = 'punch_tape.jpg';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(jpgUrl);
+        URL.revokeObjectURL(url);
+      }, 'image/jpeg', 0.95);
+    };
+    img.onerror = () => {
+      URL.revokeObjectURL(url);
+      alert('JPEG export failed.');
+    };
+    img.src = url;
+  }
+
+  ['input','change'].forEach(evt=>{
+    ['textInput','channels','parity','bitOrder','gapCols','sprocketSlots','sprocketPos','holeRadius','sprocketRadius','colPitch','rowPitch','tapePadding','sprocket','rowGuides','roundedEnds','roundedCorners','tapeColor','holeColor']
+      .forEach(id=> document.getElementById(id).addEventListener(evt, render));
+  });
+
+  // mark when sprocket position is user-edited so we stop auto-centering it
+  document.getElementById('sprocketPos').addEventListener('input', function(){
+    sprocketPosTouched = true;
+  });
+
+  els.file.addEventListener('change', (e)=>{
+    const f = e.target.files && e.target.files[0];
+    if(!f) return;
+    const reader = new FileReader();
+    reader.onload = ()=>{ els.text.value = String(reader.result || ''); render(); };
+    reader.readAsText(f);
+  });
+
+  els.download.addEventListener('click', downloadSVG);
+  if(els.downloadJpg){ els.downloadJpg.addEventListener('click', downloadJPEG); }
+
+  // Initial render
+  render();
+})();
+</script>
+</body>
+</html>
