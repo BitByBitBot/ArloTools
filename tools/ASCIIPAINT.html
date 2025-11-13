@@ -1,0 +1,500 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<title>ASCIIPAINT</title>
+<style>
+  body {
+    font-family: monospace;
+    background:#fafafa;
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    margin:0;
+    padding:16px;
+  }
+  #asciiOutput {
+    white-space:pre;
+    background:#eee;
+    border:1px solid #ccc;
+    padding:10px;
+    font-size:12px;
+    line-height:12px;
+    cursor:crosshair;
+    user-select:none;
+  }
+  .controls {
+    margin:10px;
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  #fillWrap, #markerWrap {
+    display:none;
+    align-items:center;
+    gap:6px;
+  }
+  #fillChar, #markerChar {
+    width:2.2ch;
+    text-align:center;
+  }
+  #markerSize {
+    width:5ch;
+    text-align:right;
+  }
+</style>
+</head>
+<body>
+<h1>ASCIIPAINT</h1>
+
+<div class="controls">
+  <select id="toolSelect">
+    <option value="draw">Draw</option>
+    <option value="marker">Marker</option>
+    <option value="rectangle">Rectangle</option>
+    <option value="fill">Fill</option>
+    <option value="text">Text Box</option>
+  </select>
+
+  <span id="markerWrap">
+    Marker char: <input id="markerChar" type="text" maxlength="1" value="#">
+    Size: <input id="markerSize" type="number" min="1" max="20" step="1" value="2">
+  </span>
+
+  <span id="fillWrap">
+    Fill char: <input id="fillChar" type="text" maxlength="1" value=".">
+  </span>
+
+  <button id="undoBtn">Undo</button>
+  <button id="clearBtn">Clear</button>
+</div>
+
+<pre id="asciiOutput"></pre>
+
+<script>
+// Core DOM refs
+const output     = document.getElementById('asciiOutput');
+const toolSel    = document.getElementById('toolSelect');
+const fillInput  = document.getElementById('fillChar');
+const markerChar = document.getElementById('markerChar');
+const markerSize = document.getElementById('markerSize');
+
+// Grid + history
+const cols = 80, rows = 40;
+let grid    = [];
+let history = [];
+
+function makeEmptyGrid() {
+  return Array.from({ length: rows }, () => Array(cols).fill(' '));
+}
+
+function clearGrid() {
+  grid = makeEmptyGrid();
+}
+
+function saveState() {
+  // shallow clone rows, deep clone inner arrays
+  history.push(grid.map(r => r.slice()));
+  if (history.length > 200) history.shift();
+}
+
+function undo() {
+  if (!history.length) return;
+  grid = history.pop();
+  render();
+}
+
+// Drawing state
+let drawing   = false;
+let start     = null;
+let tool      = 'draw';
+let smDx      = 0, smDy = 0;   // smoothed direction for draw
+let textBox   = null;          // {x0,y0,x1,y1,cx,cy,active}
+let cursorOn  = false;
+let cursorTimer = null;
+
+// --------------------------------------------------
+// Cursor blink (for text tool)
+// --------------------------------------------------
+function startCursor() {
+  if (cursorTimer) clearInterval(cursorTimer);
+  cursorOn = true;
+  cursorTimer = setInterval(() => {
+    if (textBox && textBox.active) {
+      cursorOn = !cursorOn;
+      render();
+    }
+  }, 500);
+}
+
+function stopCursor() {
+  cursorOn = false;
+  if (cursorTimer) clearInterval(cursorTimer);
+  cursorTimer = null;
+}
+
+// --------------------------------------------------
+// Core helpers
+// --------------------------------------------------
+function render(preview) {
+  const disp = grid.map(row => row.slice());
+
+  if (preview) {
+    for (const [x, y, ch] of preview) {
+      if (x >= 0 && x < cols && y >= 0 && y < rows) {
+        disp[y][x] = ch;
+      }
+    }
+  }
+
+  // Draw blinking cursor for active text box (Option A: | vs blank)
+  if (textBox && textBox.active && cursorOn) {
+    const { cx, cy } = textBox;
+    if (cx >= 0 && cx < cols && cy >= 0 && cy < rows) {
+      disp[cy][cx] = '|';
+    }
+  }
+
+  output.textContent = disp.map(r => r.join('')).join('\n');
+}
+
+function getPos(e) {
+  const r  = output.getBoundingClientRect();
+  const cw = r.width  / cols || 1;
+  const ch = r.height / rows || 1;
+  let x = Math.floor((e.clientX - r.left) / cw);
+  let y = Math.floor((e.clientY - r.top)  / ch);
+  x = Math.max(0, Math.min(cols - 1, x));
+  y = Math.max(0, Math.min(rows - 1, y));
+  return { x, y };
+}
+
+function setChar(x, y, ch) {
+  if (x < 0 || x >= cols || y < 0 || y >= rows) return;
+  grid[y][x] = ch;
+}
+
+// --------------------------------------------------
+// Draw tool (smoothed direction, / and \\ correctly)
+// --------------------------------------------------
+function chooseCharFreehand(dx, dy) {
+  const a = 0.4;  // smoothing
+  smDx = smDx * (1 - a) + dx * a;
+  smDy = smDy * (1 - a) + dy * a;
+
+  const adx = Math.abs(smDx);
+  const ady = Math.abs(smDy);
+
+  // Vertical lock
+  if (ady > adx * 1.5) return '|';
+
+  // Horizontal-ish with height variations
+  if (adx > ady * 1.5) {
+    const s = smDy / (smDx || 1);
+    if (s >  0.35) return '_';  // low
+    if (s < -0.35) return '"';  // high
+    return '-';                 // mid
+  }
+
+  // Diagonal band: sign decides / vs \
+  const prod = smDx * smDy;
+  // '/' for up-right & down-left (dx*dy < 0)
+  // '\\' for down-right & up-left (dx*dy > 0)
+  if (prod > 0)  return '\\';
+  if (prod < 0)  return '/';
+
+  // Tie-breaker
+  return smDy >= 0 ? '/' : '\\';
+}
+
+function drawLineSnap(x0, y0, x1, y1, ch) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy)) || 1;
+  for (let i = 0; i <= steps; i++) {
+    const x = Math.round(x0 + dx * i / steps);
+    const y = Math.round(y0 + dy * i / steps);
+    setChar(x, y, ch);
+  }
+}
+
+function smoothFreehand(x0, y0, x1, y1) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+  const ch = chooseCharFreehand(dx, dy);
+
+  if (!steps) {
+    setChar(x0, y0, ch);
+    return;
+  }
+
+  for (let i = 0; i <= steps; i++) {
+    const x = Math.round(x0 + dx * i / steps);
+    const y = Math.round(y0 + dy * i / steps);
+    setChar(x, y, ch);
+  }
+}
+
+// --------------------------------------------------
+// Marker tool
+// --------------------------------------------------
+function stampMarker(cx, cy, r, ch) {
+  const rr = r * r;
+  for (let dy = -r; dy <= r; dy++) {
+    for (let dx = -r; dx <= r; dx++) {
+      if (dx * dx + dy * dy <= rr) {
+        setChar(cx + dx, cy + dy, ch);
+      }
+    }
+  }
+}
+
+function drawMarkerLine(x0, y0, x1, y1, r, ch) {
+  const dx = x1 - x0;
+  const dy = y1 - y0;
+  const steps = Math.max(Math.abs(dx), Math.abs(dy));
+
+  if (!steps) {
+    stampMarker(x0, y0, r, ch);
+    return;
+  }
+
+  for (let i = 0; i <= steps; i++) {
+    const x = Math.round(x0 + dx * i / steps);
+    const y = Math.round(y0 + dy * i / steps);
+    stampMarker(x, y, r, ch);
+  }
+}
+
+// --------------------------------------------------
+// Rectangle + Fill
+// --------------------------------------------------
+function rect(x0, y0, x1, y1) {
+  const xMin = Math.min(x0, x1);
+  const xMax = Math.max(x0, x1);
+  const yMin = Math.min(y0, y1);
+  const yMax = Math.max(y0, y1);
+
+  for (let x = xMin; x <= xMax; x++) {
+    setChar(x, yMin, '-');
+    setChar(x, yMax, '-');
+  }
+  for (let y = yMin; y <= yMax; y++) {
+    setChar(xMin, y, '|');
+    setChar(xMax, y, '|');
+  }
+  setChar(xMin, yMin, '+');
+  setChar(xMax, yMin, '+');
+  setChar(xMin, yMax, '+');
+  setChar(xMax, yMax, '+');
+}
+
+function floodFill(x, y, target, ch) {
+  if (target === ch) return;
+  const q = [[x, y]];
+  while (q.length) {
+    const [cx, cy] = q.pop();
+    if (cx < 0 || cx >= cols || cy < 0 || cy >= rows) continue;
+    if (grid[cy][cx] !== target) continue;
+    grid[cy][cx] = ch;
+    q.push([cx + 1, cy], [cx - 1, cy], [cx, cy + 1], [cx, cy - 1]);
+  }
+}
+
+// --------------------------------------------------
+// UI control visibility
+// --------------------------------------------------
+function updateControls() {
+  document.getElementById('fillWrap').style.display   =
+    toolSel.value === 'fill'   ? 'inline-flex' : 'none';
+  document.getElementById('markerWrap').style.display =
+    toolSel.value === 'marker' ? 'inline-flex' : 'none';
+}
+
+toolSel.addEventListener('change', () => {
+  if (textBox) textBox.active = false;
+  stopCursor();
+  tool = toolSel.value;
+  updateControls();
+});
+
+// --------------------------------------------------
+// Text box logic
+// --------------------------------------------------
+function startTextBox(x0, y0, x1, y1) {
+  const xMin = Math.min(x0, x1);
+  const xMax = Math.max(x0, x1);
+  const yMin = Math.min(y0, y1);
+  const yMax = Math.max(y0, y1);
+  textBox = {
+    x0: xMin, y0: yMin,
+    x1: xMax, y1: yMax,
+    cx: xMin, cy: yMin,
+    active: true
+  };
+}
+
+window.addEventListener('keydown', (e) => {
+  if (!textBox || !textBox.active) return;
+  const tb = textBox;
+
+  // Backspace
+  if (e.key === 'Backspace') {
+    e.preventDefault();
+    if (tb.cx === tb.x0 && tb.cy === tb.y0) return;
+    saveState();
+    tb.cx--;
+    if (tb.cx < tb.x0) {
+      tb.cy--;
+      tb.cx = tb.x1;
+    }
+    setChar(tb.cx, tb.cy, ' ');
+    render();
+    return;
+  }
+
+  // Ignore control/meta/alt and non-printables
+  if (e.key.length !== 1 || e.ctrlKey || e.metaKey || e.altKey) return;
+
+  // Type character
+  saveState();
+  setChar(tb.cx, tb.cy, e.key);
+  tb.cx++;
+  if (tb.cx > tb.x1) {
+    tb.cx = tb.x0;
+    tb.cy++;
+  }
+  if (tb.cy > tb.y1) {
+    tb.active = false;
+    stopCursor();
+    render();
+    return;
+  }
+  render();
+});
+
+// --------------------------------------------------
+// Mouse events
+// --------------------------------------------------
+output.addEventListener('mousedown', (e) => {
+  tool = toolSel.value;
+  drawing = true;
+  start = getPos(e);
+
+  if (textBox) {
+    textBox.active = false;
+    stopCursor();
+  }
+
+  if (tool === 'draw') {
+    saveState();
+    smDx = 0;
+    smDy = 0;
+  } else if (tool === 'marker') {
+    saveState();
+    const ch = (markerChar.value || '#')[0];
+    const r  = Math.max(1, parseInt(markerSize.value, 10) || 1);
+    stampMarker(start.x, start.y, r, ch);
+    render();
+  }
+});
+
+output.addEventListener('mousemove', (e) => {
+  if (!drawing) return;
+  const pos = getPos(e);
+
+  if (tool === 'draw') {
+    const dx = pos.x - start.x;
+    const dy = pos.y - start.y;
+    if (e.shiftKey) {
+      // Shift: snap to -, |, /, \
+      const adx = Math.abs(dx);
+      const ady = Math.abs(dy);
+      let ch;
+      if (adx > ady * 2)      ch = '-';
+      else if (ady > adx * 2) ch = '|';
+      else                    ch = (dx * dy > 0) ? '\\' : '/';
+      drawLineSnap(start.x, start.y, pos.x, pos.y, ch);
+    } else {
+      smoothFreehand(start.x, start.y, pos.x, pos.y);
+    }
+    start = pos;
+    render();
+  } else if (tool === 'marker') {
+    const ch = (markerChar.value || '#')[0];
+    const r  = Math.max(1, parseInt(markerSize.value, 10) || 1);
+    drawMarkerLine(start.x, start.y, pos.x, pos.y, r, ch);
+    start = pos;
+    render();
+  } else if (tool === 'rectangle' || tool === 'text') {
+    // Live rectangle preview (text box uses invisible borders after mouseup)
+    const prev = [];
+    const xMin = Math.min(start.x, pos.x);
+    const xMax = Math.max(start.x, pos.x);
+    const yMin = Math.min(start.y, pos.y);
+    const yMax = Math.max(start.y, pos.y);
+
+    for (let x = xMin; x <= xMax; x++) {
+      prev.push([x, yMin, '-'], [x, yMax, '-']);
+    }
+    for (let y = yMin; y <= yMax; y++) {
+      prev.push([xMin, y, '|'], [xMax, y, '|']);
+    }
+    prev.push(
+      [xMin, yMin, '+'], [xMax, yMin, '+'],
+      [xMin, yMax, '+'], [xMax, yMax, '+']
+    );
+
+    render(prev);
+  }
+});
+
+output.addEventListener('mouseup', (e) => {
+  const pos = getPos(e);
+
+  if (tool === 'rectangle') {
+    saveState();
+    rect(start.x, start.y, pos.x, pos.y);
+  } else if (tool === 'fill') {
+    saveState();
+    const target = grid[pos.y][pos.x];
+    const ch = (fillInput.value || '.')[0];
+    floodFill(pos.x, pos.y, target, ch);
+  } else if (tool === 'text') {
+    saveState();
+    // Create invisible text box region and start blinking cursor
+    startTextBox(start.x, start.y, pos.x, pos.y);
+    startCursor();
+  }
+
+  drawing = false;
+  render();
+});
+
+// Undo + Clear buttons
+document.getElementById('undoBtn').addEventListener('click', undo);
+
+document.getElementById('clearBtn').addEventListener('click', () => {
+  saveState();
+  clearGrid();
+  textBox = null;
+  stopCursor();
+  render();
+});
+
+// --------------------------------------------------
+// Init
+// --------------------------------------------------
+clearGrid();
+render();
+updateControls();
+
+// Simple sanity checks (tests)
+console.assert(grid.length === rows && grid[0].length === cols, '[TEST] grid size correct');
+console.assert(chooseCharFreehand(5,5) === '\\' || chooseCharFreehand(5,5) === '/', '[TEST] diagonal char returns something');
+
+</script>
+</body>
+</html>
