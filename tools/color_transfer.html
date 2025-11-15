@@ -1,0 +1,1124 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Image Palette Indexer</title>
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+    body {
+      margin: 0;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: #111;
+      color: #f5f5f5;
+      display: flex;
+      min-height: 100vh;
+    }
+    .sidebar {
+      width: 320px;
+      padding: 16px;
+      border-right: 1px solid #333;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+    h1 {
+      font-size: 1.2rem;
+      margin: 0 0 4px 0;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+    }
+    .small {
+      font-size: 0.75rem;
+      color: #aaa;
+      line-height: 1.4;
+    }
+    label {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      margin-bottom: 4px;
+      display: block;
+      color: #ccc;
+    }
+    input[type="file"] {
+      width: 100%;
+      font-size: 0.8rem;
+    }
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .field-row {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+    input[type="number"],
+    input[type="range"] {
+      width: 100%;
+    }
+    input[type="number"] {
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #111;
+      color: #f5f5f5;
+      font-size: 0.8rem;
+    }
+    select {
+      width: 100%;
+      padding: 4px 6px;
+      border-radius: 4px;
+      border: 1px solid #444;
+      background: #111;
+      color: #f5f5f5;
+      font-size: 0.8rem;
+    }
+    input[type="range"] {
+      cursor: pointer;
+    }
+    button {
+      border: 1px solid #444;
+      background: #f5f5f5;
+      color: #111;
+      padding: 6px 10px;
+      border-radius: 999px;
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+    }
+    button.secondary {
+      background: #111;
+      color: #f5f5f5;
+    }
+    button:disabled {
+      opacity: 0.4;
+      cursor: not-allowed;
+    }
+    .stats {
+      font-size: 0.75rem;
+      color: #999;
+      display: flex;
+      flex-direction: column;
+      gap: 2px;
+    }
+    .palette-preview {
+      border-radius: 6px;
+      overflow: hidden;
+      border: 1px solid #333;
+      min-height: 40px;
+      background: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.7rem;
+      color: #666;
+    }
+    .main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      padding: 16px;
+      gap: 12px;
+    }
+    .canvas-row {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 12px;
+      height: calc(100vh - 32px);
+    }
+    .canvas-panel {
+      border-radius: 8px;
+      border: 1px solid #333;
+      padding: 8px;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      overflow: hidden;
+      background: radial-gradient(circle at top left, #1f1f1f, #050505);
+    }
+    .canvas-panel-title {
+      font-size: 0.8rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #ccc;
+    }
+    .canvas-wrapper {
+      flex: 1;
+      background: #000;
+      border-radius: 6px;
+      overflow: auto;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    canvas {
+      max-width: 100%;
+      height: auto;
+      image-rendering: pixelated;
+      background: #000;
+    }
+    .controls-row {
+      display: flex;
+      gap: 8px;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .badge {
+      padding: 2px 6px;
+      border-radius: 999px;
+      border: 1px solid #333;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #aaa;
+    }
+    .spacer {
+      flex: 1;
+    }
+    @media (max-width: 900px) {
+      body {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        border-right: none;
+        border-bottom: 1px solid #333;
+      }
+      .canvas-row {
+        height: auto;
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="sidebar">
+    <div>
+      <h1>Image Palette Indexer</h1>
+      <div class="small">
+        Index one image's colors using the palette extracted from another image.
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="baseImageInput">Base image (to recolor)</label>
+      <input type="file" id="baseImageInput" accept="image/*" />
+    </div>
+
+    <div class="field">
+      <label for="paletteImageInput">Palette image (source of colors)</label>
+      <input type="file" id="paletteImageInput" accept="image/*" />
+    </div>
+
+    <div class="field">
+      <label>Max working size (px)</label>
+      <div class="field-row">
+        <input type="range" id="maxSizeRange" min="256" max="1600" value="800" />
+        <input type="number" id="maxSizeNumber" min="256" max="1600" value="800" />
+      </div>
+      <div class="small">Base image will be scaled down to this max dimension for processing.</div>
+    </div>
+
+
+
+    <div class="field">
+      <label for="maxPaletteColors">Max palette colors</label>
+      <div class="field-row">
+        <input type="number" id="maxPaletteColors" min="8" max="2048" value="512" />
+      </div>
+      <div class="small">Approximate cap on distinct sampled colors.</div>
+    </div>
+
+    <div class="field">
+      <label for="samplingMode">Palette sampling</label>
+      <div class="field-row">
+        <select id="samplingMode">
+          <option value="auto" selected>Auto (balanced)</option>
+          <option value="fixed">Every N pixels</option>
+        </select>
+      </div>
+      <div class="small">Auto chooses a step based on image size and max colors; fixed uses the step below.</div>
+    </div>
+
+    <div class="field">
+      <label for="sampleStepRange">Sample step (N)</label>
+      <div class="field-row">
+        <input type="range" id="sampleStepRange" min="1" max="32" value="4" />
+        <input type="number" id="sampleStepNumber" min="1" max="32" value="4" />
+      </div>
+      <div class="small">Used when sampling mode is “Every N pixels”.</div>
+    </div>
+
+    <div class="field">
+      <label for="ditherMode">Dithering</label>
+      <div class="field-row">
+        <select id="ditherMode">
+          <option value="none" selected>None</option>
+          <option value="light">Light (error diffusion)</option>
+        </select>
+      </div>
+      <div class="small">Use light dithering to reduce banding when indexing.</div>
+    </div>
+
+    <div class="field">
+      <button id="buildPaletteBtn" class="secondary" disabled>Build Palette</button>
+      <button id="applyPaletteBtn" disabled>Index Base Image</button>
+    </div>
+
+    <div class="stats" id="stats"></div>
+
+        <div class="field">
+      <label>Palette preview</label>
+      <div class="palette-preview">
+        <canvas id="paletteCanvas"></canvas>
+      </div>
+    </div>
+
+    <div class="field">
+      <label>3D Palette (RGB Space)</label>
+      <div class="palette-preview">
+        <canvas id="palette3dCanvas" width="220" height="220"></canvas>
+      </div>
+    </div>
+
+    <div class="field">
+      <button id="downloadBtn" class="secondary" disabled>Download Full-Res Indexed PNG</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="controls-row">
+      <span class="badge">Base</span>
+      <span class="badge">Palette</span>
+      <span class="badge">Indexed</span>
+      <span class="spacer"></span>
+      <span class="small">Tip: lower max size = faster indexing.</span>
+    </div>
+    <div class="canvas-row">
+      <div class="canvas-panel">
+        <div class="canvas-panel-title">Base Image</div>
+        <div class="canvas-wrapper">
+          <canvas id="baseCanvas"></canvas>
+        </div>
+      </div>
+      <div class="canvas-panel">
+        <div class="canvas-panel-title">Palette Source</div>
+        <div class="canvas-wrapper">
+          <canvas id="paletteSourceCanvas"></canvas>
+        </div>
+      </div>
+      <div class="canvas-panel">
+        <div class="canvas-panel-title">Indexed Result</div>
+        <div class="canvas-wrapper">
+          <canvas id="resultCanvas"></canvas>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    const baseImageInput = document.getElementById('baseImageInput');
+    const paletteImageInput = document.getElementById('paletteImageInput');
+
+    const baseCanvas = document.getElementById('baseCanvas');
+    const baseCtx = baseCanvas.getContext('2d');
+
+    const paletteSourceCanvas = document.getElementById('paletteSourceCanvas');
+    const paletteSourceCtx = paletteSourceCanvas.getContext('2d');
+
+    const resultCanvas = document.getElementById('resultCanvas');
+    const resultCtx = resultCanvas.getContext('2d');
+
+    const paletteCanvas = document.getElementById('paletteCanvas');
+    const paletteCtx = paletteCanvas.getContext('2d');
+    const palette3dCanvas = document.getElementById('palette3dCanvas');
+    const palette3dCtx = palette3dCanvas ? palette3dCanvas.getContext('2d') : null;
+    let palette3dAngle = 0;
+
+    const maxSizeRange = document.getElementById('maxSizeRange');
+    const maxSizeNumber = document.getElementById('maxSizeNumber');
+    const sampleStepRange = document.getElementById('sampleStepRange');
+    const sampleStepNumber = document.getElementById('sampleStepNumber');
+    const samplingModeSelect = document.getElementById('samplingMode');
+    const ditherModeSelect = document.getElementById('ditherMode');
+
+    const maxPaletteColorsInput = document.getElementById('maxPaletteColors');
+
+    const buildPaletteBtn = document.getElementById('buildPaletteBtn');
+    const applyPaletteBtn = document.getElementById('applyPaletteBtn');
+    const downloadBtn = document.getElementById('downloadBtn');
+
+    const statsEl = document.getElementById('stats');
+
+    let baseImageOriginal = null; // full-res image
+    let baseImageDataOriginal = null; // processed (scaled) base image
+    let paletteImageData = null;
+    let paletteColors = [];
+    let paletteFreq = [];
+
+    function syncRangeAndNumber(rangeEl, numberEl) {
+      rangeEl.addEventListener('input', () => {
+        numberEl.value = rangeEl.value;
+      });
+      numberEl.addEventListener('input', () => {
+        const v = Number(numberEl.value);
+        const min = Number(numberEl.min);
+        const max = Number(numberEl.max);
+        const clamped = Math.min(max, Math.max(min, v || min));
+        numberEl.value = clamped;
+        rangeEl.value = clamped;
+      });
+    }
+
+    syncRangeAndNumber(maxSizeRange, maxSizeNumber);
+    syncRangeAndNumber(sampleStepRange, sampleStepNumber);
+
+    if (samplingModeSelect) {
+      const updateSampleStepEnabled = () => {
+        const isFixed = samplingModeSelect.value === 'fixed';
+        sampleStepRange.disabled = !isFixed;
+        sampleStepNumber.disabled = !isFixed;
+      };
+      samplingModeSelect.addEventListener('change', updateSampleStepEnabled);
+      updateSampleStepEnabled();
+    }
+
+    function loadImageFromFile(file, callback) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const img = new Image();
+        img.onload = () => callback(img);
+        img.src = e.target.result;
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function drawImageToCanvasScaled(img, canvas, ctx, maxSize) {
+      let w = img.width;
+      let h = img.height;
+      const scale = Math.min(1, maxSize / Math.max(w, h));
+      w = Math.round(w * scale);
+      h = Math.round(h * scale);
+      canvas.width = w;
+      canvas.height = h;
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      return ctx.getImageData(0, 0, w, h);
+    }
+
+    function drawImageToCanvasExact(img, canvas, ctx) {
+      const w = img.width;
+      const h = img.height;
+      canvas.width = w;
+      canvas.height = h;
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(img, 0, 0, w, h);
+      return ctx.getImageData(0, 0, w, h);
+    }
+
+    baseImageInput.addEventListener('change', () => {
+      const file = baseImageInput.files && baseImageInput.files[0];
+      if (!file) return;
+      loadImageFromFile(file, img => {
+        baseImageOriginal = img;
+        const maxSize = Number(maxSizeNumber.value) || 800;
+        baseImageDataOriginal = drawImageToCanvasScaled(img, baseCanvas, baseCtx, maxSize);
+        // Clear result when base changes
+        resultCanvas.width = baseCanvas.width;
+        resultCanvas.height = baseCanvas.height;
+        resultCtx.clearRect(0, 0, resultCanvas.width, resultCanvas.height);
+        updateButtons();
+        renderStats();
+      });
+    });
+
+    paletteImageInput.addEventListener('change', () => {
+      const file = paletteImageInput.files && paletteImageInput.files[0];
+      if (!file) return;
+      loadImageFromFile(file, img => {
+        paletteImageData = drawImageToCanvasExact(img, paletteSourceCanvas, paletteSourceCtx);
+        paletteColors = [];
+        paletteCtx.clearRect(0, 0, paletteCanvas.width, paletteCanvas.height);
+        updateButtons();
+        renderStats();
+      });
+    });
+
+    function updateButtons() {
+      buildPaletteBtn.disabled = !paletteImageData;
+      applyPaletteBtn.disabled = !baseImageDataOriginal || !paletteColors.length;
+      downloadBtn.disabled = !baseImageOriginal || !paletteColors.length;
+    }
+
+    function renderStats(extra) {
+      const parts = [];
+      if (baseImageDataOriginal) {
+        parts.push(`Base: ${baseImageDataOriginal.width} × ${baseImageDataOriginal.height}`);
+      }
+      if (paletteImageData) {
+        parts.push(`Palette src: ${paletteImageData.width} × ${paletteImageData.height}`);
+      }
+      if (paletteColors.length) {
+        parts.push(`Palette colors: ${paletteColors.length}`);
+      }
+      if (extra) parts.push(extra);
+      statsEl.textContent = parts.join(' \n ');
+    }
+
+    function buildPalette() {
+      if (!paletteImageData) return;
+      const maxColors = Math.max(8, Number(maxPaletteColorsInput.value) || 512);
+
+      const { width, height, data } = paletteImageData;
+
+      const samplingMode = samplingModeSelect ? samplingModeSelect.value : 'auto';
+      let sampleStep;
+
+      if (samplingMode === 'fixed') {
+        sampleStep = Math.max(1, Number(sampleStepNumber.value) || 1);
+      } else {
+        // Choose an automatic sampling step based on image size and desired palette size.
+        // Aim for ~4× maxColors candidate samples.
+        const totalPixels = width * height;
+        const targetSamples = Math.max(maxColors * 4, 1);
+        let step = Math.floor(Math.sqrt(totalPixels / targetSamples));
+        if (!isFinite(step) || step < 1) step = 1;
+        sampleStep = step;
+      }
+
+      // 1. Collect unique candidate colors from the (optionally downsampled) image.
+      const seen = new Map();
+      const candidates = [];
+      const candidateFreq = [];
+
+      for (let y = 0; y < height; y += sampleStep) {
+        for (let x = 0; x < width; x += sampleStep) {
+          const idx = (y * width + x) * 4;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          const a = data[idx + 3];
+          if (a === 0) continue; // skip fully transparent
+          const key = (r << 16) | (g << 8) | b;
+          if (!seen.has(key)) {
+            seen.set(key, candidates.length);
+            candidates.push([r, g, b]);
+            candidateFreq.push(1);
+          } else {
+            const ci = seen.get(key);
+            candidateFreq[ci]++;
+          }
+        }
+      }
+
+      if (!candidates.length) {
+        paletteColors = [];
+        paletteFreq = [];
+        updateButtons();
+        renderStats('No opaque pixels found in palette image');
+        renderPalettePreview();
+        return;
+      }
+
+      // Force-include certain special colors if present (e.g., pure black / white).
+      const forcedIndices = [];
+      const blackKey = 0x000000;
+      const whiteKey = 0xFFFFFF;
+      if (seen.has(blackKey)) forcedIndices.push(seen.get(blackKey));
+      if (seen.has(whiteKey)) forcedIndices.push(seen.get(whiteKey));
+
+      // 2. Greedy farthest-point sampling in RGB space to pick a diverse palette.
+      //    This chooses colors that are as far from each other as possible, while
+      //    making sure certain anchor colors are present.
+      if (candidates.length <= maxColors) {
+        paletteColors = candidates;
+        paletteFreq = candidateFreq.slice();
+      } else {
+        const chosen = [];
+        const chosenIndices = [];
+        const used = new Array(candidates.length).fill(false);
+        const nearestDist = new Float32Array(candidates.length);
+        nearestDist.fill(Infinity);
+
+        const distSq = (a, b) => {
+          const dr = a[0] - b[0];
+          const dg = a[1] - b[1];
+          const db = a[2] - b[2];
+          return dr * dr + dg * dg + db * db;
+        };
+
+        let currentIndex = -1;
+
+        // Pre-seed with forced anchors (black/white) if present.
+        for (let fi = 0; fi < forcedIndices.length && chosen.length < maxColors; fi++) {
+          const idx = forcedIndices[fi];
+          if (!used[idx]) {
+            used[idx] = true;
+            chosen.push(candidates[idx]);
+            chosenIndices.push(idx);
+            nearestDist[idx] = 0;
+            currentIndex = idx;
+          }
+        }
+
+        // If nothing forced, seed with the first candidate.
+        if (currentIndex === -1) {
+          currentIndex = 0;
+          used[currentIndex] = true;
+          chosen.push(candidates[currentIndex]);
+          chosenIndices.push(currentIndex);
+          nearestDist[currentIndex] = 0;
+        }
+
+        const seedCount = chosen.length;
+
+        for (let k = seedCount; k < maxColors; k++) {
+          const anchor = candidates[currentIndex];
+
+          // Update nearest distances to the set of chosen colors.
+          for (let i = 0; i < candidates.length; i++) {
+            if (used[i]) continue;
+            const d = distSq(candidates[i], anchor);
+            if (d < nearestDist[i]) nearestDist[i] = d;
+          }
+
+          // Pick the candidate that is farthest from its nearest chosen color.
+          let bestIndex = -1;
+          let bestDist = -1;
+          for (let i = 0; i < candidates.length; i++) {
+            if (used[i]) continue;
+            const d = nearestDist[i];
+            if (d > bestDist) {
+              bestDist = d;
+              bestIndex = i;
+            }
+          }
+
+          if (bestIndex === -1) break; // no more unique colors
+          used[bestIndex] = true;
+          chosen.push(candidates[bestIndex]);
+          chosenIndices.push(bestIndex);
+          currentIndex = bestIndex;
+        }
+
+        paletteColors = chosen;
+
+        // Derive a frequency weight for each chosen color
+        paletteFreq = new Array(paletteColors.length).fill(0);
+        for (let i = 0; i < candidates.length; i++) {
+          const freq = candidateFreq[i];
+          if (!freq) continue;
+          // Find nearest chosen palette color for this candidate
+          let bestIdx = 0;
+          let bestDist = Infinity;
+          for (let j = 0; j < chosenIndices.length; j++) {
+            const ci = chosenIndices[j];
+            const d = distSq(candidates[i], candidates[ci]);
+            if (d < bestDist) {
+              bestDist = d;
+              bestIdx = j;
+            }
+          }
+          paletteFreq[bestIdx] += freq;
+        }
+      }
+
+      updateButtons();
+      const modeLabel = samplingMode === 'fixed'
+        ? `fixed step ${sampleStep}`
+        : `auto step ~${sampleStep}`;
+      renderStats(`Palette candidates: ${candidates.length} (${modeLabel})`);
+      renderPalettePreview();
+    }
+
+    function renderPalettePreview() {
+      const colors = paletteColors;
+      if (!colors.length) {
+        paletteCanvas.width = 200;
+        paletteCanvas.height = 40;
+        paletteCtx.clearRect(0, 0, 200, 40);
+        paletteCtx.fillStyle = '#222';
+        paletteCtx.fillRect(0, 0, 200, 40);
+        paletteCtx.fillStyle = '#555';
+        paletteCtx.fillText('no palette yet', 50, 24);
+        return;
+      }
+      const cols = Math.min(colors.length, 64);
+      const rows = Math.ceil(colors.length / cols);
+      const cellSize = 8;
+      const w = cols * cellSize;
+      const h = rows * cellSize;
+      paletteCanvas.width = w;
+      paletteCanvas.height = h;
+      for (let i = 0; i < colors.length; i++) {
+        const [r, g, b] = colors[i];
+        const cx = i % cols;
+        const cy = Math.floor(i / cols);
+        paletteCtx.fillStyle = `rgb(${r},${g},${b})`;
+        paletteCtx.fillRect(cx * cellSize, cy * cellSize, cellSize, cellSize);
+      }
+    }
+
+    // --- 3D palette visualization (RGB space) ---
+    function drawPalette3D() {
+      if (!palette3dCanvas || !palette3dCtx) return;
+      const canvas = palette3dCanvas;
+      const ctx = palette3dCtx;
+      const w = canvas.width;
+      const h = canvas.height;
+
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.clearRect(0, 0, w, h);
+      ctx.fillStyle = '#000';
+      ctx.fillRect(0, 0, w, h);
+
+      const ox = w / 2;
+      const oy = h / 2;
+      const scale = Math.min(w, h) * 0.35;
+
+      const angleY = palette3dAngle;
+      const cosY = Math.cos(angleY);
+      const sinY = Math.sin(angleY);
+      const angleX = -Math.PI / 5;
+      const cosX = Math.cos(angleX);
+      const sinX = Math.sin(angleX);
+
+      function project(x, y, z) {
+        // x, y, z in [0,1]
+        let X = x * 2 - 1;
+        let Y = y * 2 - 1;
+        let Z = z * 2 - 1;
+
+        // rotate around Y
+        let x1 = X * cosY + Z * sinY;
+        let z1 = -X * sinY + Z * cosY;
+
+        // rotate around X
+        let y1 = Y * cosX - z1 * sinX;
+        let z2 = Y * sinX + z1 * cosX;
+
+        const s = scale;
+        return {
+          x: ox + x1 * s,
+          y: oy - y1 * s,
+          z: z2
+        };
+      }
+
+      // Draw RGB cube wireframe
+      const corners = [
+        [0, 0, 0], [1, 0, 0], [1, 1, 0], [0, 1, 0],
+        [0, 0, 1], [1, 0, 1], [1, 1, 1], [0, 1, 1]
+      ];
+      const edges = [
+        [0, 1], [1, 2], [2, 3], [3, 0],
+        [4, 5], [5, 6], [6, 7], [7, 4],
+        [0, 4], [1, 5], [2, 6], [3, 7]
+      ];
+
+      ctx.strokeStyle = '#444';
+      ctx.lineWidth = 1;
+      edges.forEach(([i, j]) => {
+        const p1 = project(corners[i][0], corners[i][1], corners[i][2]);
+        const p2 = project(corners[j][0], corners[j][1], corners[j][2]);
+        ctx.beginPath();
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        ctx.stroke();
+      });
+
+      // Draw palette colors as points inside the cube
+      if (paletteColors && paletteColors.length) {
+        const points = [];
+        for (let i = 0; i < paletteColors.length; i++) {
+          const [r, g, b] = paletteColors[i];
+          const p = project(r / 255, g / 255, b / 255);
+          points.push({ x: p.x, y: p.y, z: p.z, color: `rgb(${r},${g},${b})` });
+        }
+
+        // Painter's algorithm: draw from farthest to nearest
+        points.sort((a, b) => a.z - b.z);
+        for (const pt of points) {
+          ctx.beginPath();
+          const radius = 4;
+          ctx.fillStyle = pt.color;
+          ctx.strokeStyle = '#000';
+          ctx.lineWidth = 0.5;
+          ctx.arc(pt.x, pt.y, radius, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+        }
+      }
+
+      palette3dAngle += 0.01;
+      requestAnimationFrame(drawPalette3D);
+    }
+
+    // --- Color space helpers for tone & hue transfer ---
+    function rgbToHsl(r, g, b) {
+      r /= 255; g /= 255; b /= 255;
+      const max = Math.max(r, g, b);
+      const min = Math.min(r, g, b);
+      let h, s;
+      const l = (max + min) / 2;
+
+      if (max === min) {
+        h = 0;
+        s = 0;
+      } else {
+        const d = max - min;
+        s = l > 0.5 ? d / (2 - max - min) : d / (max + min);
+        switch (max) {
+          case r:
+            h = (g - b) / d + (g < b ? 6 : 0);
+            break;
+          case g:
+            h = (b - r) / d + 2;
+            break;
+          default:
+            h = (r - g) / d + 4;
+            break;
+        }
+        h /= 6;
+      }
+      return [h, s, l]; // h in [0,1], s,l in [0,1]
+    }
+
+    function hslToRgb(h, s, l) {
+      let r, g, b;
+      if (s === 0) {
+        r = g = b = l; // achromatic
+      } else {
+        const hue2rgb = (p, q, t) => {
+          if (t < 0) t += 1;
+          if (t > 1) t -= 1;
+          if (t < 1 / 6) return p + (q - p) * 6 * t;
+          if (t < 1 / 2) return q;
+          if (t < 2 / 3) return p + (q - p) * (2 / 3 - t) * 6;
+          return p;
+        };
+        const q = l < 0.5 ? l * (1 + s) : l + s - l * s;
+        const p = 2 * l - q;
+        r = hue2rgb(p, q, h + 1 / 3);
+        g = hue2rgb(p, q, h);
+        b = hue2rgb(p, q, h - 1 / 3);
+      }
+      return [Math.round(r * 255), Math.round(g * 255), Math.round(b * 255)];
+    }
+
+    function computeToneHueStats(imageData, step) {
+      const { width, height, data } = imageData;
+      let count = 0;
+      let lSum = 0, l2Sum = 0;
+      let sSum = 0, s2Sum = 0;
+      let hx = 0, hy = 0;
+
+      for (let y = 0; y < height; y += step) {
+        for (let x = 0; x < width; x += step) {
+          const idx = (y * width + x) * 4;
+          const a = data[idx + 3];
+          if (a === 0) continue;
+          const r = data[idx];
+          const g = data[idx + 1];
+          const b = data[idx + 2];
+          const [h, s, l] = rgbToHsl(r, g, b);
+          count++;
+          lSum += l; l2Sum += l * l;
+          sSum += s; s2Sum += s * s;
+          const angle = 2 * Math.PI * h;
+          hx += Math.cos(angle);
+          hy += Math.sin(angle);
+        }
+      }
+
+      if (!count) return null;
+      const meanL = lSum / count;
+      const varL = Math.max(0, l2Sum / count - meanL * meanL);
+      const sdL = Math.sqrt(varL);
+
+      const meanS = sSum / count;
+      const varS = Math.max(0, s2Sum / count - meanS * meanS);
+      const sdS = Math.sqrt(varS);
+
+      const R = Math.sqrt(hx * hx + hy * hy) / count;
+      let meanH = Math.atan2(hy, hx) / (2 * Math.PI);
+      if (meanH < 0) meanH += 1;
+      const hueVar = 1 - R; // 0 = focused, 1 = very spread out
+
+      return { meanL, sdL, meanS, sdS, meanH, hueVar };
+    }
+
+    function applyToneHueTransferToImage(imageData, paletteImageData) {
+      const resultStats = computeToneHueStats(imageData, 2);
+      const paletteStats = computeToneHueStats(paletteImageData, 4);
+      if (!resultStats || !paletteStats) return imageData;
+
+      const data = imageData.data;
+      const eps = 1e-4;
+
+      const contrastFactor = Math.min(4, Math.max(0.25, (paletteStats.sdL + eps) / (resultStats.sdL + eps)));
+      const satFactor = Math.min(4, Math.max(0.25, (paletteStats.sdS + eps) / (resultStats.sdS + eps)));
+      let hueOffset = paletteStats.meanH - resultStats.meanH;
+
+      for (let i = 0; i < data.length; i += 4) {
+        const a = data[i + 3];
+        if (a === 0) continue;
+        const r = data[i];
+        const g = data[i + 1];
+        const b = data[i + 2];
+        let [h, s, l] = rgbToHsl(r, g, b);
+
+        // Match lightness contrast
+        l = paletteStats.meanL + (l - resultStats.meanL) * contrastFactor;
+        l = Math.min(1, Math.max(0, l));
+
+        // Shift hue towards palette's mean hue
+        h = (h + hueOffset) % 1;
+        if (h < 0) h += 1;
+
+        // Match saturation spread
+        s = paletteStats.meanS + (s - resultStats.meanS) * satFactor;
+        s = Math.min(1, Math.max(0, s));
+
+        const [nr, ng, nb] = hslToRgb(h, s, l);
+        data[i] = nr;
+        data[i + 1] = ng;
+        data[i + 2] = nb;
+      }
+
+      return imageData;
+    }
+
+    function indexImageData(sourceImageData, ctxForImageData) {
+      if (!sourceImageData || !paletteColors.length) return null;
+      const { width, height, data } = sourceImageData;
+      const out = ctxForImageData.createImageData(width, height);
+      const outData = out.data;
+
+      const palette = paletteColors;
+      const cache = new Map();
+      const usedCounts = new Array(palette.length).fill(0);
+
+      // Count non-transparent pixels in source image
+      let totalNonTransparent = 0;
+      for (let i = 0; i < data.length; i += 4) {
+        if (data[i + 3] !== 0) totalNonTransparent++;
+      }
+
+      // Build soft target counts for each palette color based on paletteFreq
+      let totalPaletteFreq = 0;
+      for (let i = 0; i < paletteFreq.length; i++) {
+        totalPaletteFreq += paletteFreq[i];
+      }
+      if (totalPaletteFreq <= 0) {
+        totalPaletteFreq = palette.length || 1;
+        if (!paletteFreq.length) {
+          paletteFreq = new Array(palette.length).fill(1);
+        }
+      }
+
+      const targetCounts = new Array(palette.length);
+      const baseTarget = totalNonTransparent / (palette.length || 1);
+      for (let i = 0; i < palette.length; i++) {
+        const f = i < paletteFreq.length ? paletteFreq[i] : 0;
+        const ratio = f > 0 ? f / totalPaletteFreq : 1 / (palette.length || 1);
+        let t = ratio * totalNonTransparent;
+        // Ensure every color is allowed at least a tiny slice
+        t = Math.max(t, 0.5 * baseTarget / 8);
+        targetCounts[i] = t;
+      }
+
+      const alpha = 1.0;
+      const ditherMode = ditherModeSelect ? ditherModeSelect.value : 'none';
+
+      function findNearest(r, g, b) {
+        r = Math.max(0, Math.min(255, r));
+        g = Math.max(0, Math.min(255, g));
+        b = Math.max(0, Math.min(255, b));
+
+        const key = (r << 16) | (g << 8) | b;
+        if (cache.has(key)) {
+          const rec = cache.get(key);
+          usedCounts[rec.index]++;
+          return rec;
+        }
+
+        let bestIdx = 0;
+        let bestScore = Infinity;
+        for (let i = 0; i < palette.length; i++) {
+          const pr = palette[i][0] - r;
+          const pg = palette[i][1] - g;
+          const pb = palette[i][2] - b;
+          const d = pr * pr + pg * pg + pb * pb;
+          const util = usedCounts[i] / (targetCounts[i] + 1e-3);
+          const penalty = util > 1 ? 1 + alpha * (util - 1) : 1;
+          const score = d * penalty;
+          if (score < bestScore) {
+            bestScore = score;
+            bestIdx = i;
+          }
+        }
+        const color = palette[bestIdx];
+        const rec = { color, index: bestIdx };
+        cache.set(key, rec);
+        usedCounts[bestIdx]++;
+        return rec;
+      }
+
+      if (ditherMode === 'light') {
+        const size = width * height;
+        const workR = new Float32Array(size);
+        const workG = new Float32Array(size);
+        const workB = new Float32Array(size);
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const i = (y * width + x) * 4;
+            const di = y * width + x;
+            workR[di] = data[i];
+            workG[di] = data[i + 1];
+            workB[di] = data[i + 2];
+          }
+        }
+
+        const strength = 0.5; // light dithering
+
+        function addError(nx, ny, er, eg, eb, w) {
+          if (nx < 0 || nx >= width || ny < 0 || ny >= height) return;
+          const di = ny * width + nx;
+          workR[di] = Math.max(0, Math.min(255, workR[di] + er * w));
+          workG[di] = Math.max(0, Math.min(255, workG[di] + eg * w));
+          workB[di] = Math.max(0, Math.min(255, workB[di] + eb * w));
+        }
+
+        for (let y = 0; y < height; y++) {
+          for (let x = 0; x < width; x++) {
+            const di = y * width + x;
+            const idx = di * 4;
+            const a = data[idx + 3];
+            if (a === 0) {
+              outData[idx] = 0;
+              outData[idx + 1] = 0;
+              outData[idx + 2] = 0;
+              outData[idx + 3] = 0;
+              continue;
+            }
+
+            const r = workR[di];
+            const g = workG[di];
+            const b = workB[di];
+
+            const { color } = findNearest(r, g, b);
+            const nr = color[0];
+            const ng = color[1];
+            const nb = color[2];
+
+            outData[idx] = nr;
+            outData[idx + 1] = ng;
+            outData[idx + 2] = nb;
+            outData[idx + 3] = a;
+
+            const er = (r - nr) * strength;
+            const eg = (g - ng) * strength;
+            const eb = (b - nb) * strength;
+
+            // Floyd–Steinberg diffusion
+            addError(x + 1, y,     er, eg, eb, 7 / 16);
+            addError(x - 1, y + 1, er, eg, eb, 3 / 16);
+            addError(x,     y + 1, er, eg, eb, 5 / 16);
+            addError(x + 1, y + 1, er, eg, eb, 1 / 16);
+          }
+        }
+      } else {
+        for (let i = 0; i < data.length; i += 4) {
+          const r = data[i];
+          const g = data[i + 1];
+          const b = data[i + 2];
+          const a = data[i + 3];
+          if (a === 0) {
+            outData[i] = 0;
+            outData[i + 1] = 0;
+            outData[i + 2] = 0;
+            outData[i + 3] = 0;
+            continue;
+          }
+          const { color } = findNearest(r, g, b);
+          const nr = color[0];
+          const ng = color[1];
+          const nb = color[2];
+          outData[i] = nr;
+          outData[i + 1] = ng;
+          outData[i + 2] = nb;
+          outData[i + 3] = a;
+        }
+      }
+
+      return out;
+    }
+
+    function indexBaseImage() {
+      if (!baseImageDataOriginal || !paletteColors.length) return;
+      const t0 = performance.now();
+      const out = indexImageData(baseImageDataOriginal, resultCtx);
+      if (!out) return;
+      resultCanvas.width = out.width;
+      resultCanvas.height = out.height;
+      resultCtx.putImageData(out, 0, 0);
+      const t1 = performance.now();
+      renderStats(`Indexed preview in ${(t1 - t0).toFixed(0)} ms`);
+      updateButtons();
+    }
+
+    buildPaletteBtn.addEventListener('click', () => {
+      buildPalette();
+    });
+
+    applyPaletteBtn.addEventListener('click', () => {
+      indexBaseImage();
+    });
+
+    downloadBtn.addEventListener('click', () => {
+      if (!baseImageOriginal || !paletteColors.length) return;
+
+      const offCanvas = document.createElement('canvas');
+      const offCtx = offCanvas.getContext('2d');
+
+      offCanvas.width = baseImageOriginal.width;
+      offCanvas.height = baseImageOriginal.height;
+      offCtx.drawImage(baseImageOriginal, 0, 0);
+
+      const fullImageData = offCtx.getImageData(0, 0, offCanvas.width, offCanvas.height);
+      const t0 = performance.now();
+      const indexedFull = indexImageData(fullImageData, offCtx);
+      const t1 = performance.now();
+
+      if (indexedFull) {
+        offCtx.putImageData(indexedFull, 0, 0);
+      }
+
+      const link = document.createElement('a');
+      link.download = 'indexed-fullres.png';
+      link.href = offCanvas.toDataURL('image/png');
+      link.click();
+
+      renderStats(`Exported full-res indexed PNG in ${(t1 - t0).toFixed(0)} ms`);
+    });
+
+    // Initial palette preview placeholder
+    renderPalettePreview();
+    renderStats();
+    if (palette3dCtx && palette3dCanvas) {
+      requestAnimationFrame(drawPalette3D);
+    }
+  </script>
+</body>
+</html>
