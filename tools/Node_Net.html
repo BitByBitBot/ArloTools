@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Brutalist Mind Map Tool</title>
   <style>
     html, body {
@@ -11,6 +12,7 @@
       color: black;
       font-family: monospace;
       overflow: hidden;
+      height: 100%;
     }
     canvas {
       display: block;
@@ -21,8 +23,12 @@
       left: 10px;
       background: white;
       border: 1px solid black;
-      padding: 5px;
+      padding: 8px;
       z-index: 10;
+      width: min(320px, 92vw);
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+      gap: 6px 8px;
     }
     button, input[type=number] {
       margin-right: 5px;
@@ -41,17 +47,31 @@
       bottom: 10px;
       left: 10px;
       right: 10px;
-      background: rgba(255,255,255,0.9);
+      background: rgba(255,255,255,0.92);
       border: 1px solid #ccc;
-      padding: 6px;
-      font-size: 0.85em;
+      padding: 8px 10px;
+      font-size: 0.9em;
       color: #333;
-      max-height: 30%;
+      max-height: 32%;
       overflow-y: auto;
       z-index: 10;
     }
     .description ul {
       margin-left: 1.2em;
+    }
+
+    @media (max-width: 640px) {
+      #ui {
+        top: 12px;
+        left: 12px;
+        right: 12px;
+        width: auto;
+      }
+      .description {
+        left: 12px;
+        right: 12px;
+        max-height: 40vh;
+      }
     }
   </style>
   <link rel="stylesheet" href="tool-theme.css">

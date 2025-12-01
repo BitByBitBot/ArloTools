@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Lissajous Figure Grid</title>
   <style>
     html, body {
@@ -16,9 +17,10 @@
     body {
       display: flex;
       flex-direction: row;
+      min-height: 100vh;
     }
     #sidebar {
-      width: 240px;
+      width: clamp(220px, 26vw, 280px);
       background: #fff;
       padding: 1rem;
       box-shadow: -2px 0 5px rgba(0, 0, 0, 0.1);
@@ -33,6 +35,7 @@
       justify-content: center;
       align-items: center;
       padding: 1rem;
+      min-height: 60vh;
     }
     #lissajous-table {
       border-collapse: collapse;
@@ -73,6 +76,14 @@
       padding: 0.4rem 0.6rem;
       cursor: pointer;
       font-size: 0.8rem;
+    }
+
+    @media (max-width: 720px) {
+      html, body { overflow: auto; height: auto; }
+      body { flex-direction: column; }
+      #sidebar { width: 100%; max-height: none; box-shadow: none; }
+      #table-container { width: 100%; padding: 0.75rem; }
+      #lissajous-table { width: 100%; height: auto; }
     }
   </style>
   <link rel="stylesheet" href="tool-theme.css">

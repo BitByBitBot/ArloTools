@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Audio Spectrogram Editor</title>
   <style>
     body {
@@ -90,6 +91,7 @@
     @media (max-width: 720px) {
       body { padding: 12px; }
       canvas { aspect-ratio: 3 / 2; }
+      #sidebar { width: min(360px, 90vw); padding: 0.8em; }
     }
   </style>
   <link rel="stylesheet" href="tool-theme.css">
