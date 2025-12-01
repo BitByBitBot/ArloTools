@@ -688,6 +688,16 @@
         img.alt = '';
         img.loading = 'lazy';
         media.appendChild(img);
+      } else if (tool.video) {
+        const video = document.createElement('video');
+        video.src = tool.video;
+        video.muted = true;
+        video.loop = true;
+        video.autoplay = true;
+        video.playsInline = true;
+        video.preload = 'metadata';
+        video.setAttribute('aria-hidden', 'true');
+        media.appendChild(video);
       } else {
         media.classList.add('no-video');
         const placeholder = document.createElement('div');
