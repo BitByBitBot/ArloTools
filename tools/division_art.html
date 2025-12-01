@@ -2,16 +2,17 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
 <title>Division Art Generator</title>
 <style>
- body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;background:#f6f6f6;margin:0;padding:20px}
+ body{font-family:sans-serif;display:flex;flex-direction:column;align-items:center;background:#f6f6f6;margin:0;padding:clamp(12px,3vw,24px)}
  .controls{background:#fff;padding:15px;border-radius:8px;box-shadow:0 2px 6px rgba(0,0,0,0.1);margin-bottom:15px;display:flex;flex-wrap:wrap;gap:10px;justify-content:center;align-items:end}
  .controls label{font-size:12px;display:block;margin-bottom:2px}
  .controls input,.controls select,.controls button{padding:4px;font-size:12px}
  #colors{display:flex;gap:5px;flex-wrap:wrap;align-items:center;}
  .colorWrapper{display:flex;align-items:center;gap:3px;cursor:grab;}
  .colorWrapper.dragging{opacity:0.5;}
- canvas{background:white;max-height:600px;height:80vh;width:auto;}
+ canvas{background:white;max-height:600px;height:80vh;width:min(100%,900px);max-width:100%;}
 </style>
   <link rel="stylesheet" href="tool-theme.css">
 </head>

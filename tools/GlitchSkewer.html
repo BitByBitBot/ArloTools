@@ -2,6 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Row & Column Glitcher — Brutalist</title>
   <style>
     body {
@@ -11,7 +12,7 @@
       font-family: monospace;
       display: flex;
       flex-direction: column;
-      height: 100vh;
+      min-height: 100vh;
     }
     h1 {
       font-size: 1.4rem;
@@ -30,15 +31,20 @@
       flex: 1;
       display: flex;
       overflow: hidden;
+      min-height: 0;
     }
     .controls {
       border-right: 2px solid black;
       border-top: 2px solid black;
       border-bottom: 2px solid black;
       padding: 1rem;
-      width: 260px;
+      width: min(320px, 32vw);
+      min-width: 240px;
       box-sizing: border-box;
       text-align: left;
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 0.25rem 0.75rem;
     }
     label {
       display: block;
@@ -64,11 +70,15 @@
       justify-content: center;
       align-items: center;
       background: white;
+      padding: 10px;
+      min-height: 320px;
     }
     canvas {
       border: 2px solid black;
       image-rendering: pixelated;
       max-width: 100%;
+      width: 100%;
+      height: auto;
       max-height: 100%;
     }
     button {
@@ -80,6 +90,24 @@
       margin-top: 0.5rem;
     }
     button:hover { background:#f2f2f2; }
+
+    @media (max-width: 768px) {
+      main {
+        flex-direction: column;
+        height: auto;
+      }
+      .controls {
+        width: 100%;
+        min-width: 0;
+        border-right: none;
+        border-bottom: 2px solid black;
+        grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+      }
+      .canvas-container {
+        width: 100%;
+        min-height: 420px;
+      }
+    }
   </style>
   <link rel="stylesheet" href="tool-theme.css">
 </head>
