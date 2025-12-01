@@ -116,69 +116,62 @@ window.toolManifest = [
     file: 'tools/grid_permutations.html',
     medium: 'VISUAL',
     experience: 'TECHNICAL',
-    poster: 'previews/grid_permutations.svg'
+    poster: 'previews/grid_permutations.png'
   },
   {
     name: 'Ascii Sequencer',
     file: 'tools/ascii_sequencer.html',
     medium: 'AUDIO',
     experience: 'PLAYFUL',
-    poster: 'previews/ascii_sequencer.svg'
+    poster: 'previews/ascii_sequencer.png'
   },
   {
     name: 'Stochastic Halftone',
     file: 'tools/stochastic_halftone.html',
     medium: 'VISUAL',
     experience: 'TECHNICAL',
-    poster: 'previews/stochastic_halftone.svg'
+    poster: 'previews/stochastic_halftone.png'
   },
   {
     name: 'Diffusion Pen',
     file: 'tools/diffusion_pen.html',
     medium: 'VISUAL',
     experience: 'MESMERIZING',
-    poster: 'previews/diffusion_pen.svg'
+    poster: 'previews/diffusion_pen.png'
   },
   {
     name: 'Division Art',
     file: 'tools/division_art.html',
     medium: 'VISUAL',
     experience: 'TECHNICAL',
-    poster: 'previews/division_art.svg'
+    poster: 'previews/division_art.png'
   },
   {
     name: 'Punch Tape Generator',
     file: 'tools/punch_tape_generator.html',
     medium: 'TEXT',
     experience: 'TECHNICAL',
-    poster: 'previews/punch_tape_generator.svg'
+    poster: 'previews/punch_tape_generator.png'
   },
   {
     name: 'ASCIIPAINT',
     file: 'tools/ASCIIPAINT.html',
     medium: 'VISUAL',
     experience: 'PLAYFUL',
-    poster: 'previews/asciipaint.svg'
+    poster: 'previews/asciipaint.png'
   },
   {
     name: 'Palette Transfer',
     file: 'tools/color_transfer.html',
     medium: 'VISUAL',
     experience: 'TECHNICAL',
-    poster: 'previews/color_transfer.svg'
-  },
-  {
-    name: 'Medieval Border Generator',
-    file: 'tools/medieval_border_generator.html',
-    medium: 'VISUAL',
-    experience: 'PLAYFUL',
-    poster: 'previews/medieval_border_generator.svg'
+    poster: 'previews/color_transfer.png'
   },
   {
     name: 'Word Generator',
     file: 'tools/word_generator.html',
     medium: 'TEXT',
     experience: 'PLAYFUL',
-    poster: 'previews/word_generator.svg'
+    poster: 'previews/word_generator.png'
   }
 ];
