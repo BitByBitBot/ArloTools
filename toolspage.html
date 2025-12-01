@@ -210,41 +210,7 @@
       <div class="frame-container">
         <iframe id="tool-frame" title="Selected tool" hidden></iframe>
       </div>
-      <!-- Hardcoded tool manifest replacing external tool-manifest.js -->
-      <script>
-        window.toolManifest = [
-          { name: 'Archive Roulette', file: 'tools/archive_shuffle.html' },
-          { name: 'Boid Simulator', file: 'tools/boids.html' },
-          { name: 'Chisel Tool', file: 'tools/chisel_pen.html' },
-          { name: 'Colorspace Visualizer', file: 'tools/3_d_color_space.html' },
-          { name: 'Fractal Explorer', file: 'tools/Fractal_Lab.html' },
-          { name: 'Heart Generator', file: 'tools/I_<3_WIKI.html' },
-          { name: 'Game of Life Variations', file: 'tools/graded_game_of_life.html' },
-          { name: 'Lissajous Visualizer', file: 'tools/lissajous_figure_grid.html' },
-          { name: 'Modern Grid Generator', file: 'tools/auto_modern_grid_layout.html' },
-          { name: 'Neumes Converter', file: 'tools/midi_→_neumes_converter.html' },
-          { name: 'Node Tool', file: 'tools/Node_Net.html' },
-          { name: 'Skewer Tool', file: 'tools/GlitchSkewer.html' },
-          { name: 'Spectrogram Collage', file: 'tools/Spectrogram_Collage.html' },
-          { name: 'Spectrogram JPEG Tool', file: 'tools/SpectroJPEG.html' },
-          { name: 'Tiler Tool', file: 'tools/square_tiler.html' },
-          { name: 'Tree Generator', file: 'tools/tree_generator.html' },
-          { name: 'Word Generator', file: 'tools/word_generator.html' },
-          { name: 'Grid Permutations', file: 'tools/grid_permutations.html' },
-          { name: 'Ascii Sequencer', file: 'tools/ascii_sequencer.html' },
-          { name: 'Stochastic Halftone', file: 'tools/stochastic_halftone.html' },
-          { name: 'Diffusion Pen', file: 'tools/diffusion_pen.html' },
-	      { name: 'Division Art', file: 'tools/division_art.html' },
-	      { name: 'Punch Tape Generator', file: 'tools/punch_tape_generator.html' },
-	      { name: 'ASCIIPAINT', file: 'tools/ASCIIPAINT.html' },
-	      { name: 'Palette Transfer', file: 'tools/color_transfer.html' },
-			
-			
-			
-			
-
-        ];
-      </script>
+      <script src="tool-manifest.js"></script>
     </main>
   </div>
   <script>
@@ -252,6 +218,13 @@
       // Pull the list of tools from the generated manifest script. The
       // script assigns an array to window.toolManifest.
       const tools = Array.isArray(window.toolManifest) ? window.toolManifest : [];
+      const normalizedTools = tools
+        .map((tool) => {
+          const safeFile = tool.file || tool.link;
+          const derivedName = tool.name || (safeFile ? safeFile.split('/').pop() : 'Tool');
+          return safeFile ? { ...tool, file: safeFile, name: derivedName } : null;
+        })
+        .filter(Boolean);
 
       const toolList = document.getElementById("tool-list");
       const searchInput = document.getElementById("search");
@@ -307,7 +280,7 @@
         }, { once: true });
       };
 
-      tools.forEach((tool) => {
+      normalizedTools.forEach((tool) => {
         const button = document.createElement("button");
         button.type = "button";
         button.className = "tool-button";
@@ -328,9 +301,9 @@
       const params = new URLSearchParams(window.location.search);
       const initialFile = params.get('tool');
       if (initialFile) {
-        const initialTool = tools.find(t => t.file === initialFile || t.file.endsWith(initialFile.split('/').pop()));
+        const initialTool = normalizedTools.find(t => t.file === initialFile || t.file.endsWith(initialFile.split('/').pop()));
         if (initialTool) {
-          const index = tools.indexOf(initialTool);
+          const index = normalizedTools.indexOf(initialTool);
           const button = document.querySelectorAll(".tool-button")[index];
           selectTool(initialTool, button);
         } else {
