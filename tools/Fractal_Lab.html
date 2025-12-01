@@ -6,8 +6,8 @@
   <title>Recursive Vector Fractal Lab — Standalone</title>
   <style>
     :root { --bg: #ffffff; --fg: #111; --panel: #fff; --border:#e5e7eb; --indigo:#6366f1; }
-    html,body{ height:100%; margin:0; font:14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color: var(--fg); }
-    .app{ display:flex; flex-direction:column; height:100%; }
+    html,body{ min-height:100vh; margin:0; font:14px/1.4 ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji"; color: var(--fg); }
+    .app{ display:flex; flex-direction:column; min-height:100dvh; min-height:100vh; }
     header{ position:sticky; top:0; z-index:10; display:flex; align-items:center; gap:.5rem; padding:.5rem 1rem; background:rgba(255,255,255,.7); backdrop-filter: blur(6px); border-bottom:1px solid var(--border); }
     h1{ font-size:18px; font-weight:600; margin:0; }
     .spacer{ flex:1; }
@@ -16,11 +16,11 @@
     .btn.primary{ background:#4f46e5; border-color:#4338ca; color:#fff; }
     .btn.danger{ background:#fef2f2; color:#dc2626; }
     .btn.active{ background:#4f46e5; color:#fff; border-color:#4338ca; }
-    .grid{ display:grid; grid-template-columns: 1fr 320px; min-height:0; flex:1; }
-    .left{ position:relative; background:var(--bg); }
+    .grid{ display:grid; grid-template-columns: 1fr 320px; height: calc(100dvh - var(--hdr,56px)); min-height: calc(100vh - var(--hdr,56px)); flex:1; min-height:0; }
+    .left{ position:relative; background:var(--bg); min-height: calc(100dvh - var(--hdr,56px)); min-height: calc(100vh - var(--hdr,56px)); }
     .wrap{ position:absolute; inset:0; }
     canvas, svg.overlay{ position:absolute; inset:0; display:block; }
-    .right{ border-left:1px solid var(--border); background:var(--panel); overflow:auto; }
+    .right{ border-left:1px solid var(--border); background:var(--panel); overflow:auto; max-height: calc(100dvh - var(--hdr,56px)); max-height: calc(100vh - var(--hdr,56px)); }
     section{ padding:12px; border-bottom:1px solid var(--border); }
     .section-title{ font-size:12px; font-weight:600; letter-spacing:.06em; text-transform:uppercase; color:#6b7280; margin:0 0 8px; }
     .row{ display:flex; align-items:center; justify-content:space-between; gap:.5rem; padding:.25rem 0; }
@@ -46,7 +46,7 @@
       .right{ position:fixed; top: var(--hdr,56px); right:0; bottom:0; width:min(100vw, 360px); transform: translateX(100%); transition: transform .25s ease; box-shadow: -8px 0 16px rgba(0,0,0,.08); }
       body.panel-open .right{ transform: translateX(0); }
       body.panel-open .backdrop{ display:block; }
-      .left{ min-height: calc(100vh - var(--hdr,56px)); }
+      .left{ min-height: calc(100dvh - var(--hdr,56px)); min-height: calc(100vh - var(--hdr,56px)); }
     }
   </style>
   <link rel="stylesheet" href="tool-theme.css">
@@ -125,6 +125,13 @@
 </div>
 
 <script>
+// Ensure layout offsets match the actual header height so drawers don't overlap.
+const root = document.documentElement;
+const headerEl = document.querySelector('header');
+const setHeaderHeight = () => headerEl && root.style.setProperty('--hdr', `${headerEl.getBoundingClientRect().height}px`);
+setHeaderHeight();
+window.addEventListener('resize', setHeaderHeight);
+
 // --------------------------- Types (JSDoc for hints) ---------------------------
 /** @typedef {{x:number,y:number}} Pt */
 /** @typedef {{ id:string, type:'rect', x:number, y:number, w:number, h:number, rotate?:number, stroke:string, fill:string, strokeWidth:number }} Rect */
@@ -229,7 +236,6 @@ const panLbl = document.getElementById('panlabel');
 const panelEl = document.getElementById('panel');
 const panelToggleBtn = document.getElementById('toggle-panel');
 const backdropEl = document.getElementById('drawer-backdrop');
-const headerEl = document.querySelector('header');
 function updateHdr(){ if(headerEl){ document.documentElement.style.setProperty('--hdr', headerEl.offsetHeight + 'px'); } }
 function ensurePanelStateForViewport(){ if(window.innerWidth>900){ document.body.classList.remove('panel-open'); if(panelToggleBtn) panelToggleBtn.setAttribute('aria-expanded','false'); if(backdropEl) backdropEl.style.display='none'; } }
 if(panelToggleBtn){ panelToggleBtn.onclick = ()=>{ const open = !document.body.classList.contains('panel-open'); document.body.classList.toggle('panel-open', open); if(backdropEl) backdropEl.style.display = open ? 'block' : 'none'; panelToggleBtn.setAttribute('aria-expanded', String(open)); }; }
