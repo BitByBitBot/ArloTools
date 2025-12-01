@@ -17,14 +17,14 @@ window.toolManifest = [
     name: 'Chisel Tool',
     file: 'tools/chisel_pen.html',
     medium: 'VISUAL',
-    experience: 'TECHNICAL',
+    experience: 'PLAYFUL',
     video: 'videos/chisel demo.mp4'
   },
   {
     name: 'Colorspace Visualizer',
     file: 'tools/3_d_color_space.html',
     medium: 'VISUAL',
-    experience: 'PLAYFUL',
+    experience: 'MESMERIZING',
     video: 'videos/colorspace demo.mp4'
   },
   {
@@ -45,14 +45,14 @@ window.toolManifest = [
     name: 'Game of Life Variations',
     file: 'tools/graded_game_of_life.html',
     medium: 'VISUAL',
-    experience: 'TECHNICAL',
+    experience: 'MESMERIZING',
     video: 'videos/life demo.mp4'
   },
   {
     name: 'Lissajous Visualizer',
     file: 'tools/lissajous_figure_grid.html',
     medium: 'VISUAL',
-    experience: 'PLAYFUL',
+    experience: 'MESMERIZING',
     video: 'videos/lissajous demo.mp4'
   },
   {
@@ -101,14 +101,14 @@ window.toolManifest = [
     name: 'Tiler Tool',
     file: 'tools/square_tiler.html',
     medium: 'VISUAL',
-    experience: 'PLAYFUL',
+    experience: 'MESMERIZING',
     video: 'videos/tiler demo.mp4'
   },
   {
     name: 'Tree Generator',
     file: 'tools/tree_generator.html',
     medium: 'VISUAL',
-    experience: 'PLAYFUL',
+    experience: 'MESMERIZING',
     video: 'videos/tree demo.mp4'
   },
   {
@@ -156,7 +156,7 @@ window.toolManifest = [
   {
     name: 'ASCIIPAINT',
     file: 'tools/ASCIIPAINT.html',
-    medium: 'VISUAL',
+    medium: 'TEXT',
     experience: 'PLAYFUL',
     poster: 'previews/asciipaint.png'
   },
