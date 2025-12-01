@@ -1,0 +1,122 @@
+:root {
+  --bg: #f7f6f2;
+  --panel: #ffffff;
+  --panel-muted: #f0efea;
+  --text: #0a0a0a;
+  --muted: #4e4e4e;
+  --accent: #d40000;
+  --border: #111111;
+  --radius: 10px;
+  color-scheme: light;
+  font-family: "Space Mono", "IBM Plex Mono", "SFMono-Regular", Menlo, Consolas, monospace;
+  line-height: 1.6;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  background: radial-gradient(circle at 20% 20%, rgba(212, 0, 0, 0.04), transparent 35%),
+              radial-gradient(circle at 80% 10%, rgba(17, 17, 17, 0.05), transparent 30%),
+              var(--bg);
+  color: var(--text);
+  font-family: inherit;
+  min-height: 100vh;
+}
+
+h1, h2, h3 {
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  margin: 0 0 12px;
+}
+
+p {
+  margin: 0 0 12px;
+  color: var(--muted);
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+  color: var(--text);
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 10px 12px;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease, background 0.15s ease;
+}
+
+button,
+input[type="button"],
+input[type="submit"],
+input[type="reset"] {
+  cursor: pointer;
+  background: linear-gradient(145deg, var(--panel), var(--panel-muted));
+  font-weight: 700;
+  letter-spacing: 0.05em;
+}
+
+button:hover,
+input[type="button"]:hover,
+input[type="submit"]:hover,
+input[type="reset"]:hover,
+button:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent) 30%, transparent);
+}
+
+label {
+  font-weight: 600;
+  letter-spacing: 0.04em;
+}
+
+a {
+  color: inherit;
+}
+
+a:hover {
+  color: var(--accent);
+}
+
+fieldset {
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  padding: 12px;
+  background: var(--panel);
+}
+
+::selection {
+  background: color-mix(in srgb, var(--accent) 22%, #ffffff);
+}
+
+hr {
+  border: none;
+  height: 2px;
+  background: var(--border);
+}
+
+canvas,
+pre,
+code {
+  border-radius: calc(var(--radius) - 4px);
+}
+
+.tablet,
+.panel,
+.card,
+.sheet {
+  background: var(--panel);
+  border: 2px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: 0 12px 24px rgba(0, 0, 0, 0.06);
+  padding: 12px;
+}
