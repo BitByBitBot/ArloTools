@@ -207,7 +207,23 @@
       overflow: hidden;
     }
 
-    .tool-media video {
+    .tool-media.no-video {
+      display: grid;
+      place-items: center;
+      background: radial-gradient(circle at 30% 30%, #f2f2f2, #e3e3e3 55%, #d7d7d7);
+      color: #050505;
+      text-align: center;
+      padding: 16px;
+      letter-spacing: 0.12em;
+    }
+
+    .tool-placeholder {
+      font-size: clamp(0.62rem, 1.24vw, 0.78rem);
+      opacity: 0.8;
+    }
+
+    .tool-media video,
+    .tool-media img {
       width: 100%;
       height: 100%;
       object-fit: cover;
@@ -333,122 +349,25 @@
     <button class="sort-button" type="button" data-mode="experience">Experience</button>
   </div>
 
+  <script src="tool-manifest.js"></script>
   <script>
-    const toolData = [
-      {
-        name: 'Archive Roulette',
-        link: 'toolspage.html?tool=tools/archive_shuffle.html',
-        medium: 'VISUAL',
-        experience: 'PLAYFUL',
-        video: 'videos/Archive Demo.mp4'
-      },
-      {
-        name: 'Boid Simulator',
-        link: 'toolspage.html?tool=tools/boids.html',
-        medium: 'VISUAL',
-        experience: 'MESMERIZING',
-        video: 'videos/boids demo.mp4'
-      },
-      {
-        name: 'Chisel Tool',
-        link: 'toolspage.html?tool=tools/chisel_pen.html',
-        medium: 'VISUAL',
-        experience: 'TECHNICAL',
-        video: 'videos/chisel demo.mp4'
-      },
-      {
-        name: 'Colorspace Visualizer',
-        link: 'toolspage.html?tool=tools/3_d_color_space.html',
-        medium: 'VISUAL',
-        experience: 'PLAYFUL',
-        video: 'videos/colorspace demo.mp4'
-      },
-      {
-        name: 'Fractal Explorer',
-        link: 'toolspage.html?tool=tools/Fractal_Lab.html',
-        medium: 'VISUAL',
-        experience: 'TECHNICAL',
-        video: 'videos/fractal demo.mp4'
-      },
-      {
-        name: 'Heart Generator',
-        link: 'toolspage.html?tool=tools/I_<3_WIKI.html',
-        medium: 'TEXT',
-        experience: 'PLAYFUL',
-        video: 'videos/heart demo.mp4'
-      },
-      {
-        name: 'Game of Life Variations',
-        link: 'toolspage.html?tool=tools/graded_game_of_life.html',
-        medium: 'VISUAL',
-        experience: 'TECHNICAL',
-        video: 'videos/life demo.mp4'
-      },
-      {
-        name: 'Lissajous Visualizer',
-        link: 'toolspage.html?tool=tools/lissajous_figure_grid.html',
-        medium: 'VISUAL',
-        experience: 'PLAYFUL',
-        video: 'videos/lissajous demo.mp4'
-      },
-      {
-        name: 'Modern Grid Generator',
-        link: 'toolspage.html?tool=tools/auto_modern_grid_layout.html',
-        medium: 'VISUAL',
-        experience: 'TECHNICAL',
-        video: 'videos/modern grid demo.mp4'
-      },
-      {
-        name: 'Neumes Converter',
-        link: 'toolspage.html?tool=tools/midi_→_neumes_converter.html',
-        medium: 'AUDIO',
-        experience: 'TECHNICAL',
-        video: 'videos/neumes demo.mp4'
-      },
-      {
-        name: 'Node Tool',
-        link: 'toolspage.html?tool=tools/Node_Net.html',
-        medium: 'VISUAL',
-        experience: 'TECHNICAL',
-        video: 'videos/node demo.mp4'
-      },
-      {
-        name: 'Skewer Tool',
-        link: 'toolspage.html?tool=tools/GlitchSkewer.html',
-        medium: 'VISUAL',
-        experience: 'MESMERIZING',
-        video: 'videos/skewer demo.mp4'
-      },
-      {
-        name: 'Spectrogram Collage',
-        link: 'toolspage.html?tool=tools/Spectrogram_Collage.html',
-        medium: 'AUDIO',
-        experience: 'TECHNICAL',
-        video: 'videos/spectro collage demo.mp4'
-      },
-      {
-        name: 'Spectrogram JPEG Tool',
-        link: 'toolspage.html?tool=tools/SpectroJPEG.html',
-        medium: 'AUDIO',
-        experience: 'TECHNICAL',
-        video: 'videos/spectro jpeg demo.mp4'
-      },
-      {
-        name: 'Tiler Tool',
-        link: 'toolspage.html?tool=tools/square_tiler.html',
-        medium: 'VISUAL',
-        experience: 'PLAYFUL',
-        video: 'videos/tiler demo.mp4'
-      },
-      {
-        name: 'Tree Generator',
-        link: 'toolspage.html?tool=tools/tree_generator.html',
-        medium: 'VISUAL',
-        experience: 'PLAYFUL',
-        video: 'videos/tree demo.mp4'
-      }
+    const manifest = Array.isArray(window.toolManifest) ? window.toolManifest : [];
+    const DEFAULT_MEDIUM = 'VISUAL';
+    const DEFAULT_EXPERIENCE = 'PLAYFUL';
 
-    ];
+    const buildLink = (file) => {
+      if (!file) return '#';
+      const safeFile = encodeURI(file).replace(/#/g, '%23');
+      return `toolspage.html?tool=${safeFile}`;
+    };
+
+    const toolData = manifest.map((tool) => ({
+      name: tool.name || tool.file || 'Tool',
+      link: tool.link || buildLink(tool.file),
+      medium: tool.medium || DEFAULT_MEDIUM,
+      experience: tool.experience || DEFAULT_EXPERIENCE,
+      video: tool.video,
+    }));
 
     const toolLayer = document.getElementById('toolLayer');
     const labelLayer = document.getElementById('labelLayer');
@@ -500,17 +419,32 @@
 
         const media = document.createElement('div');
         media.className = 'tool-media';
-        const video = document.createElement('video');
-        video.muted = true;
-        video.loop = true;
-        video.autoplay = true;
-        video.playsInline = true;
         if (tool.video) {
+          const video = document.createElement('video');
+          video.muted = true;
+          video.loop = true;
+          video.autoplay = true;
+          video.playsInline = true;
           video.src = tool.video;
+          if (tool.poster) {
+            video.poster = tool.poster;
+          }
+          video.setAttribute('aria-hidden', 'true');
+          video.preload = 'auto';
+          media.appendChild(video);
+        } else if (tool.poster) {
+          const img = document.createElement('img');
+          img.src = tool.poster;
+          img.alt = '';
+          img.setAttribute('aria-hidden', 'true');
+          media.appendChild(img);
+        } else {
+          media.classList.add('no-video');
+          const placeholder = document.createElement('div');
+          placeholder.className = 'tool-placeholder';
+          placeholder.textContent = 'Preview unavailable';
+          media.appendChild(placeholder);
         }
-        video.setAttribute('aria-hidden', 'true');
-        video.preload = 'auto';
-        media.appendChild(video);
 
         const title = document.createElement('div');
         title.className = 'tool-title';
