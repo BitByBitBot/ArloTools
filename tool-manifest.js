@@ -115,60 +115,70 @@ window.toolManifest = [
     name: 'Grid Permutations',
     file: 'tools/grid_permutations.html',
     medium: 'VISUAL',
-    experience: 'TECHNICAL'
+    experience: 'TECHNICAL',
+    poster: 'previews/grid_permutations.svg'
   },
   {
     name: 'Ascii Sequencer',
     file: 'tools/ascii_sequencer.html',
     medium: 'AUDIO',
-    experience: 'PLAYFUL'
+    experience: 'PLAYFUL',
+    poster: 'previews/ascii_sequencer.svg'
   },
   {
     name: 'Stochastic Halftone',
     file: 'tools/stochastic_halftone.html',
     medium: 'VISUAL',
-    experience: 'TECHNICAL'
+    experience: 'TECHNICAL',
+    poster: 'previews/stochastic_halftone.svg'
   },
   {
     name: 'Diffusion Pen',
     file: 'tools/diffusion_pen.html',
     medium: 'VISUAL',
-    experience: 'MESMERIZING'
+    experience: 'MESMERIZING',
+    poster: 'previews/diffusion_pen.svg'
   },
   {
     name: 'Division Art',
     file: 'tools/division_art.html',
     medium: 'VISUAL',
-    experience: 'TECHNICAL'
+    experience: 'TECHNICAL',
+    poster: 'previews/division_art.svg'
   },
   {
     name: 'Punch Tape Generator',
     file: 'tools/punch_tape_generator.html',
     medium: 'TEXT',
-    experience: 'TECHNICAL'
+    experience: 'TECHNICAL',
+    poster: 'previews/punch_tape_generator.svg'
   },
   {
     name: 'ASCIIPAINT',
     file: 'tools/ASCIIPAINT.html',
     medium: 'VISUAL',
-    experience: 'PLAYFUL'
+    experience: 'PLAYFUL',
+    poster: 'previews/asciipaint.svg'
   },
   {
     name: 'Palette Transfer',
     file: 'tools/color_transfer.html',
     medium: 'VISUAL',
-    experience: 'TECHNICAL'
+    experience: 'TECHNICAL',
+    poster: 'previews/color_transfer.svg'
   },
   {
     name: 'Medieval Border Generator',
     file: 'tools/medieval_border_generator.html',
     medium: 'VISUAL',
-    experience: 'PLAYFUL'
+    experience: 'PLAYFUL',
+    poster: 'previews/medieval_border_generator.svg'
   },
   {
     name: 'Word Generator',
     file: 'tools/word_generator.html',
     medium: 'TEXT',
-    experience: 'PLAYFUL'
+    experience: 'PLAYFUL',
+    poster: 'previews/word_generator.svg'
   }
 ];
