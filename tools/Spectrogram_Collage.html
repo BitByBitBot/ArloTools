@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Audio Spectrogram Editor</title>
   <style>
     body {
@@ -10,23 +9,12 @@
       color: black;
       font-family: monospace;
       text-align: center;
-      margin: 0;
-      padding: 16px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 12px;
     }
     canvas {
       background: white;
       margin: 10px 0;
       border: 2px solid black;
       image-rendering: pixelated;
-      width: min(1100px, 100%);
-      max-width: 100%;
-      height: auto;
-      aspect-ratio: 4 / 1;
-      display: block;
     }
     input[type="file"], button {
       margin-top: 10px;
@@ -42,7 +30,7 @@
       top: 0;
       left: 0;
       bottom: 0;
-      width: clamp(240px, 28vw, 320px);
+      width: 280px;
       background: white;
       color: black;
       border-right: 2px solid black;
@@ -71,7 +59,7 @@
     }
     /* Loading progress bar */
     progress {
-      width: min(960px, 90%);
+      width: 80%;
       margin: 10px auto;
       display: none;
     }
@@ -79,19 +67,11 @@
       margin: 0 0 1em;
       font-size: 0.9em;
       color: #444;
-      width: min(960px, 100%);
-      padding: 0 8px;
     }
     .description ul {
       text-align: left;
-      max-width: 640px;
+      max-width: 600px;
       margin: 0.5em auto 0;
-    }
-
-    @media (max-width: 720px) {
-      body { padding: 12px; }
-      canvas { aspect-ratio: 3 / 2; }
-      #sidebar { width: min(360px, 90vw); padding: 0.8em; }
     }
   </style>
   <link rel="stylesheet" href="tool-theme.css">

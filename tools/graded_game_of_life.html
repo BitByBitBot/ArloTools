@@ -2,7 +2,6 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Graded Game of Life — Brutalist</title>
   <style>
     body {
@@ -13,7 +12,6 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 16px;
       overflow-y: auto;
     }
     canvas {
@@ -22,17 +20,13 @@
       margin: 1rem 0;
       border: 2px solid black;
       image-rendering: pixelated;
-      width: 100%;
-      max-width: 900px;
-      height: auto;
-      aspect-ratio: 1 / 1;
-      display: block;
     }
     .controls {
       display: grid;
       grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
       gap: 1rem;
-      width: min(1100px, 100%);
+      width: 95%;
+      max-width: 1200px;
       background: white;
       padding: 1rem;
       border: 2px solid black;
@@ -64,7 +58,7 @@
       color: black;
     }
     input[type="text"] {
-      width: min(320px, 100%);
+      width: 300px;
     }
     button {
       font-weight: bold;
@@ -86,7 +80,8 @@
       align-items: center;
     }
     .description {
-      width: min(1100px, 100%);
+      width: 95%;
+      max-width: 1200px;
       background: #f8f8f8;
       border: 2px solid black;
       padding: 1rem;
@@ -95,10 +90,6 @@
       color: #333;
     }
     .description ul { margin-left: 1.2em; }
-
-    .canvas-wrap {
-      width: min(1100px, 100%);
-    }
   </style>
   <link rel="stylesheet" href="tool-theme.css">
 </head>
@@ -162,9 +153,7 @@
     </div>
   </div>
   
-  <div class="canvas-wrap">
-    <canvas id="lifeCanvas" width="800" height="800"></canvas>
-  </div>
+  <canvas id="lifeCanvas" width="400" height="400" style="width: 800px; height: 800px;"></canvas>
   <div class="button-row">
     <button id="togglePlay">Pause</button>
     <button id="clearButton">Clear</button>

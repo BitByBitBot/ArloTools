@@ -20,15 +20,14 @@
       box-sizing: border-box;
     }
 
-      body {
-        margin: 0;
-        min-height: 100vh;
-        background: #fff;
-        color: #050505;
-        font-family: inherit;
-        overflow-x: hidden;
-        overflow-y: auto;
-      }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #fff;
+      color: #050505;
+      font-family: inherit;
+      overflow: hidden;
+    }
 
     .site-shell {
       position: relative;
@@ -43,38 +42,6 @@
       gap: clamp(24px, 4vw, 48px);
       position: relative;
       z-index: 3;
-    }
-
-    .nav-toggle {
-      display: none;
-      align-items: center;
-      gap: 10px;
-      background: #050505;
-      color: #fff;
-      border: none;
-      padding: 12px 14px;
-      border-radius: 8px;
-      font-size: 0.95rem;
-      letter-spacing: 0.08em;
-      text-transform: uppercase;
-      cursor: pointer;
-    }
-
-    .nav-toggle:focus-visible {
-      outline: 2px solid #d40000;
-      outline-offset: 3px;
-    }
-
-    .nav-toggle .bars {
-      display: grid;
-      gap: 5px;
-    }
-
-    .nav-toggle .bars span {
-      display: block;
-      width: 22px;
-      height: 2px;
-      background: currentColor;
     }
 
     .brand {
@@ -329,50 +296,7 @@
       transform: scaleX(1);
     }
 
-    .tool-collection {
-      display: none;
-      margin-top: clamp(20px, 5vw, 32px);
-    }
-
-    .tool-list {
-      display: grid;
-      grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
-      gap: 16px;
-    }
-
-    .tool-list-card {
-      display: flex;
-      flex-direction: column;
-      background: #ffffff;
-      border: 1px solid #050505;
-      border-radius: 14px;
-      text-decoration: none;
-      color: inherit;
-      overflow: hidden;
-      min-height: 240px;
-      transition: transform 0.2s ease, border-color 0.2s ease;
-    }
-
-    .tool-list-card:hover,
-    .tool-list-card:focus-visible {
-      border-color: #d40000;
-      transform: translateY(-2px);
-      outline: none;
-    }
-
-    .tool-list-card .tool-media {
-      border-bottom-width: 1px;
-      min-height: 180px;
-    }
-
-    .tool-list-card .tool-title {
-      font-size: 1rem;
-      padding: 18px 16px 20px;
-      letter-spacing: 0.04em;
-      line-height: 1.4;
-    }
-
-    @media (max-width: 900px) {
+    @media (max-width: 720px) {
       body {
         overflow: auto;
       }
@@ -386,78 +310,13 @@
         align-items: flex-start;
       }
 
-      .nav-toggle {
-        display: inline-flex;
-      }
-
       .site-nav {
-        position: relative;
-        width: 100%;
-        padding: 0;
-        flex-direction: column;
-        gap: 14px;
-        font-size: 0.95rem;
-        letter-spacing: 0.12em;
-      }
-
-      .site-nav a {
-        display: block;
-        padding: 12px 0;
-        border-bottom: 1px solid #e3e3e3;
-      }
-
-      .site-nav[data-open="false"] {
-        display: none;
-      }
-
-      .stage {
-        display: none;
-      }
-
-      .tool-collection {
-        display: block;
-      }
-
-      .tool-list {
-        gap: 20px;
+        order: 3;
       }
 
       .sort-bar {
         position: static;
-        margin: 20px 0 10px;
-        flex-wrap: wrap;
-        font-size: 0.9rem;
-        gap: 12px;
-      }
-
-      .sort-button {
-        padding: 10px 12px;
-        border-radius: 8px;
-        border: 1px solid #050505;
-      }
-    }
-
-    @media (max-width: 600px) {
-      .brand-logo {
-        width: min(240px, 70vw);
-      }
-
-      .descriptor {
-        font-size: 0.9rem;
-        letter-spacing: 0.12em;
-      }
-
-      .tool-list {
-        grid-template-columns: 1fr;
-      }
-
-      .tool-list-card {
-        border-radius: 18px;
-        min-height: 260px;
-      }
-
-      .tool-list-card .tool-title {
-        font-size: 1.05rem;
+        margin-top: 32px;
       }
     }
   </style>
@@ -477,22 +336,11 @@
         </a>
         <p class="descriptor">A CATALOG OF EXPERIMENTAL ART TOOLS BY ARLO ROBBINS</p>
       </div>
-      <button class="nav-toggle" type="button" aria-expanded="false" aria-controls="primaryNav">
-        <span class="bars" aria-hidden="true">
-          <span></span>
-          <span></span>
-          <span></span>
-        </span>
-        Menu
-      </button>
-      <nav class="site-nav" aria-label="Site" id="primaryNav" data-open="true">
+      <nav class="site-nav" aria-label="Site">
         <a href="about.html">About</a>
         <a href="toolspage.html">Full List</a>
       </nav>
     </header>
-    <div class="tool-collection" aria-live="polite" aria-label="Tool catalog">
-      <div class="tool-list" id="toolList"></div>
-    </div>
   </div>
 
   <div class="sort-bar" role="group" aria-label="Sort tools">
@@ -525,12 +373,8 @@
     const toolLayer = document.getElementById('toolLayer');
     const labelLayer = document.getElementById('labelLayer');
     const glowLayer = document.getElementById('glowLayer');
-    const toolList = document.getElementById('toolList');
-    const navToggle = document.querySelector('.nav-toggle');
-    const siteNav = document.getElementById('primaryNav');
     const buttons = document.querySelectorAll('.sort-button');
     const header = document.querySelector('.site-header');
-    const mobileQuery = window.matchMedia('(max-width: 900px)');
 
     const entries = [];
     const BASE_FLOAT = { min: 14, max: 28 };
@@ -671,66 +515,6 @@
         });
 
         entries.push(entry);
-      });
-    }
-
-    function createListCard(tool) {
-      const card = document.createElement('a');
-      card.className = 'tool-list-card';
-      card.href = tool.link;
-      card.setAttribute('data-medium', tool.medium);
-      card.setAttribute('data-experience', tool.experience);
-
-      const media = document.createElement('div');
-      media.className = 'tool-media';
-      if (tool.poster) {
-        const img = document.createElement('img');
-        img.src = tool.poster;
-        img.alt = '';
-        img.loading = 'lazy';
-        media.appendChild(img);
-      } else if (tool.video) {
-        const video = document.createElement('video');
-        video.src = tool.video;
-        video.muted = true;
-        video.loop = true;
-        video.autoplay = true;
-        video.playsInline = true;
-        video.preload = 'metadata';
-        video.setAttribute('aria-hidden', 'true');
-        media.appendChild(video);
-      } else {
-        media.classList.add('no-video');
-        const placeholder = document.createElement('div');
-        placeholder.className = 'tool-placeholder';
-        placeholder.textContent = 'Preview unavailable';
-        media.appendChild(placeholder);
-      }
-
-      const title = document.createElement('div');
-      title.className = 'tool-title';
-      title.textContent = `${tool.name} — ${tool.medium} · ${tool.experience}`;
-
-      card.appendChild(media);
-      card.appendChild(title);
-      return card;
-    }
-
-    function renderList(orderMode = 'all') {
-      if (!toolList) return;
-      const ordered = [...toolData];
-      const modeSettings = MODE_SETTINGS[orderMode];
-      if (modeSettings && modeSettings.order) {
-        const order = modeSettings.order;
-        ordered.sort((a, b) => {
-          const aIndex = order.indexOf(a[orderMode]);
-          const bIndex = order.indexOf(b[orderMode]);
-          return (aIndex === -1 ? order.length : aIndex) - (bIndex === -1 ? order.length : bIndex);
-        });
-      }
-      toolList.innerHTML = '';
-      ordered.forEach((tool) => {
-        toolList.appendChild(createListCard(tool));
       });
     }
 
@@ -911,17 +695,9 @@
 
     let mode = 'all';
     let lastTime = performance.now();
-    let stageInitialized = false;
-    let isMobile = mobileQuery.matches;
     const TAU = Math.PI * 2;
 
     function animate(time) {
-      if (isMobile) {
-        lastTime = time;
-        requestAnimationFrame(animate);
-        return;
-      }
-
       const delta = time - lastTime;
       lastTime = time;
       const positions = [];
@@ -1053,57 +829,21 @@
       if (mode === next) {
         mode = 'all';
         buttons.forEach((btn) => btn.dataset.active = 'false');
-      } else {
-        mode = next;
-        buttons.forEach((btn) => {
-          const active = btn.dataset.mode === mode;
-          btn.dataset.active = active ? 'true' : 'false';
-        });
-      }
-
-      if (isMobile || !stageInitialized) {
-        renderList(mode);
+        layoutAll();
         return;
       }
+
+      mode = next;
+      buttons.forEach((btn) => {
+        const active = btn.dataset.mode === mode;
+        btn.dataset.active = active ? 'true' : 'false';
+      });
 
       if (mode === 'medium' || mode === 'experience') {
         layoutGrouped(mode);
       } else {
         layoutAll();
       }
-    }
-
-    function initStage() {
-      if (stageInitialized) return;
-      createToolCards();
-      measureCards();
-      updateOrbitParams();
-      layoutAll();
-      stageInitialized = true;
-      requestAnimationFrame(animate);
-    }
-
-    function syncViewportMode() {
-      isMobile = mobileQuery.matches;
-      document.body.classList.toggle('is-mobile', isMobile);
-      if (isMobile) {
-        siteNav.dataset.open = 'false';
-        if (navToggle) navToggle.setAttribute('aria-expanded', 'false');
-      } else {
-        siteNav.dataset.open = 'true';
-        if (navToggle) navToggle.setAttribute('aria-expanded', 'false');
-        initStage();
-      }
-      renderList(mode);
-    }
-
-    if (navToggle) {
-      navToggle.addEventListener('click', () => {
-        const open = siteNav.dataset.open === 'true';
-        const next = !open;
-        siteNav.dataset.open = next ? 'true' : 'false';
-        navToggle.setAttribute('aria-expanded', next ? 'true' : 'false');
-      });
     }
 
     buttons.forEach((button) => {
@@ -1114,10 +854,7 @@
       });
     });
 
-    mobileQuery.addEventListener('change', syncViewportMode);
-
     window.addEventListener('resize', () => {
-      if (isMobile || !stageInitialized) return;
       measureCards();
       updateOrbitParams();
       if (mode === 'medium' || mode === 'experience') {
@@ -1127,7 +864,11 @@
       }
     });
 
-    syncViewportMode();
+    createToolCards();
+    measureCards();
+    updateOrbitParams();
+    layoutAll();
+    requestAnimationFrame(animate);
 	
   </script>
 </body>
