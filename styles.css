@@ -468,20 +468,20 @@ body.about-page main {
   gap: clamp(20px, 2.8vw, 32px);
 }
 
-h2 {
+body.about-page h2 {
   margin: 0;
   font-size: clamp(1.1rem, 2vw, 1.4rem);
   letter-spacing: 0.14em;
   text-transform: uppercase;
 }
 
-p {
+body.about-page p {
   margin: 0;
   line-height: 1.8;
   font-size: clamp(1rem, 2.4vw, 1.22rem);
 }
 
-p + p {
+body.about-page p + p {
   margin-top: clamp(18px, 3vw, 28px);
 }
 
