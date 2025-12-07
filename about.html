@@ -4,9 +4,152 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>About • ArloTools</title>
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    @font-face {
+      font-family: 'FaceOff';
+      src: url('Face off!.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    :root {
+      color-scheme: light;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #fff;
+      color: #050505;
+      font-family: inherit;
+      display: flex;
+      flex-direction: column;
+      padding: clamp(32px, 6vw, 72px) clamp(36px, 8vw, 120px) clamp(48px, 10vw, 160px);
+      gap: clamp(48px, 7vw, 96px);
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: clamp(24px, 6vw, 72px);
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(16px, 2.5vw, 24px);
+      max-width: min(560px, 70vw);
+    }
+
+    .brand a {
+      text-decoration: none;
+      color: inherit;
+      display: inline-flex;
+    }
+
+    .brand-logo {
+      width: clamp(220px, 32vw, 360px);
+      height: auto;
+    }
+
+    .descriptor {
+      margin: 0;
+      letter-spacing: 0.22em;
+      text-transform: uppercase;
+      font-size: clamp(0.68rem, 1.3vw, 0.82rem);
+      line-height: 1.7;
+    }
+
+    nav {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(10px, 1.8vw, 18px);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: clamp(0.7rem, 1.2vw, 0.82rem);
+      padding-top: clamp(10px, 1.8vw, 18px);
+    }
+
+    nav a {
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      padding-bottom: 4px;
+    }
+
+    nav a[data-active="true"] {
+      color: #d40000;
+    }
+
+    nav a::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 1px;
+      background: currentColor;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.2s ease;
+    }
+
+    nav a:hover::after,
+    nav a:focus-visible::after {
+      transform: scaleX(1);
+    }
+
+    nav a:focus-visible {
+      outline: none;
+    }
+
+    main {
+      max-width: min(720px, 78vw);
+      display: flex;
+      flex-direction: column;
+      gap: clamp(20px, 2.8vw, 32px);
+    }
+
+    h2 {
+      margin: 0;
+      font-size: clamp(1.1rem, 2vw, 1.4rem);
+      letter-spacing: 0.14em;
+      text-transform: uppercase;
+    }
+
+    p {
+      margin: 0;
+      line-height: 1.8;
+      font-size: clamp(1rem, 2.4vw, 1.22rem);
+    }
+
+    p + p {
+      margin-top: clamp(18px, 3vw, 28px);
+    }
+
+    @media (max-width: 760px) {
+      body {
+        padding: 32px 24px 64px;
+      }
+
+      header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      nav {
+        flex-direction: row;
+        gap: 20px;
+      }
+    }
+  </style>
 </head>
-<body class="about-page">
+<body>
   <header>
     <div class="brand">
       <a href="index.html" aria-label="ArloTools home">

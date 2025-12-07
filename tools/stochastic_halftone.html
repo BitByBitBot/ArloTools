@@ -9,19 +9,19 @@
     --fg: #000; --bg: #fff; --muted:#666; --accent:#000;
   }
   * { box-sizing: border-box; }
-  html, body { min-height: 100dvh; min-height: 100vh; }
-  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; display:flex; flex-direction:column; min-height:100dvh; min-height:100vh; }
+  html, body { height: 100%; }
+  body { margin: 0; background: var(--bg); color: var(--fg); font: 14px/1.3 system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif; }
   header { padding: 12px 16px; border-bottom: 2px solid var(--fg); display:flex; align-items:center; gap:12px; }
   header h1 { margin:0; font-size: 18px; letter-spacing: .5px; }
-  .wrap { display:grid; grid-template-columns: 320px 1fr; flex:1; height: calc(100dvh - var(--hdr,64px)); min-height: calc(100vh - var(--hdr,64px)); min-height:0; }
-  aside { border-right: 2px solid var(--fg); padding: 12px; overflow:auto; max-height: calc(100dvh - var(--hdr,64px)); max-height: calc(100vh - var(--hdr,64px)); }
-  main { display:grid; grid-template-rows: auto 1fr; min-height:0; max-height: calc(100dvh - var(--hdr,64px)); max-height: calc(100vh - var(--hdr,64px)); }
+  .wrap { display:grid; grid-template-columns: 320px 1fr; height: calc(100% - 54px); }
+  aside { border-right: 2px solid var(--fg); padding: 12px; overflow:auto; }
+  main { display:grid; grid-template-rows: auto 1fr; }
   .toolbar { padding: 8px 12px; border-bottom:2px solid var(--fg); display:flex; flex-wrap:wrap; gap:8px; align-items:center; }
   .canvasWrap { position: relative; overflow:auto; background: #f6f6f6; }
   canvas { display:block; image-rendering: pixelated; margin: 0 auto; background: #fff; }
-  fieldset { border:2px solid var(--fg); margin: 0; padding: 12px; display:flex; flex-direction:column; gap:8px; }
+  fieldset { border:2px solid var(--fg); margin: 0 0 12px 0; padding: 10px; }
   legend { padding: 0 6px; }
-  label { display:flex; align-items:center; justify-content:space-between; gap:10px; margin: 4px 0; }
+  label { display:flex; align-items:center; justify-content:space-between; gap:10px; margin: 6px 0; }
   input[type="range"] { width: 160px; }
   input[type="number"], input[type="text"] { width: 92px; padding: 4px; border: 2px solid var(--fg); background: #fff; color: #000; }
   select, button { padding: 6px 8px; border: 2px solid var(--fg); background: #fff; color: #000; cursor: pointer; }
@@ -37,7 +37,6 @@
     aside { border-right:none; border-bottom:2px solid var(--fg); height:auto; }
   }
 </style>
-  <link rel="stylesheet" href="tool-theme.css">
 </head>
 <body>
   <header>
@@ -171,13 +170,6 @@
   </div>
 
 <script>
-// Match layout offsets to the live header height so controls and canvas don't overlap.
-const root = document.documentElement;
-const hdr = document.querySelector('header');
-const setHdr = () => root.style.setProperty('--hdr', `${hdr.getBoundingClientRect().height}px`);
-setHdr();
-window.addEventListener('resize', setHdr);
-
 // ===== Utilities =====
 function hashStringToSeed(str) {
   let h = 2166136261 >>> 0;

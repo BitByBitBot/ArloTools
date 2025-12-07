@@ -4,9 +4,308 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ArloTools</title>
-  <link rel="stylesheet" href="styles.css">
+  <style>
+    @font-face {
+      font-family: 'FaceOff';
+      src: url('Face off!.ttf') format('truetype');
+      font-display: swap;
+    }
+
+    :root {
+      color-scheme: light;
+      font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
+    *, *::before, *::after {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: #fff;
+      color: #050505;
+      font-family: inherit;
+      overflow: hidden;
+    }
+
+    .site-shell {
+      position: relative;
+      z-index: 1;
+      padding: clamp(28px, 5vw, 48px) clamp(32px, 6vw, 72px) clamp(32px, 6vw, 64px);
+    }
+
+    .site-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: clamp(24px, 4vw, 48px);
+      position: relative;
+      z-index: 3;
+    }
+
+    .brand {
+      display: flex;
+      flex-direction: column;
+      gap: clamp(12px, 2vw, 18px);
+      max-width: min(520px, 70vw);
+    }
+
+    .brand-logo {
+      width: clamp(220px, 32vw, 360px);
+      height: auto;
+    }
+
+    .descriptor {
+      margin: 0;
+      letter-spacing: 0.20em;
+      text-transform: uppercase;
+      font-size: clamp(0.65rem, 1.3vw, 0.8rem);
+      line-height: 1.6;
+    }
+
+    .site-nav {
+      display: flex;
+      gap: clamp(18px, 3vw, 32px);
+      align-items: flex-start;
+      padding-top: clamp(12px, 2vw, 20px);
+      text-transform: uppercase;
+      letter-spacing: 0.18em;
+      font-size: clamp(0.7rem, 1.4vw, 0.85rem);
+    }
+
+    .site-nav a {
+      text-decoration: none;
+      color: inherit;
+      position: relative;
+      padding-bottom: 4px;
+    }
+
+    .site-nav a::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: 0;
+      width: 100%;
+      height: 1px;
+      background: currentColor;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.2s ease;
+    }
+
+    .site-nav a:hover::after,
+    .site-nav a:focus-visible::after {
+      transform: scaleX(1);
+    }
+
+    .site-nav a:focus-visible {
+      outline: none;
+    }
+
+    .site-nav a[data-active="true"] {
+      color: #d40000;
+    }
+
+    .stage {
+      position: fixed;
+      inset: 0;
+      overflow: hidden;
+      z-index: 0;
+      perspective: 1400px;
+      perspective-origin: 50% 50%;
+    }
+
+    .glow-layer,
+    .label-layer,
+    .tool-layer {
+      position: absolute;
+      inset: 0;
+      transform-style: preserve-3d;
+    }
+
+    .glow {
+      position: absolute;
+      border-radius: 50%;
+      pointer-events: none;
+      mix-blend-mode: multiply;
+      filter: blur(0.5px);
+      opacity: 0.95;
+      transition: transform 0.5s ease, opacity 0.5s ease;
+    }
+
+    .label-layer {
+      pointer-events: none;
+      font-size: clamp(1.8rem, 7vw, 4.4rem);
+      letter-spacing: 0.08em;
+      font-weight: 600;
+      color: rgba(0, 0, 0, 0.9);
+    }
+
+    .cluster-label {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      white-space: nowrap;
+    }
+
+    .tool-layer {
+      position: absolute;
+      inset: 0;
+    }
+
+    .tool-card {
+      /* Base card styles: cards orbit around the scene.  They are wider than
+         tall, semi‑transparent, and have no drop shadows. */
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+      width: clamp(200px, 18vw, 240px);
+      height: clamp(150px, 14vw, 180px);
+      background: rgba(255, 255, 255, 0.94);
+      border: 1px solid #050505;
+      /* Remove any box‑shadow so cards have clean edges. */
+      box-shadow: none;
+      display: flex;
+      flex-direction: column;
+      text-align: left;
+      font-weight: 600;
+      color: #050505;
+      text-decoration: none;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      line-height: 1.3;
+      transition: border-color 0.2s ease, opacity 0.2s ease;
+      will-change: transform;
+      overflow: hidden;
+      transform-style: preserve-3d;
+      backface-visibility: visible;
+      pointer-events: auto;
+    }
+
+    /* When a card is hovered, subtly change the border colour to draw focus. */
+    .tool-card.is-hovered {
+      border-color: #d40000;
+    }
+
+    .tool-card:focus-visible {
+      outline: 2px solid #d40000;
+      outline-offset: 4px;
+    }
+
+    /* Remove hover shadow entirely – focus is handled in JS */
+    .tool-card:hover {
+      border-color: #d40000;
+    }
+
+    .tool-media {
+      position: relative;
+      flex: 1 1 auto;
+      width: 100%;
+      border-bottom: 2px solid #050505;
+      background: #050505;
+      overflow: hidden;
+    }
+
+    .tool-media video {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      display: block;
+      pointer-events: none;
+    }
+
+    .tool-title {
+      padding: clamp(12px, 2vw, 18px) clamp(14px, 2.1vw, 20px);
+      letter-spacing: 0.08em;
+      font-size: clamp(0.64rem, 1.28vw, 0.82rem);
+    }
+
+    .sort-bar {
+      position: fixed;
+      left: clamp(24px, 5vw, 72px);
+      bottom: clamp(24px, 5vw, 72px);
+      display: flex;
+      align-items: center;
+      gap: clamp(12px, 2vw, 28px);
+      z-index: 3;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      font-size: clamp(0.62rem, 1.3vw, 0.78rem);
+    }
+
+    .sort-bar span {
+      font-weight: 600;
+    }
+
+    .sort-button {
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font: inherit;
+      cursor: pointer;
+      color: inherit;
+      position: relative;
+    }
+
+    .sort-button::after {
+      content: '';
+      position: absolute;
+      left: 0;
+      bottom: -4px;
+      width: 100%;
+      height: 2px;
+      background: currentColor;
+      transform: scaleX(0);
+      transform-origin: left;
+      transition: transform 0.2s ease;
+    }
+
+    .sort-button:focus-visible {
+      outline: none;
+      color: #d40000;
+    }
+
+    .sort-button:hover::after,
+    .sort-button:focus-visible::after {
+      transform: scaleX(1);
+    }
+
+    .sort-button[data-active="true"] {
+      color: #d40000;
+    }
+
+    .sort-button[data-active="true"]::after {
+      transform: scaleX(1);
+    }
+
+    @media (max-width: 720px) {
+      body {
+        overflow: auto;
+      }
+
+      .site-shell {
+        padding: 24px;
+      }
+
+      .site-header {
+        flex-direction: column;
+        align-items: flex-start;
+      }
+
+      .site-nav {
+        order: 3;
+      }
+
+      .sort-bar {
+        position: static;
+        margin-top: 32px;
+      }
+    }
+  </style>
 </head>
-<body class="index-page">
+<body>
   <div class="stage" aria-hidden="false">
     <div class="glow-layer" id="glowLayer"></div>
     <div class="label-layer" id="labelLayer" aria-hidden="true"></div>
@@ -34,26 +333,129 @@
     <button class="sort-button" type="button" data-mode="experience">Experience</button>
   </div>
 
-  <script src="tool-manifest.js"></script>
   <script>
-    const manifest = Array.isArray(window.toolManifest) ? window.toolManifest : [];
-    const DEFAULT_MEDIUM = 'VISUAL';
-    const DEFAULT_EXPERIENCE = 'PLAYFUL';
+    const toolData = [
+      {
+        name: 'Archive Roulette',
+        link: 'toolspage.html?tool=tools/archive_shuffle.html',
+        medium: 'VISUAL',
+        experience: 'PLAYFUL',
+        video: 'videos/Archive Demo.mp4'
+      },
+      {
+        name: 'Boid Simulator',
+        link: 'toolspage.html?tool=tools/boids.html',
+        medium: 'VISUAL',
+        experience: 'MESMERIZING',
+        video: 'videos/boids demo.mp4'
+      },
+      {
+        name: 'Border Tool',
+        link: 'toolspage.html?tool=tools/medieval_border_generator.html',
+        medium: 'VISUAL',
+        experience: 'TECHNICAL',
+        video: 'videos/border demo.mp4'
+      },
+      {
+        name: 'Chisel Tool',
+        link: 'toolspage.html?tool=tools/chisel_pen.html',
+        medium: 'VISUAL',
+        experience: 'TECHNICAL',
+        video: 'videos/chisel demo.mp4'
+      },
+      {
+        name: 'Colorspace Visualizer',
+        link: 'toolspage.html?tool=tools/3_d_color_space.html',
+        medium: 'VISUAL',
+        experience: 'PLAYFUL',
+        video: 'videos/colorspace demo.mp4'
+      },
+      {
+        name: 'Fractal Explorer',
+        link: 'toolspage.html?tool=tools/Fractal_Lab.html',
+        medium: 'VISUAL',
+        experience: 'TECHNICAL',
+        video: 'videos/fractal demo.mp4'
+      },
+      {
+        name: 'Heart Generator',
+        link: 'toolspage.html?tool=tools/I_<3_WIKI.html',
+        medium: 'TEXT',
+        experience: 'PLAYFUL',
+        video: 'videos/heart demo.mp4'
+      },
+      {
+        name: 'Game of Life Variations',
+        link: 'toolspage.html?tool=tools/graded_game_of_life.html',
+        medium: 'VISUAL',
+        experience: 'TECHNICAL',
+        video: 'videos/life demo.mp4'
+      },
+      {
+        name: 'Lissajous Visualizer',
+        link: 'toolspage.html?tool=tools/lissajous_figure_grid.html',
+        medium: 'VISUAL',
+        experience: 'PLAYFUL',
+        video: 'videos/lissajous demo.mp4'
+      },
+      {
+        name: 'Modern Grid Generator',
+        link: 'toolspage.html?tool=tools/auto_modern_grid_layout.html',
+        medium: 'VISUAL',
+        experience: 'TECHNICAL',
+        video: 'videos/modern grid demo.mp4'
+      },
+      {
+        name: 'Neumes Converter',
+        link: 'toolspage.html?tool=tools/midi_→_neumes_converter.html',
+        medium: 'AUDIO',
+        experience: 'TECHNICAL',
+        video: 'videos/neumes demo.mp4'
+      },
+      {
+        name: 'Node Tool',
+        link: 'toolspage.html?tool=tools/Node_Net.html',
+        medium: 'VISUAL',
+        experience: 'TECHNICAL',
+        video: 'videos/node demo.mp4'
+      },
+      {
+        name: 'Skewer Tool',
+        link: 'toolspage.html?tool=tools/GlitchSkewer.html',
+        medium: 'VISUAL',
+        experience: 'MESMERIZING',
+        video: 'videos/skewer demo.mp4'
+      },
+      {
+        name: 'Spectrogram Collage',
+        link: 'toolspage.html?tool=tools/Spectrogram_Collage.html',
+        medium: 'AUDIO',
+        experience: 'TECHNICAL',
+        video: 'videos/spectro collage demo.mp4'
+      },
+      {
+        name: 'Spectrogram JPEG Tool',
+        link: 'toolspage.html?tool=tools/SpectroJPEG.html',
+        medium: 'AUDIO',
+        experience: 'TECHNICAL',
+        video: 'videos/spectro jpeg demo.mp4'
+      },
+      {
+        name: 'Tiler Tool',
+        link: 'toolspage.html?tool=tools/square_tiler.html',
+        medium: 'VISUAL',
+        experience: 'PLAYFUL',
+        video: 'videos/tiler demo.mp4'
+      },
+      {
+        name: 'Tree Generator',
+        link: 'toolspage.html?tool=tools/tree_generator.html',
+        medium: 'VISUAL',
+        experience: 'PLAYFUL',
+        video: 'videos/tree demo.mp4'
+      }
 
-    const buildLink = (file) => {
-      if (!file) return '#';
-      const safeFile = encodeURI(file).replace(/#/g, '%23');
-      return `toolspage.html?tool=${safeFile}`;
-    };
-
-    const toolData = manifest.map((tool) => ({
-      name: tool.name || tool.file || 'Tool',
-      link: tool.link || buildLink(tool.file),
-      medium: tool.medium || DEFAULT_MEDIUM,
-      experience: tool.experience || DEFAULT_EXPERIENCE,
-      video: tool.video,
-      poster: tool.poster,
-    }));
+    ];
 
     const toolLayer = document.getElementById('toolLayer');
     const labelLayer = document.getElementById('labelLayer');
@@ -105,32 +507,17 @@
 
         const media = document.createElement('div');
         media.className = 'tool-media';
+        const video = document.createElement('video');
+        video.muted = true;
+        video.loop = true;
+        video.autoplay = true;
+        video.playsInline = true;
         if (tool.video) {
-          const video = document.createElement('video');
-          video.muted = true;
-          video.loop = true;
-          video.autoplay = true;
-          video.playsInline = true;
           video.src = tool.video;
-          if (tool.poster) {
-            video.poster = tool.poster;
-          }
-          video.setAttribute('aria-hidden', 'true');
-          video.preload = 'auto';
-          media.appendChild(video);
-        } else if (tool.poster) {
-          const img = document.createElement('img');
-          img.src = tool.poster;
-          img.alt = '';
-          img.setAttribute('aria-hidden', 'true');
-          media.appendChild(img);
-        } else {
-          media.classList.add('no-video');
-          const placeholder = document.createElement('div');
-          placeholder.className = 'tool-placeholder';
-          placeholder.textContent = 'Preview unavailable';
-          media.appendChild(placeholder);
         }
+        video.setAttribute('aria-hidden', 'true');
+        video.preload = 'auto';
+        media.appendChild(video);
 
         const title = document.createElement('div');
         title.className = 'tool-title';
