@@ -668,7 +668,7 @@ html.tools-page body {
   position: absolute;
   top: 0;
   left: 0;
-  z-index: 20;
+  z-index: 200;
 }
 
 .toolbar #tool-name {
@@ -701,11 +701,16 @@ iframe {
     z-index: 100;
     box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
     transition: transform 0.3s ease;
+    transform: translateX(-100%);
   }
 
   .sidebar.hidden {
     transform: translateX(-100%);
     display: flex;
+  }
+
+  .sidebar:not(.hidden) {
+    transform: translateX(0);
   }
 
   .main-wrapper {

@@ -63,6 +63,18 @@
         }
       };
 
+      // Initialize sidebar state based on screen size
+      const initializeSidebar = () => {
+        if (window.innerWidth <= 768) {
+          sidebar.classList.add("hidden");
+          mainWrapper.style.width = "100vw";
+        } else {
+          sidebar.classList.remove("hidden");
+          mainWrapper.style.width = "calc(100vw - 320px)";
+        }
+        updateButtonIcon();
+      };
+
       toggleBtn.addEventListener("click", () => {
         sidebar.classList.toggle("hidden");
         mainWrapper.style.width = sidebar.classList.contains("hidden") ?
@@ -70,7 +82,16 @@
         updateButtonIcon();
       });
 
-      updateButtonIcon();
+      // Handle window resize
+      window.addEventListener("resize", () => {
+        if (window.innerWidth > 768 && sidebar.classList.contains("hidden")) {
+          sidebar.classList.remove("hidden");
+          mainWrapper.style.width = "calc(100vw - 320px)";
+          updateButtonIcon();
+        }
+      });
+
+      initializeSidebar();
 
       const toUrl = (file) => encodeURI(file).replace(/#/g, "%23");
 
