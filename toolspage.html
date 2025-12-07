@@ -55,6 +55,8 @@
       const mainWrapper = document.querySelector(".main-wrapper");
       const toggleBtn = document.getElementById("sidebar-toggle");
 
+      const MOBILE_BREAKPOINT = 768;
+
       const updateButtonIcon = () => {
         if (sidebar.classList.contains("hidden")) {
           toggleBtn.textContent = "☰"; // menu icon when closed
@@ -65,7 +67,7 @@
 
       // Initialize sidebar state based on screen size
       const initializeSidebar = () => {
-        if (window.innerWidth <= 768) {
+        if (window.innerWidth <= MOBILE_BREAKPOINT) {
           sidebar.classList.add("hidden");
           mainWrapper.style.width = "100vw";
         } else {
@@ -87,7 +89,7 @@
       window.addEventListener("resize", () => {
         clearTimeout(resizeTimeout);
         resizeTimeout = setTimeout(() => {
-          if (window.innerWidth > 768 && sidebar.classList.contains("hidden")) {
+          if (window.innerWidth > MOBILE_BREAKPOINT && sidebar.classList.contains("hidden")) {
             sidebar.classList.remove("hidden");
             mainWrapper.style.width = "calc(100vw - 320px)";
             updateButtonIcon();
