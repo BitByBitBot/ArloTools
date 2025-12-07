@@ -704,11 +704,6 @@ iframe {
     transform: translateX(-100%);
   }
 
-  .sidebar.hidden {
-    transform: translateX(-100%);
-    display: flex;
-  }
-
   .sidebar:not(.hidden) {
     transform: translateX(0);
   }

@@ -82,13 +82,17 @@
         updateButtonIcon();
       });
 
-      // Handle window resize
+      // Handle window resize with debouncing
+      let resizeTimeout;
       window.addEventListener("resize", () => {
-        if (window.innerWidth > 768 && sidebar.classList.contains("hidden")) {
-          sidebar.classList.remove("hidden");
-          mainWrapper.style.width = "calc(100vw - 320px)";
-          updateButtonIcon();
-        }
+        clearTimeout(resizeTimeout);
+        resizeTimeout = setTimeout(() => {
+          if (window.innerWidth > 768 && sidebar.classList.contains("hidden")) {
+            sidebar.classList.remove("hidden");
+            mainWrapper.style.width = "calc(100vw - 320px)";
+            updateButtonIcon();
+          }
+        }, 250);
       });
 
       initializeSidebar();
