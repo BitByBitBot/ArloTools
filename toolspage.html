@@ -118,6 +118,13 @@
         toolName.textContent = tool.name;
         openNewTab.href = url;
 
+        // Auto-hide sidebar on mobile after selecting a tool
+        if (window.innerWidth <= MOBILE_BREAKPOINT && !sidebar.classList.contains("hidden")) {
+          sidebar.classList.add("hidden");
+          mainWrapper.style.width = "100vw";
+          updateButtonIcon();
+        }
+
         iframe.addEventListener("load", () => {
           try {
             injectTheme(iframe.contentDocument);
