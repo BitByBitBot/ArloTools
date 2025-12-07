@@ -1,0 +1,773 @@
+/* ArloTools - Central Stylesheet */
+/* This file consolidates all styles for the ArloTools website */
+
+/* Font Face */
+@font-face {
+  font-family: 'FaceOff';
+  src: url('Face off!.ttf') format('truetype');
+  font-display: swap;
+}
+
+/* Global Styles */
+:root {
+  color-scheme: light;
+  font-family: "Helvetica Neue", Helvetica, Arial, sans-serif;
+  /* Color variables for consistency */
+  --bg: #ffffff;
+  --panel: #ffffff;
+  --panel-hover: #f0f0f0;
+  --panel-active: #eaeaea;
+  --accent: #d40000;
+  --text: #050505;
+  --muted: #444444;
+  --border: #050505;
+  --divider: #cccccc;
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+/* ==================== */
+/* Index Page Styles */
+/* ==================== */
+
+/* Body for index page */
+body.index-page {
+  margin: 0;
+  min-height: 100vh;
+  background: #fff;
+  color: #050505;
+  font-family: inherit;
+  overflow: hidden;
+}
+
+.site-shell {
+  position: relative;
+  z-index: 1;
+  padding: clamp(28px, 5vw, 48px) clamp(32px, 6vw, 72px) clamp(32px, 6vw, 64px);
+}
+
+.site-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: clamp(24px, 4vw, 48px);
+  position: relative;
+  z-index: 3;
+}
+
+.brand {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(12px, 2vw, 18px);
+  max-width: min(520px, 70vw);
+}
+
+.brand a {
+  text-decoration: none;
+  color: inherit;
+  display: inline-flex;
+}
+
+.brand-logo {
+  width: clamp(220px, 32vw, 360px);
+  height: auto;
+}
+
+.descriptor {
+  margin: 0;
+  letter-spacing: 0.20em;
+  text-transform: uppercase;
+  font-size: clamp(0.65rem, 1.3vw, 0.8rem);
+  line-height: 1.6;
+}
+
+.site-nav {
+  display: flex;
+  gap: clamp(18px, 3vw, 32px);
+  align-items: flex-start;
+  padding-top: clamp(12px, 2vw, 20px);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: clamp(0.7rem, 1.4vw, 0.85rem);
+}
+
+.site-nav a {
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  padding-bottom: 4px;
+}
+
+.site-nav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.site-nav a:hover::after,
+.site-nav a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.site-nav a:focus-visible {
+  outline: none;
+}
+
+.site-nav a[data-active="true"] {
+  color: #d40000;
+}
+
+.stage {
+  position: fixed;
+  inset: 0;
+  overflow: hidden;
+  z-index: 0;
+  perspective: 1400px;
+  perspective-origin: 50% 50%;
+}
+
+.glow-layer,
+.label-layer,
+.tool-layer {
+  position: absolute;
+  inset: 0;
+  transform-style: preserve-3d;
+}
+
+.glow {
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+  mix-blend-mode: multiply;
+  filter: blur(0.5px);
+  opacity: 0.95;
+  transition: transform 0.5s ease, opacity 0.5s ease;
+}
+
+.label-layer {
+  pointer-events: none;
+  font-size: clamp(1.8rem, 7vw, 4.4rem);
+  letter-spacing: 0.08em;
+  font-weight: 600;
+  color: rgba(0, 0, 0, 0.9);
+}
+
+.cluster-label {
+  position: absolute;
+  transform: translate(-50%, -50%);
+  white-space: nowrap;
+}
+
+.tool-layer {
+  position: absolute;
+  inset: 0;
+}
+
+.tool-card {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: clamp(200px, 18vw, 240px);
+  height: clamp(150px, 14vw, 180px);
+  background: rgba(255, 255, 255, 0.94);
+  border: 1px solid #050505;
+  box-shadow: none;
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+  font-weight: 600;
+  color: #050505;
+  text-decoration: none;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  line-height: 1.3;
+  transition: border-color 0.2s ease, opacity 0.2s ease;
+  will-change: transform;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  backface-visibility: visible;
+  pointer-events: auto;
+}
+
+.tool-card.is-hovered {
+  border-color: #d40000;
+}
+
+.tool-card:focus-visible {
+  outline: 2px solid #d40000;
+  outline-offset: 4px;
+}
+
+.tool-card:hover {
+  border-color: #d40000;
+}
+
+.tool-media {
+  position: relative;
+  flex: 1 1 auto;
+  width: 100%;
+  border-bottom: 2px solid #050505;
+  background: #050505;
+  overflow: hidden;
+}
+
+.tool-media.no-video {
+  display: grid;
+  place-items: center;
+  background: radial-gradient(circle at 30% 30%, #f2f2f2, #e3e3e3 55%, #d7d7d7);
+  color: #050505;
+  text-align: center;
+  padding: 16px;
+  letter-spacing: 0.12em;
+}
+
+.tool-placeholder {
+  font-size: clamp(0.62rem, 1.24vw, 0.78rem);
+  opacity: 0.8;
+}
+
+.tool-media video,
+.tool-media img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  pointer-events: none;
+}
+
+.tool-title {
+  padding: clamp(12px, 2vw, 18px) clamp(14px, 2.1vw, 20px);
+  letter-spacing: 0.08em;
+  font-size: clamp(0.64rem, 1.28vw, 0.82rem);
+}
+
+.sort-bar {
+  position: fixed;
+  left: clamp(24px, 5vw, 72px);
+  bottom: clamp(24px, 5vw, 72px);
+  display: flex;
+  align-items: center;
+  gap: clamp(12px, 2vw, 28px);
+  z-index: 3;
+  letter-spacing: 0.2em;
+  text-transform: uppercase;
+  font-size: clamp(0.62rem, 1.3vw, 0.78rem);
+}
+
+.sort-bar span {
+  font-weight: 600;
+}
+
+.sort-button {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font: inherit;
+  cursor: pointer;
+  color: inherit;
+  position: relative;
+}
+
+.sort-button::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: -4px;
+  width: 100%;
+  height: 2px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+.sort-button:focus-visible {
+  outline: none;
+  color: #d40000;
+}
+
+.sort-button:hover::after,
+.sort-button:focus-visible::after {
+  transform: scaleX(1);
+}
+
+.sort-button[data-active="true"] {
+  color: #d40000;
+}
+
+.sort-button[data-active="true"]::after {
+  transform: scaleX(1);
+}
+
+/* Mobile responsiveness for index page */
+@media (max-width: 720px) {
+  body.index-page {
+    overflow: auto;
+  }
+
+  .site-shell {
+    padding: 24px;
+  }
+
+  .site-header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .brand {
+    max-width: 100%;
+  }
+
+  .site-nav {
+    order: 3;
+    flex-wrap: wrap;
+  }
+
+  .sort-bar {
+    position: static;
+    margin-top: 32px;
+    flex-wrap: wrap;
+  }
+
+  .tool-card {
+    width: clamp(160px, 40vw, 200px);
+    height: clamp(120px, 30vw, 150px);
+  }
+
+  .label-layer {
+    font-size: clamp(1.4rem, 5vw, 2.5rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .site-shell {
+    padding: 16px;
+  }
+
+  .descriptor {
+    font-size: clamp(0.6rem, 1.2vw, 0.7rem);
+  }
+
+  .site-nav {
+    font-size: clamp(0.65rem, 1.2vw, 0.75rem);
+    gap: clamp(14px, 2.5vw, 24px);
+  }
+
+  .sort-bar {
+    font-size: clamp(0.58rem, 1.1vw, 0.7rem);
+    gap: clamp(8px, 1.5vw, 16px);
+  }
+
+  .tool-card {
+    width: clamp(140px, 45vw, 180px);
+    height: clamp(100px, 32vw, 130px);
+  }
+
+  .tool-title {
+    font-size: clamp(0.58rem, 1.1vw, 0.72rem);
+    padding: clamp(8px, 1.5vw, 12px) clamp(10px, 1.8vw, 14px);
+  }
+
+  .label-layer {
+    font-size: clamp(1.2rem, 4vw, 2rem);
+  }
+}
+
+/* ==================== */
+/* About Page Styles */
+/* ==================== */
+
+body.about-page {
+  margin: 0;
+  min-height: 100vh;
+  background: #fff;
+  color: #050505;
+  font-family: inherit;
+  display: flex;
+  flex-direction: column;
+  padding: clamp(32px, 6vw, 72px) clamp(36px, 8vw, 120px) clamp(48px, 10vw, 160px);
+  gap: clamp(48px, 7vw, 96px);
+}
+
+body.about-page header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: clamp(24px, 6vw, 72px);
+}
+
+body.about-page .brand {
+  max-width: min(560px, 70vw);
+  gap: clamp(16px, 2.5vw, 24px);
+}
+
+body.about-page .descriptor {
+  letter-spacing: 0.22em;
+  font-size: clamp(0.68rem, 1.3vw, 0.82rem);
+  line-height: 1.7;
+}
+
+body.about-page nav {
+  display: flex;
+  flex-direction: column;
+  gap: clamp(10px, 1.8vw, 18px);
+  text-transform: uppercase;
+  letter-spacing: 0.18em;
+  font-size: clamp(0.7rem, 1.2vw, 0.82rem);
+  padding-top: clamp(10px, 1.8vw, 18px);
+}
+
+body.about-page nav a {
+  text-decoration: none;
+  color: inherit;
+  position: relative;
+  padding-bottom: 4px;
+}
+
+body.about-page nav a[data-active="true"] {
+  color: #d40000;
+}
+
+body.about-page nav a::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 1px;
+  background: currentColor;
+  transform: scaleX(0);
+  transform-origin: left;
+  transition: transform 0.2s ease;
+}
+
+body.about-page nav a:hover::after,
+body.about-page nav a:focus-visible::after {
+  transform: scaleX(1);
+}
+
+body.about-page nav a:focus-visible {
+  outline: none;
+}
+
+body.about-page main {
+  max-width: min(720px, 78vw);
+  display: flex;
+  flex-direction: column;
+  gap: clamp(20px, 2.8vw, 32px);
+}
+
+body.about-page h2 {
+  margin: 0;
+  font-size: clamp(1.1rem, 2vw, 1.4rem);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+body.about-page p {
+  margin: 0;
+  line-height: 1.8;
+  font-size: clamp(1rem, 2.4vw, 1.22rem);
+}
+
+body.about-page p + p {
+  margin-top: clamp(18px, 3vw, 28px);
+}
+
+/* Mobile responsiveness for about page */
+@media (max-width: 760px) {
+  body.about-page {
+    padding: 32px 24px 64px;
+  }
+
+  body.about-page header {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  body.about-page nav {
+    flex-direction: row;
+    gap: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  body.about-page {
+    padding: 24px 16px 48px;
+    gap: clamp(32px, 5vw, 64px);
+  }
+
+  body.about-page .descriptor {
+    font-size: clamp(0.62rem, 1.2vw, 0.75rem);
+  }
+
+  body.about-page nav {
+    font-size: clamp(0.65rem, 1.1vw, 0.75rem);
+  }
+
+  body.about-page main {
+    max-width: 100%;
+  }
+
+  body.about-page h2 {
+    font-size: clamp(0.95rem, 1.8vw, 1.2rem);
+  }
+
+  body.about-page p {
+    font-size: clamp(0.9rem, 2vw, 1.1rem);
+  }
+}
+
+/* ==================== */
+/* Tools Page Styles */
+/* ==================== */
+
+body.tools-page {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  overflow: hidden;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  font-family: "Space Mono", "IBM Plex Mono", "Courier New", monospace;
+  line-height: 1.4;
+  display: flex;
+}
+
+html.tools-page, 
+html.tools-page body {
+  height: 100%;
+  overflow: hidden;
+}
+
+.sidebar {
+  width: 320px;
+  max-width: 100vw;
+  transition: all 0.3s ease;
+  background: var(--bg);
+  border-right: 2px solid var(--border);
+  padding: 20px 26px 32px;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+  position: relative;
+  z-index: 10;
+}
+
+.sidebar h1 {
+  margin: 0;
+  padding-bottom: 12px;
+  border-bottom: 2px solid var(--divider);
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.sidebar.hidden {
+  display: none;
+}
+
+.sidebar h1 .arlo-logo {
+  height: 35px;
+}
+
+.main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  width: 100%;
+}
+
+.search-wrapper {
+  position: relative;
+}
+
+.search-wrapper input {
+  width: 100%;
+  padding: 12px 16px 12px 48px;
+  border: 2px solid var(--border);
+  background: var(--panel);
+  color: inherit;
+  font-size: 0.95rem;
+  outline: none;
+}
+
+.search-wrapper svg {
+  position: absolute;
+  top: 50%;
+  left: 14px;
+  width: 22px;
+  height: 22px;
+  transform: translateY(-50%);
+  fill: var(--border);
+  pointer-events: none;
+}
+
+#tool-list {
+  flex: 1 1 auto;
+  overflow-y: auto;
+  display: grid;
+  gap: 14px;
+}
+
+.tool-button {
+  display: block;
+  width: 100%;
+  padding: 12px 14px;
+  border: 2px solid var(--border);
+  background: var(--panel);
+  font-size: 0.85rem;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  text-align: left;
+  cursor: pointer;
+}
+
+.tool-button.active {
+  background: var(--panel-active);
+  border-color: var(--accent);
+  color: var(--accent);
+}
+
+body.tools-page main {
+  flex: 1 1 auto;
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  min-height: 0;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  padding: 0 12px;
+  height: 40px;
+  background: var(--panel);
+  border: 2px solid var(--border);
+  font-size: 0.9rem;
+  font-weight: bold;
+  gap: 12px;
+  position: relative;
+}
+
+#sidebar-toggle {
+  width: 40px;
+  height: 40px;
+  background: var(--accent);
+  color: var(--bg);
+  border: none;
+  font-weight: bold;
+  cursor: pointer;
+  font-size: 1rem;
+  position: absolute;
+  top: 0;
+  left: 0;
+  z-index: 200;
+}
+
+.toolbar #tool-name {
+  margin-left: 52px;
+  flex: 1;
+}
+
+.frame-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background: var(--panel);
+  border: 2px solid var(--border);
+}
+
+iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  background: var(--panel);
+}
+
+/* Mobile responsiveness for tools page */
+@media (max-width: 768px) {
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    z-index: 100;
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    transition: none;
+  }
+
+  .sidebar.hidden {
+    transform: translateX(-100%);
+  }
+
+  .main-wrapper {
+    width: 100vw;
+    height: 100vh;
+  }
+
+  body.tools-page main {
+    height: 100%;
+  }
+
+  .frame-container {
+    min-height: 0;
+  }
+
+  .toolbar #tool-name {
+    font-size: 0.8rem;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #open-new-tab {
+    margin-right: 8px;
+  }
+}
+
+@media (max-width: 480px) {
+  .sidebar {
+    width: 280px;
+  }
+
+  .toolbar {
+    font-size: 0.75rem;
+    padding: 0 8px;
+  }
+
+  #sidebar-toggle {
+    width: 36px;
+    height: 36px;
+    font-size: 0.9rem;
+  }
+
+  .toolbar #tool-name {
+    margin-left: 44px;
+    font-size: 0.7rem;
+  }
+
+  .search-wrapper input {
+    font-size: 0.9rem;
+    padding: 10px 14px 10px 40px;
+  }
+
+  .tool-button {
+    font-size: 0.8rem;
+    padding: 10px 12px;
+  }
+}
