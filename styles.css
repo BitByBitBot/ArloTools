@@ -516,15 +516,15 @@ p + p {
     font-size: clamp(0.65rem, 1.1vw, 0.75rem);
   }
 
-  main {
+  body.about-page main {
     max-width: 100%;
   }
 
-  h2 {
+  body.about-page h2 {
     font-size: clamp(0.95rem, 1.8vw, 1.2rem);
   }
 
-  p {
+  body.about-page p {
     font-size: clamp(0.9rem, 2vw, 1.1rem);
   }
 }
