@@ -325,18 +325,62 @@ body.index-page {
     align-items: flex-start;
   }
 
+  .brand {
+    max-width: 100%;
+  }
+
   .site-nav {
     order: 3;
+    flex-wrap: wrap;
   }
 
   .sort-bar {
     position: static;
     margin-top: 32px;
+    flex-wrap: wrap;
   }
 
   .tool-card {
     width: clamp(160px, 40vw, 200px);
     height: clamp(120px, 30vw, 150px);
+  }
+
+  .label-layer {
+    font-size: clamp(1.4rem, 5vw, 2.5rem);
+  }
+}
+
+@media (max-width: 480px) {
+  .site-shell {
+    padding: 16px;
+  }
+
+  .descriptor {
+    font-size: clamp(0.6rem, 1.2vw, 0.7rem);
+  }
+
+  .site-nav {
+    font-size: clamp(0.65rem, 1.2vw, 0.75rem);
+    gap: clamp(14px, 2.5vw, 24px);
+  }
+
+  .sort-bar {
+    font-size: clamp(0.58rem, 1.1vw, 0.7rem);
+    gap: clamp(8px, 1.5vw, 16px);
+  }
+
+  .tool-card {
+    width: clamp(140px, 45vw, 180px);
+    height: clamp(100px, 32vw, 130px);
+  }
+
+  .tool-title {
+    font-size: clamp(0.58rem, 1.1vw, 0.72rem);
+    padding: clamp(8px, 1.5vw, 12px) clamp(10px, 1.8vw, 14px);
+  }
+
+  .label-layer {
+    font-size: clamp(1.2rem, 4vw, 2rem);
   }
 }
 
@@ -455,6 +499,33 @@ p + p {
   body.about-page nav {
     flex-direction: row;
     gap: 20px;
+  }
+}
+
+@media (max-width: 480px) {
+  body.about-page {
+    padding: 24px 16px 48px;
+    gap: clamp(32px, 5vw, 64px);
+  }
+
+  body.about-page .descriptor {
+    font-size: clamp(0.62rem, 1.2vw, 0.75rem);
+  }
+
+  body.about-page nav {
+    font-size: clamp(0.65rem, 1.1vw, 0.75rem);
+  }
+
+  main {
+    max-width: 100%;
+  }
+
+  h2 {
+    font-size: clamp(0.95rem, 1.8vw, 1.2rem);
+  }
+
+  p {
+    font-size: clamp(0.9rem, 2vw, 1.1rem);
   }
 }
 
@@ -623,16 +694,18 @@ iframe {
 /* Mobile responsiveness for tools page */
 @media (max-width: 768px) {
   .sidebar {
-    position: absolute;
+    position: fixed;
     top: 0;
     left: 0;
     height: 100vh;
     z-index: 100;
-    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    box-shadow: 2px 0 10px rgba(0, 0, 0, 0.3);
+    transition: transform 0.3s ease;
   }
 
   .sidebar.hidden {
     transform: translateX(-100%);
+    display: flex;
   }
 
   .main-wrapper {
@@ -644,6 +717,10 @@ iframe {
     overflow: hidden;
     text-overflow: ellipsis;
     white-space: nowrap;
+  }
+
+  #open-new-tab {
+    margin-right: 8px;
   }
 }
 
@@ -660,9 +737,21 @@ iframe {
   #sidebar-toggle {
     width: 36px;
     height: 36px;
+    font-size: 0.9rem;
   }
 
   .toolbar #tool-name {
     margin-left: 44px;
+    font-size: 0.7rem;
+  }
+
+  .search-wrapper input {
+    font-size: 0.9rem;
+    padding: 10px 14px 10px 40px;
+  }
+
+  .tool-button {
+    font-size: 0.8rem;
+    padding: 10px 12px;
   }
 }
