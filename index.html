@@ -375,6 +375,50 @@
       letter-spacing: 0.12em;
     }
 
+    .secret-overlay {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      gap: 22px;
+      flex-direction: column;
+      padding: clamp(24px, 6vw, 48px);
+      background: radial-gradient(circle at 30% 30%, #fff7d9 0%, #ffe9e9 36%, #f6f6ff 72%, #ffffff 100%);
+      color: #050505;
+      z-index: 1000;
+      text-align: center;
+      cursor: pointer;
+    }
+
+    .secret-overlay.is-active {
+      display: flex;
+    }
+
+    .secret-title {
+      margin: 0;
+      letter-spacing: 0.2em;
+      font-size: clamp(0.85rem, 1.6vw, 1rem);
+      text-transform: uppercase;
+    }
+
+    .secret-message {
+      font-family: 'FaceOff', 'Helvetica Neue', Helvetica, Arial, sans-serif;
+      font-size: clamp(2.6rem, 8vw, 5rem);
+      letter-spacing: 0.08em;
+      max-width: 900px;
+      line-height: 1.1;
+      margin: 0;
+    }
+
+    .secret-hint {
+      margin: 0;
+      font-size: clamp(0.78rem, 1.4vw, 0.95rem);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      opacity: 0.75;
+    }
+
     @media (max-width: 720px) {
       body {
         overflow: auto;
@@ -447,6 +491,12 @@
   <main class="mobile-home" id="mobileHome" aria-label="ArloTools mobile catalog">
     <div class="mobile-grid" id="mobileGrid" aria-live="polite"></div>
   </main>
+
+  <div class="secret-overlay" id="secretOverlay" aria-hidden="true" role="dialog" aria-label="Secret Tool">
+    <p class="secret-title">Secret Tool</p>
+    <p class="secret-message" id="secretMessage">Hidden Phrase</p>
+    <p class="secret-hint">Click anywhere to change · Press Esc to close</p>
+  </div>
 
   <script>
     const toolData = [
@@ -1171,6 +1221,85 @@
           layoutAll();
         }
       }
+    });
+
+    const konamiSequence = [
+      'arrowup',
+      'arrowup',
+      'arrowdown',
+      'arrowdown',
+      'arrowleft',
+      'arrowright',
+      'arrowleft',
+      'arrowright',
+      'b',
+      'a',
+      'enter'
+    ];
+
+    const secretPhrases = [
+      'Glowing Circuit',
+      'Phantom Frequency',
+      'Holographic Taffy',
+      'Parallel Pizza',
+      'Infinite Origami',
+      'Soft Laser',
+      'Rainbow Echo',
+      'Kaleido Spiral',
+      'Quantum Confetti',
+      'Magnetic Bubble',
+      'Pixel Breeze',
+      'Neon Whisper',
+      'Astral Zine',
+      'Soda Supernova',
+      'Ghost in the Gelatin'
+    ];
+
+    const secretOverlay = document.getElementById('secretOverlay');
+    const secretMessage = document.getElementById('secretMessage');
+    const keyBuffer = [];
+
+    function setSecretMessage() {
+      if (!secretMessage) return;
+      const phrase = secretPhrases[Math.floor(Math.random() * secretPhrases.length)];
+      secretMessage.textContent = phrase;
+    }
+
+    function openSecretTool() {
+      if (!secretOverlay) return;
+      setSecretMessage();
+      secretOverlay.classList.add('is-active');
+      secretOverlay.setAttribute('aria-hidden', 'false');
+    }
+
+    function closeSecretTool() {
+      if (!secretOverlay) return;
+      secretOverlay.classList.remove('is-active');
+      secretOverlay.setAttribute('aria-hidden', 'true');
+    }
+
+    document.addEventListener('keydown', (event) => {
+      const key = event.key.toLowerCase();
+      keyBuffer.push(key);
+      if (keyBuffer.length > konamiSequence.length) {
+        keyBuffer.shift();
+      }
+
+      const isKonami =
+        keyBuffer.length === konamiSequence.length &&
+        konamiSequence.every((value, index) => value === keyBuffer[index]);
+
+      if (isKonami) {
+        openSecretTool();
+      }
+
+      if (event.key === 'Escape' && secretOverlay?.classList.contains('is-active')) {
+        closeSecretTool();
+      }
+    });
+
+    secretOverlay?.addEventListener('click', () => {
+      setSecretMessage();
     });
 
   </script>
