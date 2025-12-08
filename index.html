@@ -280,6 +280,121 @@
       transform: scaleX(1);
     }
 
+    /* Mobile-specific home layout */
+    .mobile-home {
+      display: none;
+      padding: 0 24px 48px;
+      gap: 20px;
+    }
+
+    .mobile-intro {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      margin-top: 12px;
+    }
+
+    .mobile-intro h1 {
+      margin: 0;
+      font-size: clamp(1.6rem, 7vw, 2rem);
+      letter-spacing: 0.04em;
+    }
+
+    .mobile-intro p {
+      margin: 0;
+      color: #3a3a3a;
+      line-height: 1.6;
+      font-size: 0.95rem;
+    }
+
+    .mobile-section {
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .mobile-grid {
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .mobile-section h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      letter-spacing: 0.18em;
+      text-transform: uppercase;
+    }
+
+    .mobile-tool-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 16px;
+      width: 100%;
+    }
+
+    .mobile-card {
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      padding: 14px;
+      border: 1px solid #050505;
+      border-radius: 12px;
+      text-decoration: none;
+      color: inherit;
+      background: #fff;
+      transition: border-color 0.2s ease, transform 0.2s ease;
+    }
+
+    .mobile-card:hover,
+    .mobile-card:focus-visible {
+      border-color: #d40000;
+      outline: none;
+      transform: translateY(-2px);
+    }
+
+    .mobile-card__media {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 16 / 9;
+      overflow: hidden;
+      border-radius: 10px;
+      background: #050505;
+    }
+
+    .mobile-card__media video {
+      position: absolute;
+      inset: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+
+    .mobile-card__title {
+      font-size: 1.05rem;
+      font-weight: 700;
+      letter-spacing: 0.04em;
+    }
+
+    .mobile-card__meta {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+      color: #3a3a3a;
+      font-size: 0.9rem;
+      letter-spacing: 0.06em;
+    }
+
+    .mobile-pill {
+      display: inline-flex;
+      align-items: center;
+      padding: 4px 8px;
+      border-radius: 999px;
+      border: 1px solid #050505;
+      font-size: 0.76rem;
+      letter-spacing: 0.12em;
+    }
+
     @media (max-width: 720px) {
       body {
         overflow: auto;
@@ -299,8 +414,24 @@
       }
 
       .sort-bar {
-        position: static;
-        margin-top: 32px;
+        position: sticky;
+        top: 0;
+        left: 0;
+        right: 0;
+        padding: 12px 24px;
+        background: #fff;
+        border-bottom: 1px solid #050505;
+        margin: 12px 0 16px;
+        z-index: 5;
+      }
+
+      .stage {
+        display: none;
+      }
+
+      .mobile-home {
+        display: flex;
+        flex-direction: column;
       }
     }
   </style>
@@ -332,6 +463,17 @@
     <button class="sort-button" type="button" data-mode="medium">Medium</button>
     <button class="sort-button" type="button" data-mode="experience">Experience</button>
   </div>
+
+  <main class="mobile-home" id="mobileHome" aria-label="ArloTools mobile catalog">
+    <div class="mobile-intro">
+      <h1>Tools built for touch</h1>
+      <p>
+        Browse the collection in a grounded, easy-to-scan layout designed for smaller screens. Tap any
+        tool to launch it instantly.
+      </p>
+    </div>
+    <div class="mobile-grid" id="mobileGrid" aria-live="polite"></div>
+  </main>
 
   <script>
     const toolData = [
@@ -462,6 +604,9 @@
     const glowLayer = document.getElementById('glowLayer');
     const buttons = document.querySelectorAll('.sort-button');
     const header = document.querySelector('.site-header');
+    const mobileGrid = document.getElementById('mobileGrid');
+    const mobileHome = document.getElementById('mobileHome');
+    const mobileQuery = window.matchMedia('(max-width: 720px)');
 
     const entries = [];
     const BASE_FLOAT = { min: 14, max: 28 };
@@ -898,18 +1043,23 @@
     }
 
     function setMode(next) {
+      const isMobile = mobileQuery.matches;
+
       if (mode === next) {
         mode = 'all';
-        buttons.forEach((btn) => btn.dataset.active = 'false');
-        layoutAll();
-        return;
+      } else {
+        mode = next;
       }
 
-      mode = next;
       buttons.forEach((btn) => {
         const active = btn.dataset.mode === mode;
         btn.dataset.active = active ? 'true' : 'false';
       });
+
+      if (isMobile) {
+        renderMobileCards(mode);
+        return;
+      }
 
       if (mode === 'medium' || mode === 'experience') {
         layoutGrouped(mode);
@@ -929,10 +1079,12 @@
     window.addEventListener('resize', () => {
       measureCards();
       updateOrbitParams();
-      if (mode === 'medium' || mode === 'experience') {
-        layoutGrouped(mode);
-      } else {
-        layoutAll();
+      if (!mobileQuery.matches) {
+        if (mode === 'medium' || mode === 'experience') {
+          layoutGrouped(mode);
+        } else {
+          layoutAll();
+        }
       }
     });
 
@@ -941,7 +1093,113 @@
     updateOrbitParams();
     layoutAll();
     requestAnimationFrame(animate);
-	
+
+    function renderMobileCards(currentMode) {
+      if (!mobileGrid) return;
+
+      const sections = [];
+
+      if (currentMode === 'medium' || currentMode === 'experience') {
+        const key = currentMode === 'medium' ? 'medium' : 'experience';
+        const order = MODE_SETTINGS[currentMode].order;
+
+        order.forEach((group) => {
+          const items = toolData
+            .filter((tool) => tool[key] === group)
+            .slice()
+            .sort((a, b) => a.name.localeCompare(b.name));
+
+          if (items.length === 0) return;
+
+          const section = document.createElement('section');
+          section.className = 'mobile-section';
+
+          const heading = document.createElement('h3');
+          heading.textContent = group;
+          section.appendChild(heading);
+
+          const grid = document.createElement('div');
+          grid.className = 'mobile-tool-grid';
+
+          items.forEach((tool) => grid.appendChild(buildMobileCard(tool)));
+
+          section.appendChild(grid);
+          sections.push(section);
+        });
+      } else {
+        const grid = document.createElement('div');
+        grid.className = 'mobile-tool-grid';
+        const items = toolData.slice().sort((a, b) => a.name.localeCompare(b.name));
+        items.forEach((tool) => grid.appendChild(buildMobileCard(tool)));
+        sections.push(grid);
+      }
+
+      mobileGrid.innerHTML = '';
+      sections.forEach((section) => mobileGrid.appendChild(section));
+    }
+
+    function buildMobileCard(tool) {
+      const card = document.createElement('a');
+      card.className = 'mobile-card';
+      card.href = tool.link;
+      card.setAttribute('title', `${tool.name} — ${tool.medium} · ${tool.experience}`);
+
+      const media = document.createElement('div');
+      media.className = 'mobile-card__media';
+      const video = document.createElement('video');
+      video.muted = true;
+      video.loop = true;
+      video.autoplay = true;
+      video.playsInline = true;
+      if (tool.video) {
+        video.src = tool.video;
+      }
+      video.setAttribute('aria-hidden', 'true');
+      media.appendChild(video);
+
+      const title = document.createElement('div');
+      title.className = 'mobile-card__title';
+      title.textContent = tool.name;
+
+      const meta = document.createElement('div');
+      meta.className = 'mobile-card__meta';
+
+      const medium = document.createElement('span');
+      medium.className = 'mobile-pill';
+      medium.textContent = tool.medium;
+
+      const experience = document.createElement('span');
+      experience.className = 'mobile-pill';
+      experience.textContent = tool.experience;
+
+      meta.appendChild(medium);
+      meta.appendChild(experience);
+
+      card.appendChild(media);
+      card.appendChild(title);
+      card.appendChild(meta);
+
+      return card;
+    }
+
+    if (mobileHome && mobileQuery.matches) {
+      renderMobileCards(mode);
+    }
+
+    mobileQuery.addEventListener('change', (event) => {
+      if (event.matches) {
+        renderMobileCards(mode);
+      } else {
+        measureCards();
+        updateOrbitParams();
+        if (mode === 'medium' || mode === 'experience') {
+          layoutGrouped(mode);
+        } else {
+          layoutAll();
+        }
+      }
+    });
+
   </script>
 </body>
 </html>
