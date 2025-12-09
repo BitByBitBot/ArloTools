@@ -77,7 +77,28 @@
     button.green:hover { background: var(--accent-green-strong); color: #0f3220; }
     button.yellow { background: var(--accent-yellow); }
     button.yellow:hover { background: #ffeebf; }
-    button[disabled] { opacity: 0.5; pointer-events: none; }
+    button[disabled] {
+      opacity: 0.5;
+      /* allow hover so tooltip can show */
+      pointer-events: auto;
+      cursor: not-allowed;
+      position: relative;
+    }
+    button[disabled]:hover::after {
+      content: "Glue before adding new images";
+      position: absolute;
+      bottom: 120%;
+      left: 50%;
+      transform: translateX(-50%);
+      background: rgba(50,50,50,0.9);
+      color: white;
+      padding: 0.35rem 0.6rem;
+      border-radius: 8px;
+      font-size: 0.7rem;
+      white-space: nowrap;
+      z-index: 9999;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+    }
 
     #status {
       margin-left: auto;
@@ -178,8 +199,10 @@
     .canvas-wrap {
       flex: 1;
       display: flex;
+      flex-direction: column;
       align-items: center;
-      justify-content: center;
+      justify-content: flex-start;
+      gap: 0.6rem;
       padding: 0.7rem;
       overflow: auto;
       position: relative;
@@ -205,11 +228,10 @@
     .hint strong { color: #4aa65a; font-weight: 600; }
 
     .icon-new-image {
-      position: absolute;
-      left: 0.8rem;
-      bottom: 0.8rem;
+      position: static;
+      margin-top: 0.6rem;
       padding: 0.45rem 1.1rem;
-      min-width: 96px;
+      min-width: 120px;
       height: 44px;
       border-radius: 999px;
       background: var(--accent-green);
@@ -220,20 +242,54 @@
       justify-content: center;
       letter-spacing: 0.05em;
       text-transform: uppercase;
+      align-self: center;
     }
     .icon-new-image:hover { background: var(--accent-green-strong); }
     .icon-new-image[disabled] { opacity: 0.5; box-shadow: none; }
+    .icon-new-image:active {
+      /* don't shift position on click */
+      transform: none;
+      box-shadow: 0 2px 0 rgba(84,146,102,0.4);
+    }
 
-    /* Glue button floating at top center of collage board box */
-    .collage-wrap { position: relative; }
-    #glueBtn {
-      position: absolute;
-      top: 0.6rem;
+    /* Add Cutout arrow button between panels */
+    #addCutoutBtn {
+      position: fixed;
+      top: 50%;
       left: 50%;
-      transform: translateX(-50%);
-      z-index: 5;
+      transform: translate(-50%, -50%);
+      z-index: 10;
+      width: 64px;
+      height: 64px;
+      border-radius: 50%;
+      padding: 0;
+      background: var(--accent-orange);
+      box-shadow: 0 4px 0 rgba(196, 140, 90, 0.55);
+      border: 2px solid rgba(255,255,255,0.95);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+    }
+    #addCutoutBtn svg {
+      width: 26px;
+      height: 26px;
+      pointer-events: none;
+    }
+    #addCutoutBtn[disabled] {
+      opacity: 0.4;
+    }
+
+    /* Glue button above collage board */
+    .collage-wrap { position: relative; }
+    .glue-row {
+      padding: 0.35rem 0.9rem 0.1rem;
+      display: flex;
+      justify-content: center;
+    }
+    #glueBtn {
+      position: static;
       padding: 0.45rem 1.1rem;
-      min-width: 96px;
+      min-width: 120px;
       height: 44px;
       border-radius: 999px;
       background: var(--accent-pink);
@@ -245,6 +301,78 @@
       letter-spacing: 0.05em;
       text-transform: uppercase;
     }
+
+    /* Clear collage modal */
+    #clearBoardBtn {
+      margin-left: auto;
+      padding: 0.25rem 0.7rem;
+      font-size: 0.75rem;
+      border-radius: 999px;
+      background: #ffe0df;
+      color: #8b3a30;
+      box-shadow: 0 2px 0 rgba(160, 110, 100, 0.35);
+    }
+    #clearBoardBtn:hover {
+      background: #ffd1cf;
+    }
+    .panel-header-row {
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .clear-modal-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,0.35);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 50;
+    }
+    .clear-modal-overlay.open {
+      display: flex;
+    }
+    .clear-modal {
+      background: #fffdf9;
+      border-radius: 20px;
+      padding: 1.2rem 1.4rem 1rem;
+      box-shadow: 0 8px 20px rgba(0,0,0,0.25);
+      border: 1px solid rgba(220,230,210,0.9);
+      max-width: 320px;
+      width: 90%;
+      text-align: center;
+      font-size: 0.9rem;
+    }
+    .clear-modal h2 {
+      margin: 0 0 0.6rem 0;
+      font-size: 1rem;
+      color: #8b3a30;
+    }
+    .clear-modal p {
+      margin: 0 0 0.9rem 0;
+      color: var(--text-soft);
+      font-size: 0.85rem;
+    }
+    .clear-modal-buttons {
+      display: flex;
+      justify-content: center;
+      gap: 0.6rem;
+    }
+    #clearModalYes {
+      background: #ffb7b0;
+      color: #5d231f;
+    }
+    #clearModalYes:hover {
+      background: #ff9f97;
+    }
+    #clearModalNo {
+      background: #d8f2c6;
+      color: #325529;
+    }
+    #clearModalNo:hover {
+      background: #c7e8b3;
+    }
   </style>
 </head>
 <body>
@@ -253,10 +381,14 @@
     <div class="controls">
       <div class="lasso-controls">
         <button id="resetLassoBtn" class="blue" disabled>Clear Selection</button>
-        <button id="addCutoutBtn" class="green" disabled>Add Cutout</button>
+        <button id="addCutoutBtn" class="green" disabled aria-label="Add Cutout">
+          <svg viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M5 12h11m0 0l-4-4m4 4l-4 4" fill="none" stroke="#245234" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </button>
       </div>
       <button id="toggleTagsBtn" class="yellow">Tags ▾</button>
-      <span id="status">Load a new image to begin your collage party!</span>
+      <span id="status">Welcome to Collage Party! You can only have one loose cutout at a time — press GLUE before adding another.</span>
     </div>
   </header>
 
@@ -269,6 +401,7 @@
   </div>
 
   <main>
+    <!-- SOURCE PANEL -->
     <section class="panel">
       <div class="panel-header">Source Image (cut here)</div>
       <div class="canvas-wrap">
@@ -276,20 +409,44 @@
         <button id="addImageBtn" class="icon-new-image" title="New Image">New Image</button>
       </div>
       <div class="hint">
-        Tap <strong>New Image</strong> to shuffle in a new picture. Draw a lasso on the picture to select a shape. <strong>Click</strong> for straight lines, or <strong>drag</strong> to freehand. Double-click to close the shape. You can only add one shape at a time—press <strong>GLUE</strong> to stick it down before adding another!
+        Tap <strong>New Image</strong> to shuffle in a new picture. Draw a lasso on the picture to select a shape. <strong>Click</strong> for straight lines, or <strong>drag</strong> to freehand. Double-click to close the shape or click back on your first point.
+        <br><br>
+        <strong>Important:</strong> You can only have <strong>one loose cutout</strong> at a time — after you add a cutout to the board, you <strong>must press GLUE</strong> before drawing or loading a new one.
       </div>
     </section>
+
+    <!-- COLLAGE PANEL -->
     <section class="panel">
-      <div class="panel-header">Collage Board</div>
-      <div class="canvas-wrap collage-wrap">
+      <div class="panel-header">
+        <div class="panel-header-row">
+          <span>Collage Board</span>
+          <button id="clearBoardBtn" type="button">Clear</button>
+        </div>
+      </div>
+      <div class="glue-row">
         <button id="glueBtn" class="pink" disabled>GLUE</button>
+      </div>
+      <div class="canvas-wrap collage-wrap">
         <canvas id="collageCanvas" width="900" height="600"></canvas>
       </div>
       <div class="hint">
-        Move, rotate or resize your cutout on this board. Press <strong>GLUE</strong> when you're happy with its position.
+        Move, rotate or resize your cutout on this board. When you're happy with it, press <strong>GLUE</strong> to stick it into the collage.
+        <br><br>
+        <strong>You cannot add or draw another cutout until you GLUE the current one.</strong>
       </div>
     </section>
   </main>
+
+  <div id="clearModal" class="clear-modal-overlay" aria-hidden="true">
+    <div class="clear-modal">
+      <h2>Clear collage?</h2>
+      <p>Are you sure you would like to clear your collage?</p>
+      <div class="clear-modal-buttons">
+        <button id="clearModalNo" type="button">No</button>
+        <button id="clearModalYes" type="button">Yes</button>
+      </div>
+    </div>
+  </div>
 
   <script>
     (function() {
@@ -297,14 +454,25 @@
       const resetLassoBtn = document.getElementById('resetLassoBtn');
       const addCutoutBtn = document.getElementById('addCutoutBtn');
       const glueBtn = document.getElementById('glueBtn');
+      const clearBoardBtn = document.getElementById('clearBoardBtn');
+      const clearModal = document.getElementById('clearModal');
+      const clearModalYes = document.getElementById('clearModalYes');
+      const clearModalNo = document.getElementById('clearModalNo');
       const statusEl = document.getElementById('status');
       const toggleTagsBtn = document.getElementById('toggleTagsBtn');
       const tagDrawer = document.getElementById('tagDrawer');
       const tagListEl = document.getElementById('tagList');
 
       const sourceCanvas = document.getElementById('sourceCanvas');
-      const sctx = sourceCanvas.getContext('2d');
       const collageCanvas = document.getElementById('collageCanvas');
+
+      // Guard in case something goes very wrong with the DOM
+      if (!sourceCanvas || !collageCanvas) {
+        console.error('Canvas elements not found. Check HTML IDs for sourceCanvas and collageCanvas.');
+        return;
+      }
+
+      const sctx = sourceCanvas.getContext('2d');
       const cctx = collageCanvas.getContext('2d');
 
       // Topics for random images
@@ -329,6 +497,7 @@
       let isFreehand = false;
       let mouseDownPos = null;
       const DRAG_THRESHOLD_SQ = 25;
+      const CLOSE_RADIUS_SQ = 100; // how close you need to click to the first point to close the shape
 
       // Collage elements and background
       const collageElements = [];
@@ -461,7 +630,7 @@
       function startLassoIfPossible() {
         if (!sourceImg || mustGlue) return;
         resetLasso();
-        setStatus('Draw a shape: click for straight edges or drag to freehand. Double-click to close.');
+        setStatus('Draw a shape: click for straight edges or drag to freehand. Double-click to close. Remember: only one loose cutout at a time.');
       }
       function finishLasso() {
         if (!lassoActive || lassoPoints.length < 3) return;
@@ -472,12 +641,15 @@
         mouseDownPos = null;
         drawSource();
         enableButtons();
-        setStatus('Shape closed! Click "Add Cutout" then move/resize/rotate and press GLUE.');
+        setStatus('Shape closed! Click "Add Cutout", then move/resize/rotate and press GLUE before making another cutout.');
       }
 
       function loadRandomImage() {
-        if (mustGlue) return;
-        const pool = selectedTopics.size ? Array.from(selectedTopics) : topics;
+        if (mustGlue) {
+          setStatus('You already have a loose cutout. Press GLUE to lock it in before loading a new image.');
+          return;
+        }
+        const pool = selectedTopics.size ? Array.from(selectedTopics) : topics.filter(t => t !== 'bird');
         const topic = pool[Math.floor(Math.random() * pool.length)];
         const img = new Image();
         img.crossOrigin = 'anonymous';
@@ -497,7 +669,7 @@
           if (!mustGlue) startLassoIfPossible();
           enableButtons();
           const detail = selectedTopics.size ? ` using tag "${topic}"` : '';
-          setStatus('New image loaded' + detail + '. Draw a shape!');
+          setStatus('New image loaded' + detail + '. Draw a shape, then GLUE before starting another.');
         };
         img.onerror = function() { setStatus('Error loading image. Please try again.'); };
         img.src = 'https://loremflickr.com/1000/800/' + encodeURIComponent(topic) + '?random=' + Date.now();
@@ -505,7 +677,12 @@
       }
 
       function addCutoutToCollage() {
-        if (mustGlue || !lassoClosed || !sourceImg) return;
+        if (mustGlue || !lassoClosed || !sourceImg) {
+          if (mustGlue) {
+            setStatus('You already have a loose cutout on the board. Press GLUE before adding another.');
+          }
+          return;
+        }
         let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
         for (const p of lassoPoints) {
           if (p.x < minX) minX = p.x;
@@ -555,11 +732,14 @@
         lassoClosed = false;
         drawSource();
         enableButtons();
-        setStatus('Cutout added! Move/rotate/resize it, then press GLUE to stick it down.');
+        setStatus('Cutout added! You now <strong>must press GLUE</strong> before drawing or loading another cutout.');
       }
 
       function rasterizeCollage() {
-        if (!mustGlue) return;
+        if (!mustGlue) {
+          setStatus('There is no loose cutout to glue right now. Add a cutout first.');
+          return;
+        }
         const off = document.createElement('canvas');
         off.width = collageCanvas.width;
         off.height = collageCanvas.height;
@@ -582,7 +762,17 @@
         drawCollage();
         enableButtons();
         if (sourceImg) startLassoIfPossible();
-        setStatus('Cutout glued! Draw another shape or shuffle a new image.');
+        setStatus('Cutout glued into the collage! Now you can draw and add a new one.');
+      }
+
+      function clearCollageBoard() {
+        collageBackground = null;
+        collageElements.length = 0;
+        selectedElement = null;
+        mustGlue = false;
+        drawCollage();
+        enableButtons();
+        setStatus('Your collage board is clear. Time to start a new collage!');
       }
 
       function worldToLocal(p, el) {
@@ -605,7 +795,7 @@
 
       sourceCanvas.addEventListener('mousedown', (evt) => {
         if (mustGlue) {
-          setStatus('Please press GLUE before selecting another shape.');
+          setStatus('You already have a loose cutout. Press GLUE before selecting another shape.');
           return;
         }
         if (!lassoActive) return;
@@ -632,6 +822,24 @@
         if (mustGlue || !lassoActive || !isMouseDown) return;
         const p = imageToCanvasCoords(evt, sourceCanvas);
         if (!isFreehand) {
+          // If we have a few points already and click near the first point, close the loop
+          if (lassoPoints.length >= 3) {
+            const first = lassoPoints[0];
+            const dx = p.x - first.x;
+            const dy = p.y - first.y;
+            const distSq = dx * dx + dy * dy;
+            if (distSq <= CLOSE_RADIUS_SQ) {
+              // Snap last point to the first one and finish
+              lassoPoints.push({ x: first.x, y: first.y });
+              drawSource();
+              finishLasso();
+              isMouseDown = false;
+              isFreehand = false;
+              mouseDownPos = null;
+              return;
+            }
+          }
+          // Otherwise, just add a new corner point
           lassoPoints.push(p);
           drawSource();
         }
@@ -723,7 +931,7 @@
 
       addImageBtn.addEventListener('click', () => {
         if (mustGlue) {
-          setStatus('Glue down your current cutout before loading a new image!');
+          setStatus('Glue down your current cutout with the GLUE button before loading a new image.');
           return;
         }
         loadRandomImage();
@@ -731,6 +939,20 @@
       resetLassoBtn.addEventListener('click', () => { startLassoIfPossible(); });
       addCutoutBtn.addEventListener('click', addCutoutToCollage);
       glueBtn.addEventListener('click', rasterizeCollage);
+
+      clearBoardBtn.addEventListener('click', () => {
+        clearModal.classList.add('open');
+        clearModal.setAttribute('aria-hidden', 'false');
+      });
+      clearModalNo.addEventListener('click', () => {
+        clearModal.classList.remove('open');
+        clearModal.setAttribute('aria-hidden', 'true');
+      });
+      clearModalYes.addEventListener('click', () => {
+        clearModal.classList.remove('open');
+        clearModal.setAttribute('aria-hidden', 'true');
+        clearCollageBoard();
+      });
 
       toggleTagsBtn.addEventListener('click', () => {
         const isOpen = tagDrawer.classList.toggle('open');
@@ -740,7 +962,6 @@
       renderTags();
       drawSource();
       drawCollage();
-      setStatus('Welcome to Collage Party! Tap "New Image" or open Tags to steer your image vibes.');
     })();
   </script>
 </body>
