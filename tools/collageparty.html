@@ -2,634 +2,746 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8" />
-  <title>Random Image Collage Lasso Tool + Transform Box + Rasterize</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Chewy&display=swap" rel="stylesheet">
+  <title>Collage Party!</title>
   <style>
+    /* Basic resets */
     * { box-sizing: border-box; }
+    :root {
+      --bg-cream: #fdf7e6;
+      --bg-panel: #fffdf9;
+      --accent-green: #a9e8b8;
+      --accent-green-strong: #70d397;
+      --accent-yellow: #ffe7a9;
+      --accent-orange: #ffb985;
+      --accent-pink: #ffb7d0;
+      --accent-blue: #b7e3ff;
+      --text-soft: #6b6b6b;
+    }
     body {
       margin: 0;
-      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-      background:#f5f5f5;
-      color:#111;
-      display:flex;
-      flex-direction:column;
-      height:100vh;
+      font-family: "Fredoka", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      background: radial-gradient(circle at top, #fff9e8 0%, var(--bg-cream) 55%, #f3f7ef 100%);
+      color: #3b3b3b;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
     }
+    /* Header styling */
     header {
-      padding:0.6rem 1rem;
-      border-bottom:1px solid #ddd;
-      display:flex;
-      align-items:center;
-      gap:0.75rem;
-      font-size:0.9rem;
-      background:#ffffff;
+      background: linear-gradient(135deg, #fff6c9 0%, #e9ffe0 50%, #e0f8ff 100%);
+      padding: 0.9rem 1.4rem 0.7rem;
+      box-shadow: 0 2px 6px rgba(151, 180, 133, 0.25);
+      border-bottom: 1px solid rgba(176, 204, 150, 0.5);
     }
-    header button {
-      padding:0.35rem 0.7rem;
-      border:1px solid #ccc;
-      background:#f4f4f4;
-      color:#111;
-      cursor:pointer;
-      border-radius:4px;
-      font-size:0.8rem;
+    header h1 {
+      margin: 0 0 0.4rem 0;
+      font-size: 1.9rem;
+      color: #6ac36f;
+      text-align: left;
+      letter-spacing: 0.08em;
+      text-shadow: 0 2px 0 rgba(255, 255, 255, 0.95);
+      font-family: "Chewy", "Fredoka", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
-    header button:hover { background:#e8e8e8; }
-    header button:disabled { opacity:0.45; cursor:default; }
-    header .spacer { flex:1; }
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.6rem;
+      font-size: 0.9rem;
+    }
+    .lasso-controls { display: flex; gap: 0.4rem; }
+    button {
+      border: none;
+      cursor: pointer;
+      padding: 0.45rem 0.95rem;
+      border-radius: 999px;
+      font-size: 0.9rem;
+      font-family: "Fredoka", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      transition: transform 0.08s ease-out, box-shadow 0.08s ease-out, background 0.15s ease-out;
+      box-shadow: 0 2px 0 rgba(0, 0, 0, 0.08);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      letter-spacing: 0.04em;
+      white-space: nowrap;
+    }
+    button:active { transform: translateY(1px); box-shadow: 0 1px 0 rgba(0,0,0,0.06); }
+    button.pink { background: var(--accent-pink); }
+    button.pink:hover { background: #ffcee1; }
+    button.blue { background: var(--accent-blue); }
+    button.blue:hover { background: #c9ecff; }
+    button.green { background: var(--accent-green); }
+    button.green:hover { background: var(--accent-green-strong); color: #0f3220; }
+    button.yellow { background: var(--accent-yellow); }
+    button.yellow:hover { background: #ffeebf; }
+    button[disabled] { opacity: 0.5; pointer-events: none; }
 
+    #status {
+      margin-left: auto;
+      font-size: 0.8rem;
+      color: var(--text-soft);
+      max-width: 40%;
+      padding: 0.35rem 0.75rem;
+      border-radius: 999px;
+      background: rgba(255,255,255,0.7);
+      box-shadow: 0 1px 0 rgba(255,255,255,0.9);
+      border: 1px solid rgba(205,226,190,0.9);
+    }
+
+    /* Tag drawer */
+    .tag-drawer {
+      overflow: hidden;
+      max-height: 0;
+      transition: max-height 0.18s ease-out, padding-bottom 0.18s ease-out;
+      padding: 0 1.4rem 0;
+    }
+    .tag-drawer.open {
+      max-height: 130px;
+      padding-bottom: 0.6rem;
+    }
+    .tag-drawer-inner {
+      background: rgba(255, 255, 255, 0.9);
+      border-radius: 18px;
+      border: 1px solid rgba(210, 230, 195, 0.95);
+      box-shadow: 0 3px 6px rgba(175, 198, 160, 0.4);
+      padding: 0.45rem 0.7rem 0.6rem;
+      display: flex;
+      flex-direction: column;
+      gap: 0.3rem;
+      font-size: 0.8rem;
+    }
+    .tag-drawer-label {
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      color: #7aa45a;
+    }
+    .tag-list {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.25rem;
+    }
+    .tag-pill {
+      border-radius: 999px;
+      padding: 0.22rem 0.6rem;
+      font-size: 0.78rem;
+      cursor: pointer;
+      border: 1px solid rgba(192, 214, 178, 0.8);
+      background: #f7fff2;
+      color: #55724a;
+      box-shadow: 0 1px 0 rgba(0, 0, 0, 0.05);
+    }
+    .tag-pill.selected {
+      background: #70d397;
+      color: #0f3220;
+      border-color: #52b672;
+    }
+    .tag-hint {
+      font-size: 0.7rem;
+      color: var(--text-soft);
+    }
+
+    /* Main layout */
     main {
-      flex:1;
-      display:flex;
-      gap:1px;
-      background:#e5e5e5;
-      min-height:0;
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      padding: 0.9rem 1.2rem 1.2rem;
+      gap: 0.9rem;
     }
     .panel {
-      flex:1;
-      display:flex;
-      flex-direction:column;
-      background:#ffffff;
-      border-left:1px solid #ddd;
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: var(--bg-panel);
+      border-radius: 24px;
+      box-shadow: 0 4px 10px rgba(181,205,167,0.35);
+      border: 1px solid rgba(201,221,190,0.9);
+      overflow: hidden;
+      font-size: 0.9rem;
     }
-    .panel:first-child { border-left:none; }
     .panel-header {
-      padding:0.4rem 0.7rem;
-      border-bottom:1px solid #eee;
-      font-size:0.8rem;
-      text-transform:uppercase;
-      letter-spacing:0.08em;
-      color:#777;
+      padding: 0.55rem 0.9rem;
+      text-align: left;
+      font-size: 0.8rem;
+      font-weight: 600;
+      color: #79b757;
+      background: linear-gradient(90deg, rgba(210,244,204,0.95), rgba(255,252,230,0.95));
+      border-bottom: 1px solid rgba(201,221,190,0.9);
+      letter-spacing: 0.12em;
+      text-transform: uppercase;
+      font-family: "Fredoka", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     }
     .canvas-wrap {
-      flex:1;
-      display:flex;
-      align-items:center;
-      justify-content:center;
-      padding:0.5rem;
-      min-height:0;
+      flex: 1;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 0.7rem;
+      overflow: auto;
+      position: relative;
     }
     canvas {
-      background:#ffffff;
-      border:1px solid #ddd;
-      max-width:100%;
-      max-height:100%;
-      image-rendering:pixelated;
-      cursor:crosshair;
+      background: #ffffff;
+      border-radius: 18px;
+      border: 3px solid rgba(230,240,224,0.95);
+      box-shadow: inset 0 0 0 2px rgba(255,255,255,0.9);
+      max-width: 100%;
+      max-height: 100%;
+      touch-action: none;
     }
     .hint {
-      padding:0.35rem 0.7rem 0.6rem;
-      font-size:0.75rem;
-      color:#777;
-      border-top:1px solid #eee;
+      padding: 0.5rem 0.9rem 0.8rem;
+      font-size: 0.78rem;
+      color: var(--text-soft);
+      background: linear-gradient(0deg, rgba(222,245,215,0.95), rgba(248,255,243,0.95));
+      border-top: 1px solid rgba(201,221,190,0.9);
+      text-align: left;
+      line-height: 1.4;
     }
-    .hint code {
-      background:#f0f0f0;
-      padding:0 0.2rem;
-      border-radius:3px;
+    .hint strong { color: #4aa65a; font-weight: 600; }
+
+    .icon-new-image {
+      position: absolute;
+      left: 0.8rem;
+      bottom: 0.8rem;
+      padding: 0.45rem 1.1rem;
+      min-width: 96px;
+      height: 44px;
+      border-radius: 999px;
+      background: var(--accent-green);
+      box-shadow: 0 3px 0 rgba(84,146,102,0.4);
+      border: 2px solid rgba(255,255,255,0.9);
+      font-size: 0.9rem;
+      color: #245234;
+      justify-content: center;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .icon-new-image:hover { background: var(--accent-green-strong); }
+    .icon-new-image[disabled] { opacity: 0.5; box-shadow: none; }
+
+    /* Glue button floating at top center of collage board box */
+    .collage-wrap { position: relative; }
+    #glueBtn {
+      position: absolute;
+      top: 0.6rem;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 5;
+      padding: 0.45rem 1.1rem;
+      min-width: 96px;
+      height: 44px;
+      border-radius: 999px;
+      background: var(--accent-pink);
+      box-shadow: 0 3px 0 rgba(170, 124, 137, 0.4);
+      border: 2px solid rgba(255, 255, 255, 0.9);
+      font-size: 0.9rem;
+      color: #6b2340;
+      justify-content: center;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
     }
   </style>
 </head>
 <body>
   <header>
-    <button id="addImageBtn">Add Random Image</button>
-    <button id="startLassoBtn" disabled>Start New Lasso</button>
-    <button id="finishLassoBtn" disabled>Finish Lasso</button>
-    <button id="resetLassoBtn" disabled>Reset Lasso</button>
-    <button id="addCutoutBtn" disabled>Add Cutout to Collage</button>
-    <button id="rasterizeBtn" disabled>Rasterize Collage</button>
-    <span class="spacer"></span>
-    <span id="status">Load a random image to begin.</span>
+    <h1>Collage Party!</h1>
+    <div class="controls">
+      <div class="lasso-controls">
+        <button id="resetLassoBtn" class="blue" disabled>Clear Selection</button>
+        <button id="addCutoutBtn" class="green" disabled>Add Cutout</button>
+      </div>
+      <button id="toggleTagsBtn" class="yellow">Tags ▾</button>
+      <span id="status">Load a new image to begin your collage party!</span>
+    </div>
   </header>
+
+  <div id="tagDrawer" class="tag-drawer">
+    <div class="tag-drawer-inner">
+      <span class="tag-drawer-label">Image tags</span>
+      <div id="tagList" class="tag-list"></div>
+      <div class="tag-hint">Select tags to steer <strong>New Image</strong>. No tags = fully random.</div>
+    </div>
+  </div>
 
   <main>
     <section class="panel">
       <div class="panel-header">Source Image (cut here)</div>
       <div class="canvas-wrap">
         <canvas id="sourceCanvas" width="800" height="600"></canvas>
+        <button id="addImageBtn" class="icon-new-image" title="New Image">New Image</button>
       </div>
       <div class="hint">
-        Click <code>Add Random Image</code>. A lasso will be active automatically.<br>
-        <strong>Click</strong> to add straight-line vertices, or <strong>click &amp; drag</strong> to freehand-draw the lasso.
-        Double-click or use <code>Finish Lasso</code> to close.
+        Tap <strong>New Image</strong> to shuffle in a new picture. Draw a lasso on the picture to select a shape. <strong>Click</strong> for straight lines, or <strong>drag</strong> to freehand. Double-click to close the shape. You can only add one shape at a time—press <strong>GLUE</strong> to stick it down before adding another!
       </div>
     </section>
-
     <section class="panel">
-      <div class="panel-header">Collage Board (drag / transform cutouts)</div>
-      <div class="canvas-wrap">
+      <div class="panel-header">Collage Board</div>
+      <div class="canvas-wrap collage-wrap">
+        <button id="glueBtn" class="pink" disabled>GLUE</button>
         <canvas id="collageCanvas" width="900" height="600"></canvas>
       </div>
       <div class="hint">
-        Click a cutout to select it. Drag inside to move.
-        Drag the square handle to scale, or the round handle above to rotate.
-        Use <code>Rasterize Collage</code> to bake everything down so it can't be moved.
+        Move, rotate or resize your cutout on this board. Press <strong>GLUE</strong> when you're happy with its position.
       </div>
     </section>
   </main>
 
   <script>
-  (function(){
-    const addImageBtn = document.getElementById('addImageBtn');
-    const startLassoBtn = document.getElementById('startLassoBtn');
-    const finishLassoBtn = document.getElementById('finishLassoBtn');
-    const resetLassoBtn = document.getElementById('resetLassoBtn');
-    const addCutoutBtn = document.getElementById('addCutoutBtn');
-    const rasterizeBtn = document.getElementById('rasterizeBtn');
-    const statusEl = document.getElementById('status');
+    (function() {
+      const addImageBtn = document.getElementById('addImageBtn');
+      const resetLassoBtn = document.getElementById('resetLassoBtn');
+      const addCutoutBtn = document.getElementById('addCutoutBtn');
+      const glueBtn = document.getElementById('glueBtn');
+      const statusEl = document.getElementById('status');
+      const toggleTagsBtn = document.getElementById('toggleTagsBtn');
+      const tagDrawer = document.getElementById('tagDrawer');
+      const tagListEl = document.getElementById('tagList');
 
-    const sourceCanvas = document.getElementById('sourceCanvas');
-    const sctx = sourceCanvas.getContext('2d');
+      const sourceCanvas = document.getElementById('sourceCanvas');
+      const sctx = sourceCanvas.getContext('2d');
+      const collageCanvas = document.getElementById('collageCanvas');
+      const cctx = collageCanvas.getContext('2d');
 
-    const collageCanvas = document.getElementById('collageCanvas');
-    const cctx = collageCanvas.getContext('2d');
-
-    const topics = [
-      'city', 'nature', 'forest', 'animals', 'dog', 'cat', 'bird', 'people', 'architecture', 'street', 'object', 'food', 'technology',
-      'mountain', 'interior', 'face', 'typography',
-    ];
-
-    let sourceImg = null;
-    let sourceScale = 1;
-    let sourceOffsetX = 0;
-    let sourceOffsetY = 0;
-
-    // Lasso state
-    let lassoActive = false;
-    let lassoClosed = false;
-    let lassoPoints = [];
-    let isMouseDown = false;
-    let isFreehand = false;
-    let mouseDownPos = null;
-    const DRAG_THRESHOLD_SQ = 25; // 5px radius
-
-    // Collage elements (transformable) & background
-    const collageElements = [];
-    let collageBackground = null; // flattened / rasterized
-    let selectedElement = null;
-    let transformDrag = null; // {mode, startMouseX, startMouseY, startCx, startCy, startScale, startRotation, baseDist, startAngle}
-
-    function setStatus(msg){ statusEl.textContent = msg; }
-
-    function updateRasterizeButton(){
-      rasterizeBtn.disabled = (collageElements.length === 0 && !collageBackground);
-    }
-
-    function clearSourceCanvas(){
-      sctx.clearRect(0,0,sourceCanvas.width,sourceCanvas.height);
-    }
-
-    function drawSource(){
-      clearSourceCanvas();
-      if(sourceImg){
-        sctx.drawImage(
-          sourceImg,
-          0,0,sourceImg.width,sourceImg.height,
-          sourceOffsetX, sourceOffsetY,
-          sourceImg.width * sourceScale,
-          sourceImg.height * sourceScale
-        );
-      }
-      if(lassoPoints.length > 0){
-        sctx.save();
-        sctx.strokeStyle = '#1f8bff';
-        sctx.lineWidth = 2;
-        sctx.setLineDash([6,3]);
-        sctx.beginPath();
-        for(let i=0;i<lassoPoints.length;i++){
-          const p = lassoPoints[i];
-          if(i===0) sctx.moveTo(p.x, p.y); else sctx.lineTo(p.x, p.y);
-        }
-        if(lassoClosed && lassoPoints.length > 2){ sctx.closePath(); }
-        sctx.stroke();
-        sctx.setLineDash([]);
-        sctx.fillStyle = '#1f8bff';
-        for(const p of lassoPoints){
-          sctx.beginPath();
-          sctx.arc(p.x, p.y, 3, 0, Math.PI*2);
-          sctx.fill();
-        }
-        sctx.restore();
-      }
-    }
-
-    function getElementBoxAndHandles(el){
-      const halfW = (el.canvas.width * el.scale) / 2;
-      const halfH = (el.canvas.height * el.scale) / 2;
-      const cos = Math.cos(el.rotation);
-      const sin = Math.sin(el.rotation);
-
-      function localToWorld(lx, ly){
-        return {
-          x: el.cx + lx * cos - ly * sin,
-          y: el.cy + lx * sin + ly * cos
-        };
-      }
-
-      const corners = [
-        localToWorld(-halfW, -halfH),
-        localToWorld( halfW, -halfH),
-        localToWorld( halfW,  halfH),
-        localToWorld(-halfW,  halfH)
+      // Topics for random images
+      const topics = [
+        'city', 'nature', 'forest', 'animals', 'dog', 'cat', 'bird', 'people',
+        'architecture', 'street', 'object', 'food', 'technology',
+        'mountain', 'ocean', 'interior', 'park', 'face', 'typography'
       ];
-      const rotationHandle = localToWorld(0, -halfH - 20);
-      const scaleHandle = localToWorld(halfW, halfH);
-      return { corners, rotationHandle, scaleHandle };
-    }
 
-    function drawTransformBox(el){
-      const { corners, rotationHandle, scaleHandle } = getElementBoxAndHandles(el);
-      cctx.save();
-      cctx.strokeStyle = '#0077ff';
-      cctx.lineWidth = 1.5;
-      cctx.setLineDash([4,2]);
-      cctx.beginPath();
-      cctx.moveTo(corners[0].x, corners[0].y);
-      for(let i=1;i<corners.length;i++) cctx.lineTo(corners[i].x, corners[i].y);
-      cctx.closePath();
-      cctx.stroke();
-      cctx.setLineDash([]);
+      let selectedTopics = new Set();
 
-      const topCenter = {
-        x:(corners[0].x + corners[1].x)/2,
-        y:(corners[0].y + corners[1].y)/2
-      };
-      cctx.beginPath();
-      cctx.moveTo(topCenter.x, topCenter.y);
-      cctx.lineTo(rotationHandle.x, rotationHandle.y);
-      cctx.stroke();
+      let sourceImg = null;
+      let sourceScale = 1;
+      let sourceOffsetX = 0;
+      let sourceOffsetY = 0;
 
-      // rotation handle
-      cctx.fillStyle = '#ffffff';
-      cctx.strokeStyle = '#0077ff';
-      cctx.lineWidth = 1.5;
-      cctx.beginPath();
-      cctx.arc(rotationHandle.x, rotationHandle.y, 6, 0, Math.PI*2);
-      cctx.fill();
-      cctx.stroke();
+      // Lasso state
+      let lassoActive = false;
+      let lassoClosed = false;
+      let lassoPoints = [];
+      let isMouseDown = false;
+      let isFreehand = false;
+      let mouseDownPos = null;
+      const DRAG_THRESHOLD_SQ = 25;
 
-      // scale handle
-      const size = 8;
-      cctx.beginPath();
-      cctx.rect(scaleHandle.x - size/2, scaleHandle.y - size/2, size, size);
-      cctx.fill();
-      cctx.stroke();
-      cctx.restore();
-    }
+      // Collage elements and background
+      const collageElements = [];
+      let collageBackground = null;
+      let selectedElement = null;
 
-    function isPointNear(p, target, radius){
-      const dx = p.x - target.x;
-      const dy = p.y - target.y;
-      return (dx*dx + dy*dy) <= radius*radius;
-    }
+      // Dragging state for transforms
+      let dragMode = null;
+      let dragStartOffset = null;
+      let dragStartScale = null;
+      let dragStartRotation = null;
+      let dragStartDistance = null;
+      let dragStartAngle = null;
 
-    function isPointInElement(p, el){
-      const dx = p.x - el.cx;
-      const dy = p.y - el.cy;
-      const cos = Math.cos(-el.rotation);
-      const sin = Math.sin(-el.rotation);
-      const lxScaled = dx * cos - dy * sin;
-      const lyScaled = dx * sin + dy * cos;
-      const lx = lxScaled / el.scale;
-      const ly = lyScaled / el.scale;
-      const halfW = el.canvas.width / 2;
-      const halfH = el.canvas.height / 2;
-      return lx >= -halfW && lx <= halfW && ly >= -halfH && ly <= halfH;
-    }
+      let mustGlue = false;
 
-    function drawCollage(){
-      cctx.clearRect(0,0,collageCanvas.width,collageCanvas.height);
-      cctx.save();
-      cctx.fillStyle = '#ffffff';
-      cctx.fillRect(0,0,collageCanvas.width,collageCanvas.height);
+      function setStatus(msg) { statusEl.innerHTML = msg; }
 
-      if(collageBackground){
-        cctx.drawImage(collageBackground, 0, 0);
+      function enableButtons() {
+        resetLassoBtn.disabled = !sourceImg || mustGlue;
+        addCutoutBtn.disabled = !lassoClosed || mustGlue;
+        glueBtn.disabled = !mustGlue;
+        addImageBtn.disabled = mustGlue;
       }
 
-      for(const el of collageElements){
-        cctx.save();
-        cctx.translate(el.cx, el.cy);
-        cctx.rotate(el.rotation);
-        cctx.scale(el.scale, el.scale);
-        cctx.drawImage(el.canvas, -el.canvas.width/2, -el.canvas.height/2);
-        cctx.restore();
-
-        if(el === selectedElement){
-          drawTransformBox(el);
+      function clearSourceCanvas() {
+        sctx.clearRect(0, 0, sourceCanvas.width, sourceCanvas.height);
+      }
+      function drawSource() {
+        clearSourceCanvas();
+        if (sourceImg) {
+          sctx.drawImage(
+            sourceImg,
+            0, 0, sourceImg.width, sourceImg.height,
+            sourceOffsetX,
+            sourceOffsetY,
+            sourceImg.width * sourceScale,
+            sourceImg.height * sourceScale
+          );
+        }
+        if (lassoPoints.length > 0) {
+          sctx.save();
+          sctx.strokeStyle = '#ff6fa9';
+          sctx.fillStyle = '#ff6fa9';
+          sctx.lineWidth = 2;
+          sctx.setLineDash([6, 3]);
+          sctx.beginPath();
+          for (let i = 0; i < lassoPoints.length; i++) {
+            const p = lassoPoints[i];
+            if (i === 0) sctx.moveTo(p.x, p.y); else sctx.lineTo(p.x, p.y);
+          }
+          if (lassoClosed && lassoPoints.length > 2) sctx.closePath();
+          sctx.stroke();
+          sctx.setLineDash([]);
+          for (const p of lassoPoints) {
+            sctx.beginPath();
+            sctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
+            sctx.fill();
+          }
+          sctx.restore();
         }
       }
 
-      cctx.restore();
-    }
+      function drawCollage() {
+        cctx.save();
+        cctx.fillStyle = '#ffffff';
+        cctx.fillRect(0, 0, collageCanvas.width, collageCanvas.height);
+        if (collageBackground) cctx.drawImage(collageBackground, 0, 0);
+        for (const el of collageElements) {
+          cctx.save();
+          cctx.translate(el.cx, el.cy);
+          cctx.rotate(el.rotation);
+          cctx.scale(el.scale, el.scale);
+          cctx.drawImage(el.canvas, -el.canvas.width / 2, -el.canvas.height / 2);
+          cctx.restore();
+        }
+        if (selectedElement) {
+          const el = selectedElement;
+          cctx.save();
+          cctx.translate(el.cx, el.cy);
+          cctx.rotate(el.rotation);
+          cctx.scale(el.scale, el.scale);
+          const w = el.canvas.width;
+          const h = el.canvas.height;
+          cctx.strokeStyle = '#6faeff';
+          cctx.lineWidth = 2;
+          cctx.setLineDash([4, 4]);
+          cctx.strokeRect(-w / 2, -h / 2, w, h);
+          cctx.setLineDash([]);
+          const handleSize = 8 / el.scale;
+          cctx.fillStyle = '#6faeff';
+          cctx.fillRect(w / 2 - handleSize / 2, h / 2 - handleSize / 2, handleSize, handleSize);
+          const rotOffset = 30 / el.scale;
+          const rx = 0;
+          const ry = -h / 2 - rotOffset;
+          cctx.beginPath();
+          cctx.arc(rx, ry, 6 / el.scale, 0, Math.PI * 2);
+          cctx.fill();
+          cctx.restore();
+        }
+        cctx.restore();
+      }
 
-    function enableLassoControls(enabled){
-      startLassoBtn.disabled = !enabled;
-      resetLassoBtn.disabled = !enabled;
-      finishLassoBtn.disabled = !enabled || !lassoActive || lassoPoints.length < 3;
-      addCutoutBtn.disabled = !enabled || !lassoClosed || lassoPoints.length < 3;
-    }
+      function renderTags() {
+        tagListEl.innerHTML = '';
+        topics.forEach(topic => {
+          const pill = document.createElement('button');
+          pill.type = 'button';
+          pill.textContent = topic;
+          pill.className = 'tag-pill';
+          if (selectedTopics.has(topic)) pill.classList.add('selected');
+          pill.addEventListener('click', () => {
+            if (selectedTopics.has(topic)) selectedTopics.delete(topic); else selectedTopics.add(topic);
+            renderTags();
+          });
+          tagListEl.appendChild(pill);
+        });
+      }
 
-    function resetLasso(){
-      lassoActive = false;
-      lassoClosed = false;
-      lassoPoints = [];
-      isMouseDown = false;
-      isFreehand = false;
-      mouseDownPos = null;
-      enableLassoControls(!!sourceImg);
-      drawSource();
-    }
-
-    function startNewLasso(){
-      if(!sourceImg) return;
-      lassoActive = true;
-      lassoClosed = false;
-      lassoPoints = [];
-      isMouseDown = false;
-      isFreehand = false;
-      mouseDownPos = null;
-      drawSource();
-      enableLassoControls(true);
-      setStatus('Lasso active. Click for straight lines; click and drag to freehand. Double-click or use "Finish Lasso" to close.');
-    }
-
-    function imageToCanvasCoords(evt, canvas){
-      const rect = canvas.getBoundingClientRect();
-      return {
-        x: (evt.clientX - rect.left) * (canvas.width / rect.width),
-        y: (evt.clientY - rect.top) * (canvas.height / rect.height)
-      };
-    }
-
-    function loadRandomImage(){
-      const topic = topics[Math.floor(Math.random() * topics.length)];
-      const img = new Image();
-      img.crossOrigin = 'anonymous';
-
-      img.onload = function(){
-        sourceImg = img;
-        const scale = Math.min(
-          sourceCanvas.width / img.width,
-          sourceCanvas.height / img.height
-        );
-        sourceScale = scale;
-        sourceOffsetX = (sourceCanvas.width - img.width * scale) / 2;
-        sourceOffsetY = (sourceCanvas.height - img.height * scale) / 2;
-        resetLasso();
+      function resetLasso() {
+        lassoActive = true;
+        lassoClosed = false;
+        lassoPoints = [];
+        isMouseDown = false;
+        isFreehand = false;
+        mouseDownPos = null;
         drawSource();
-        enableLassoControls(true);
-        startNewLasso();
-        setStatus('Image loaded (' + topic + '). Lasso is active — click or drag to trace a shape.');
-      };
-
-      img.onerror = function(){
-        setStatus('Error loading random image. Try again (or check your internet connection).');
-      };
-
-      img.src = 'https://loremflickr.com/1000/800/' + encodeURIComponent(topic) + '?random=' + Date.now();
-      setStatus('Loading random image of ' + topic + '...');
-    }
-
-    function finishLasso(){
-      if(!lassoActive || lassoPoints.length < 3) return;
-      lassoClosed = true;
-      lassoActive = false;
-      isMouseDown = false;
-      isFreehand = false;
-      mouseDownPos = null;
-      drawSource();
-      enableLassoControls(true);
-      setStatus('Lasso closed. Click "Add Cutout to Collage" to create a collage element.');
-    }
-
-    function addCutoutToCollage(){
-      if(!sourceImg || !lassoClosed || lassoPoints.length < 3) return;
-
-      let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
-      for(const p of lassoPoints){
-        if(p.x < minX) minX = p.x;
-        if(p.y < minY) minY = p.y;
-        if(p.x > maxX) maxX = p.x;
-        if(p.y > maxY) maxY = p.y;
+        enableButtons();
       }
-      const width = Math.max(1, maxX - minX);
-      const height = Math.max(1, maxY - minY);
-
-      const off = document.createElement('canvas');
-      off.width = width;
-      off.height = height;
-      const octx = off.getContext('2d');
-
-      octx.save();
-      octx.beginPath();
-      for(let i=0;i<lassoPoints.length;i++){
-        const p = lassoPoints[i];
-        const px = p.x - minX;
-        const py = p.y - minY;
-        if(i===0) octx.moveTo(px, py); else octx.lineTo(px, py);
+      function startLassoIfPossible() {
+        if (!sourceImg || mustGlue) return;
+        resetLasso();
+        setStatus('Draw a shape: click for straight edges or drag to freehand. Double-click to close.');
       }
-      octx.closePath();
-      octx.clip();
+      function finishLasso() {
+        if (!lassoActive || lassoPoints.length < 3) return;
+        lassoClosed = true;
+        lassoActive = false;
+        isMouseDown = false;
+        isFreehand = false;
+        mouseDownPos = null;
+        drawSource();
+        enableButtons();
+        setStatus('Shape closed! Click "Add Cutout" then move/resize/rotate and press GLUE.');
+      }
 
-      if(sourceImg){
+      function loadRandomImage() {
+        if (mustGlue) return;
+        const pool = selectedTopics.size ? Array.from(selectedTopics) : topics;
+        const topic = pool[Math.floor(Math.random() * pool.length)];
+        const img = new Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = function() {
+          sourceImg = img;
+          const scale = Math.min(
+            sourceCanvas.width / img.width,
+            sourceCanvas.height / img.height
+          );
+          sourceScale = scale;
+          sourceOffsetX = (sourceCanvas.width - img.width * scale) / 2;
+          sourceOffsetY = (sourceCanvas.height - img.height * scale) / 2;
+          lassoPoints = [];
+          lassoActive = false;
+          lassoClosed = false;
+          drawSource();
+          if (!mustGlue) startLassoIfPossible();
+          enableButtons();
+          const detail = selectedTopics.size ? ` using tag "${topic}"` : '';
+          setStatus('New image loaded' + detail + '. Draw a shape!');
+        };
+        img.onerror = function() { setStatus('Error loading image. Please try again.'); };
+        img.src = 'https://loremflickr.com/1000/800/' + encodeURIComponent(topic) + '?random=' + Date.now();
+        setStatus('Fetching a cute picture of ' + topic + '...');
+      }
+
+      function addCutoutToCollage() {
+        if (mustGlue || !lassoClosed || !sourceImg) return;
+        let minX = Infinity, minY = Infinity, maxX = -Infinity, maxY = -Infinity;
+        for (const p of lassoPoints) {
+          if (p.x < minX) minX = p.x;
+          if (p.y < minY) minY = p.y;
+          if (p.x > maxX) maxX = p.x;
+          if (p.y > maxY) maxY = p.y;
+        }
+        const width = Math.max(1, maxX - minX);
+        const height = Math.max(1, maxY - minY);
+        const off = document.createElement('canvas');
+        off.width = width;
+        off.height = height;
+        const octx = off.getContext('2d');
+        octx.save();
+        octx.beginPath();
+        for (let i = 0; i < lassoPoints.length; i++) {
+          const p = lassoPoints[i];
+          const px = p.x - minX;
+          const py = p.y - minY;
+          if (i === 0) octx.moveTo(px, py); else octx.lineTo(px, py);
+        }
+        octx.closePath();
+        octx.clip();
         octx.drawImage(
           sourceImg,
-          0,0,sourceImg.width,sourceImg.height,
+          0, 0, sourceImg.width, sourceImg.height,
           sourceOffsetX - minX,
           sourceOffsetY - minY,
           sourceImg.width * sourceScale,
           sourceImg.height * sourceScale
         );
-      }
-      octx.restore();
-
-      const el = {
-        canvas: off,
-        cx: collageCanvas.width / 2,
-        cy: collageCanvas.height / 2,
-        scale: 1,
-        rotation: 0
-      };
-      collageElements.push(el);
-      selectedElement = el;
-      drawCollage();
-      updateRasterizeButton();
-
-      setStatus('Cutout added. Click/drag inside to move; drag square handle to scale; drag round handle to rotate.');
-      resetLasso();
-      startNewLasso();
-    }
-
-    function rasterizeCollage(){
-      if(collageElements.length === 0 && !collageBackground) return;
-
-      const off = document.createElement('canvas');
-      off.width = collageCanvas.width;
-      off.height = collageCanvas.height;
-      const octx = off.getContext('2d');
-
-      octx.fillStyle = '#ffffff';
-      octx.fillRect(0,0,off.width,off.height);
-
-      if(collageBackground){
-        octx.drawImage(collageBackground, 0, 0);
-      }
-
-      for(const el of collageElements){
-        octx.save();
-        octx.translate(el.cx, el.cy);
-        octx.rotate(el.rotation);
-        octx.scale(el.scale, el.scale);
-        octx.drawImage(el.canvas, -el.canvas.width/2, -el.canvas.height/2);
         octx.restore();
-      }
 
-      collageBackground = off;
-      collageElements.length = 0;
-      selectedElement = null;
-      transformDrag = null;
-
-      drawCollage();
-      updateRasterizeButton();
-      setStatus('Collage rasterized. Existing pieces are baked in; new cutouts will be added on top.');
-    }
-
-    // --- Event bindings ---
-
-    addImageBtn.addEventListener('click', loadRandomImage);
-    startLassoBtn.addEventListener('click', startNewLasso);
-    finishLassoBtn.addEventListener('click', finishLasso);
-
-    resetLassoBtn.addEventListener('click', () => {
-      resetLasso();
-      setStatus('Lasso reset. Click "Start New Lasso" to draw again.');
-    });
-
-    addCutoutBtn.addEventListener('click', addCutoutToCollage);
-    rasterizeBtn.addEventListener('click', rasterizeCollage);
-
-    sourceCanvas.addEventListener('dblclick', () => {
-      if(lassoActive && lassoPoints.length >= 3) finishLasso();
-    });
-
-    // Hybrid lasso
-    sourceCanvas.addEventListener('mousedown', (evt) => {
-      if(!lassoActive) return;
-      isMouseDown = true;
-      isFreehand = false;
-      mouseDownPos = imageToCanvasCoords(evt, sourceCanvas);
-    });
-
-    sourceCanvas.addEventListener('mousemove', (evt) => {
-      if(!lassoActive || !isMouseDown) return;
-      const p = imageToCanvasCoords(evt, sourceCanvas);
-      const dx = p.x - mouseDownPos.x;
-      const dy = p.y - mouseDownPos.y;
-      const distSq = dx*dx + dy*dy;
-      if(!isFreehand && distSq > DRAG_THRESHOLD_SQ){
-        isFreehand = true;
-        lassoPoints.push({ x: mouseDownPos.x, y: mouseDownPos.y });
-      }
-      if(isFreehand){
-        lassoPoints.push(p);
-        drawSource();
-        finishLassoBtn.disabled = !lassoActive || lassoPoints.length < 3;
-      }
-    });
-
-    sourceCanvas.addEventListener('mouseup', (evt) => {
-      if(!lassoActive || !isMouseDown) return;
-      const p = imageToCanvasCoords(evt, sourceCanvas);
-      if(!isFreehand){
-        lassoPoints.push(p);
-        drawSource();
-        finishLassoBtn.disabled = !lassoActive || lassoPoints.length < 3;
-      }
-      isMouseDown = false;
-      isFreehand = false;
-      mouseDownPos = null;
-    });
-
-    window.addEventListener('mouseup', () => {
-      isMouseDown = false;
-      isFreehand = false;
-      mouseDownPos = null;
-      transformDrag = null;
-    });
-
-    // Collage transform interactions
-    collageCanvas.addEventListener('mousedown', (evt) => {
-      const p = imageToCanvasCoords(evt, collageCanvas);
-      transformDrag = null;
-      let hit = null;
-
-      for(let i = collageElements.length - 1; i >= 0; i--){
-        const el = collageElements[i];
-        const { rotationHandle, scaleHandle } = getElementBoxAndHandles(el);
-        if(isPointNear(p, rotationHandle, 10)){
-          hit = { el, mode: 'rotate' };
-          break;
-        }
-        if(isPointNear(p, scaleHandle, 10)){
-          hit = { el, mode: 'scale' };
-          break;
-        }
-        if(isPointInElement(p, el)){
-          hit = { el, mode: 'move' };
-          break;
-        }
-      }
-
-      if(hit){
-        selectedElement = hit.el;
-        const idx = collageElements.indexOf(hit.el);
-        if(idx !== -1){
-          collageElements.splice(idx,1);
-          collageElements.push(hit.el);
-        }
-        const el = hit.el;
-        const baseDist = Math.hypot(p.x - el.cx, p.y - el.cy) || 1;
-        const startAngle = Math.atan2(p.y - el.cy, p.x - el.cx);
-        transformDrag = {
-          mode: hit.mode,
-          startMouseX: p.x,
-          startMouseY: p.y,
-          startCx: el.cx,
-          startCy: el.cy,
-          startScale: el.scale,
-          startRotation: el.rotation,
-          baseDist,
-          startAngle
+        const el = {
+          canvas: off,
+          cx: collageCanvas.width / 2,
+          cy: collageCanvas.height / 2,
+          scale: 1,
+          rotation: 0
         };
-      } else {
+        collageElements.push(el);
+        selectedElement = el;
+        mustGlue = true;
+        drawCollage();
+        lassoPoints = [];
+        lassoActive = false;
+        lassoClosed = false;
+        drawSource();
+        enableButtons();
+        setStatus('Cutout added! Move/rotate/resize it, then press GLUE to stick it down.');
+      }
+
+      function rasterizeCollage() {
+        if (!mustGlue) return;
+        const off = document.createElement('canvas');
+        off.width = collageCanvas.width;
+        off.height = collageCanvas.height;
+        const octx = off.getContext('2d');
+        octx.fillStyle = '#ffffff';
+        octx.fillRect(0, 0, off.width, off.height);
+        if (collageBackground) octx.drawImage(collageBackground, 0, 0);
+        for (const el of collageElements) {
+          octx.save();
+          octx.translate(el.cx, el.cy);
+          octx.rotate(el.rotation);
+          octx.scale(el.scale, el.scale);
+          octx.drawImage(el.canvas, -el.canvas.width / 2, -el.canvas.height / 2);
+          octx.restore();
+        }
+        collageBackground = off;
+        collageElements.length = 0;
         selectedElement = null;
+        mustGlue = false;
+        drawCollage();
+        enableButtons();
+        if (sourceImg) startLassoIfPossible();
+        setStatus('Cutout glued! Draw another shape or shuffle a new image.');
       }
-      drawCollage();
-    });
 
-    window.addEventListener('mousemove', (evt) => {
-      if(!transformDrag || !selectedElement) return;
-      const p = imageToCanvasCoords(evt, collageCanvas);
-      const el = selectedElement;
-      if(transformDrag.mode === 'move'){
-        const dx = p.x - transformDrag.startMouseX;
-        const dy = p.y - transformDrag.startMouseY;
-        el.cx = transformDrag.startCx + dx;
-        el.cy = transformDrag.startCy + dy;
-      } else if(transformDrag.mode === 'scale'){
-        const dist = Math.hypot(p.x - el.cx, p.y - el.cy) || 1;
-        el.scale = Math.max(0.1, transformDrag.startScale * (dist / transformDrag.baseDist));
-      } else if(transformDrag.mode === 'rotate'){
-        const angleNow = Math.atan2(p.y - el.cy, p.x - el.cx);
-        el.rotation = transformDrag.startRotation + (angleNow - transformDrag.startAngle);
+      function worldToLocal(p, el) {
+        const dx = p.x - el.cx;
+        const dy = p.y - el.cy;
+        const cos = Math.cos(-el.rotation);
+        const sin = Math.sin(-el.rotation);
+        const rx = dx * cos - dy * sin;
+        const ry = dx * sin + dy * cos;
+        return { x: rx / el.scale, y: ry / el.scale };
       }
-      drawCollage();
-    });
+      function distanceToCenter(p, el) { return Math.hypot(p.x - el.cx, p.y - el.cy); }
+      function imageToCanvasCoords(evt, canvas) {
+        const rect = canvas.getBoundingClientRect();
+        return {
+          x: (evt.clientX - rect.left) * (canvas.width / rect.width),
+          y: (evt.clientY - rect.top) * (canvas.height / rect.height)
+        };
+      }
 
-    // initial draws
-    drawSource();
-    drawCollage();
-    updateRasterizeButton();
-  })();
+      sourceCanvas.addEventListener('mousedown', (evt) => {
+        if (mustGlue) {
+          setStatus('Please press GLUE before selecting another shape.');
+          return;
+        }
+        if (!lassoActive) return;
+        isMouseDown = true;
+        isFreehand = false;
+        mouseDownPos = imageToCanvasCoords(evt, sourceCanvas);
+      });
+      sourceCanvas.addEventListener('mousemove', (evt) => {
+        if (mustGlue || !lassoActive || !isMouseDown) return;
+        const p = imageToCanvasCoords(evt, sourceCanvas);
+        const dx = p.x - mouseDownPos.x;
+        const dy = p.y - mouseDownPos.y;
+        const distSq = dx * dx + dy * dy;
+        if (!isFreehand && distSq > DRAG_THRESHOLD_SQ) {
+          isFreehand = true;
+          lassoPoints.push({ x: mouseDownPos.x, y: mouseDownPos.y });
+        }
+        if (isFreehand) {
+          lassoPoints.push(p);
+          drawSource();
+        }
+      });
+      sourceCanvas.addEventListener('mouseup', (evt) => {
+        if (mustGlue || !lassoActive || !isMouseDown) return;
+        const p = imageToCanvasCoords(evt, sourceCanvas);
+        if (!isFreehand) {
+          lassoPoints.push(p);
+          drawSource();
+        }
+        isMouseDown = false;
+        isFreehand = false;
+        mouseDownPos = null;
+      });
+      sourceCanvas.addEventListener('dblclick', () => {
+        if (mustGlue || !lassoActive) return;
+        if (lassoPoints.length >= 3) finishLasso();
+      });
+
+      collageCanvas.addEventListener('mousedown', (evt) => {
+        const p = imageToCanvasCoords(evt, collageCanvas);
+        selectedElement = null;
+        dragMode = null;
+        dragStartOffset = null;
+        dragStartScale = null;
+        dragStartRotation = null;
+        dragStartDistance = null;
+        dragStartAngle = null;
+        for (let i = collageElements.length - 1; i >= 0; i--) {
+          const el = collageElements[i];
+          const rel = worldToLocal(p, el);
+          const w = el.canvas.width;
+          const h = el.canvas.height;
+          const halfW = w / 2;
+          const halfH = h / 2;
+          const scaleHandleSize = 8;
+          const rotOffset = 30;
+          const rotHandleRadius = 6;
+          const rotRel = { x: 0, y: -halfH - rotOffset };
+          const scaleRel = { x: halfW, y: halfH };
+          const rotDistSq = (rel.x - rotRel.x) ** 2 + (rel.y - rotRel.y) ** 2;
+          if (rotDistSq <= (rotHandleRadius / el.scale) ** 2) {
+            selectedElement = el;
+            dragMode = 'rotate';
+            dragStartRotation = el.rotation;
+            dragStartAngle = Math.atan2(p.y - el.cy, p.x - el.cx);
+            break;
+          }
+          if (Math.abs(rel.x - scaleRel.x) <= (scaleHandleSize / el.scale) &&
+              Math.abs(rel.y - scaleRel.y) <= (scaleHandleSize / el.scale)) {
+            selectedElement = el;
+            dragMode = 'scale';
+            dragStartScale = el.scale;
+            dragStartDistance = distanceToCenter(p, el);
+            break;
+          }
+          if (Math.abs(rel.x) <= halfW && Math.abs(rel.y) <= halfH) {
+            selectedElement = el;
+            dragMode = 'move';
+            dragStartOffset = { x: p.x - el.cx, y: p.y - el.cy };
+            break;
+          }
+        }
+        drawCollage();
+      });
+      window.addEventListener('mousemove', (evt) => {
+        if (!dragMode || !selectedElement) return;
+        const p = imageToCanvasCoords(evt, collageCanvas);
+        const el = selectedElement;
+        if (dragMode === 'move') {
+          el.cx = p.x - dragStartOffset.x;
+          el.cy = p.y - dragStartOffset.y;
+        } else if (dragMode === 'scale') {
+          const dist = distanceToCenter(p, el);
+          if (dragStartDistance > 0) {
+            let newScale = dragStartScale * (dist / dragStartDistance);
+            el.scale = Math.max(0.1, newScale);
+          }
+        } else if (dragMode === 'rotate') {
+          const angleNow = Math.atan2(p.y - el.cy, p.x - el.cx);
+          const delta = angleNow - dragStartAngle;
+          el.rotation = dragStartRotation + delta;
+        }
+        drawCollage();
+      });
+      window.addEventListener('mouseup', () => {
+        if (dragMode) {
+          dragMode = null;
+          dragStartOffset = null;
+          dragStartScale = null;
+          dragStartRotation = null;
+          dragStartDistance = null;
+          dragStartAngle = null;
+        }
+      });
+
+      addImageBtn.addEventListener('click', () => {
+        if (mustGlue) {
+          setStatus('Glue down your current cutout before loading a new image!');
+          return;
+        }
+        loadRandomImage();
+      });
+      resetLassoBtn.addEventListener('click', () => { startLassoIfPossible(); });
+      addCutoutBtn.addEventListener('click', addCutoutToCollage);
+      glueBtn.addEventListener('click', rasterizeCollage);
+
+      toggleTagsBtn.addEventListener('click', () => {
+        const isOpen = tagDrawer.classList.toggle('open');
+        toggleTagsBtn.textContent = isOpen ? 'Tags ▲' : 'Tags ▾';
+      });
+
+      renderTags();
+      drawSource();
+      drawCollage();
+      setStatus('Welcome to Collage Party! Tap "New Image" or open Tags to steer your image vibes.');
+    })();
   </script>
 </body>
 </html>
