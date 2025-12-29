@@ -1,0 +1,1196 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Polygon Diagonals Color Lab</title>
+  <style>
+    :root{
+      --bg:#fff;
+      --fg:#000;
+      --muted:#666;
+      --pad:14px;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial;
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{ margin:0; background:var(--bg); color:var(--fg); font-family:var(--sans); }
+
+    .wrap{ display:grid; grid-template-columns: 360px 1fr; height:100vh; }
+    .panel{ border-right:2px solid var(--fg); padding:var(--pad); overflow:auto; }
+    .canvasWrap{ position:relative; height:100vh; overflow:hidden; }
+
+    header{ display:flex; align-items:baseline; justify-content:space-between; gap:12px; border:2px solid var(--fg); padding:12px; margin-bottom:12px; }
+    header h1{ font-size:14px; letter-spacing:0.06em; text-transform:uppercase; margin:0; font-family:var(--mono); }
+    header .meta{ font-size:12px; color:var(--muted); font-family:var(--mono); white-space:nowrap; }
+
+    .group{ border:2px solid var(--fg); padding:12px; margin-bottom:12px; }
+    .group h2{ margin:0 0 10px 0; font-size:12px; text-transform:uppercase; letter-spacing:0.08em; font-family:var(--mono); }
+
+    .row{ display:grid; grid-template-columns: 1fr auto; gap:10px; align-items:center; margin:8px 0; }
+    .row label{ font-size:12px; font-family:var(--mono); }
+    .row .val{ font-size:12px; font-family:var(--mono); color:var(--muted); min-width:90px; text-align:right; }
+
+    input[type="range"]{ width:100%; accent-color:#000; }
+    select{ width:100%; border:2px solid var(--fg); padding:8px; font-family:var(--mono); font-size:12px; background:#fff; color:#000; }
+
+    .inline{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; }
+    .btnRow{ display:grid; grid-template-columns: 1fr 1fr; gap:10px; margin-top:10px; }
+
+    button{ border:2px solid var(--fg); background:#fff; color:#000; font-family:var(--mono); font-size:12px; padding:10px; cursor:pointer; text-transform:uppercase; letter-spacing:0.06em; }
+    button:hover{ background:#f5f5f5; }
+    button:active{ transform: translateY(1px); }
+
+    .note{ font-family:var(--mono); font-size:11px; color:var(--muted); line-height:1.35; }
+
+    canvas{ width:100%; height:100%; display:block; background:#fff; }
+
+    .hud{ position:absolute; left:14px; bottom:14px; border:2px solid var(--fg); background:#fff; padding:10px; font-family:var(--mono); font-size:12px; max-width:min(520px, calc(100% - 28px)); }
+
+    /* Color UI */
+    .colorRow{ display:flex; align-items:center; gap:10px; }
+    .colorSwatch{ width:28px; height:28px; border:2px solid var(--fg); background:#000; flex-shrink:0; }
+    input[type="color"]{
+      width:56px; height:34px; padding:0; border:2px solid var(--fg);
+      background:#fff; cursor:pointer;
+    }
+    input[type="color"]::-webkit-color-swatch-wrapper{ padding:0; }
+    input[type="color"]::-webkit-color-swatch{ border:none; }
+
+    .stopsUI{ display:flex; flex-wrap:wrap; gap:8px; align-items:center; margin-top:8px; }
+    .stopChip{ display:flex; align-items:center; gap:8px; border:2px solid var(--fg); padding:6px; background:#fff; font-family:var(--mono); font-size:11px; }
+    .stopSwatch{ width:24px; height:24px; border:2px solid var(--fg); background:#000; flex-shrink:0; }
+    .stopChip button{ padding:6px 8px; font-size:11px; }
+
+    .chips{ display:flex; flex-wrap:wrap; gap:6px; margin-top:8px; }
+    .chip{ border:1px solid var(--fg); padding:4px 6px; font-size:11px; background:#fff; }
+
+    @media (max-width: 980px){
+      .wrap{ grid-template-columns: 1fr; }
+      .panel{ border-right:none; border-bottom:2px solid var(--fg); height:52vh; }
+      .canvasWrap{ height:48vh; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="panel">
+      <header>
+        <h1>Polygon Diagonals Color Lab</h1>
+        <div class="meta" id="meta">n=• | diagonals=•</div>
+      </header>
+
+      <div class="group">
+        <h2>Geometry</h2>
+
+        <div class="row">
+          <label for="shape">Shape</label>
+          <div class="val" id="shapeVal"></div>
+        </div>
+        <select id="shape">
+          <option value="polygon" selected>Polygon</option>
+          <option value="star">Star (alternating radii)</option>
+        </select>
+
+        <div id="starControls" style="margin-top:10px">
+          <div class="row">
+            <label for="starInner">Star inner radius</label>
+            <div class="val" id="starInnerVal"></div>
+          </div>
+          <input id="starInner" type="range" min="0.10" max="0.95" step="0.01" value="0.55" />
+          <div class="note">Alternates outer/inner vertices. Higher inner radius = chunkier star.</div>
+        </div>
+
+        <div class="row">
+          <label for="n">Points (n)</label>
+          <div class="val" id="nVal"></div>
+        </div>
+        <input id="n" type="range" min="3" max="60" step="1" value="9" />
+
+        <div class="row">
+          <label for="radius">Radius</label>
+          <div class="val" id="radiusVal"></div>
+        </div>
+        <input id="radius" type="range" min="40" max="520" step="1" value="260" />
+
+        <div class="row">
+          <label for="rotation">Rotation</label>
+          <div class="val" id="rotationVal"></div>
+        </div>
+        <input id="rotation" type="range" min="-180" max="180" step="1" value="-90" />
+
+        <div class="row">
+          <label for="skip">Diagonal skip (k)</label>
+          <div class="val" id="skipVal"></div>
+        </div>
+        <input id="skip" type="range" min="2" max="30" step="1" value="2" />
+        <div class="note">k=2 draws all diagonals (excluding edges). Larger k draws only connections with circular distance ≥ k.</div>
+
+        <div class="inline" style="margin-top:10px">
+          <div>
+            <label class="note" for="jitter">Jitter</label>
+            <input id="jitter" type="range" min="0" max="60" step="1" value="0" />
+          </div>
+        </div>
+
+        <div class="inline" style="margin-top:10px">
+          <div>
+            <label class="note" for="showPolygon">Show polygon</label>
+            <select id="showPolygon">
+              <option value="on" selected>On</option>
+              <option value="off">Off</option>
+            </select>
+          </div>
+          <div>
+            <label class="note" for="labels">Vertex labels</label>
+            <select id="labels">
+              <option value="off" selected>Off</option>
+              <option value="on">On</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2>Color mode</h2>
+
+        <div class="row">
+          <label for="mode">Pattern</label>
+          <div class="val" id="modeVal"></div>
+        </div>
+        <select id="mode">
+          <option value="byOrigin" selected>Different color for each point (radiates)</option>
+          <option value="symmetric">Symmetric (depends on circular distance)</option>
+          <option value="pairGradient">Gradient along each diagonal (endpoint → endpoint)</option>
+          <option value="distanceFade">Distance fade (near neighbors darker)</option>
+          <option value="solid">Solid color</option>
+        </select>
+
+        <div class="row" style="margin-top:10px">
+          <label for="alpha">Line alpha</label>
+          <div class="val" id="alphaVal"></div>
+        </div>
+        <input id="alpha" type="range" min="0.02" max="1" step="0.01" value="0.55" />
+
+        <div class="row">
+          <label for="width">Line width</label>
+          <div class="val" id="widthVal"></div>
+        </div>
+        <input id="width" type="range" min="0.5" max="8" step="0.1" value="1.2" />
+
+        <div class="inline" style="margin-top:10px">
+          <div id="solidControls">
+            <label class="note" for="solidColor">Solid color</label>
+            <div class="colorRow">
+              <div class="colorSwatch" id="solidPreview" aria-hidden="true"></div>
+              <input id="solidColor" type="color" value="#000000" />
+            </div>
+          </div>
+          <div>
+            <label class="note" for="bg">Background</label>
+            <div class="colorRow">
+              <div class="colorSwatch" id="bgPreview" aria-hidden="true" style="background:#fff"></div>
+              <input id="bg" type="color" value="#ffffff" />
+            </div>
+          </div>
+        </div>
+
+        <div id="paletteControls" class="inline" style="margin-top:10px">
+          <div>
+            <label class="note" for="palette">Palette source</label>
+            <select id="palette">
+              <option value="rainbow" selected>Rainbow order</option>
+              <option value="custom">Custom gradient map</option>
+            </select>
+          </div>
+          <div>
+            <label class="note" for="blend">Blend</label>
+            <select id="blend">
+              <option value="normal" selected>Normal</option>
+              <option value="multiply">Multiply</option>
+              <option value="screen">Screen</option>
+              <option value="overlay">Overlay</option>
+              <option value="lighter">Lighter</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="group" id="customGradientGroup" style="margin-top:12px">
+          <h2>Custom gradient map</h2>
+          <div class="note">Custom stops (2–10). Each stop has a filled preview square.</div>
+          <input id="stops" type="hidden" value="#000000, #ff00ff, #00ffff, #ffff00" />
+          <div id="stopsUI" class="stopsUI"></div>
+          <div class="btnRow" style="margin-top:10px">
+            <button id="addStop" type="button">Add stop</button>
+            <button id="resetStops" type="button">Reset stops</button>
+          </div>
+          <div class="inline" style="margin-top:10px">
+            <div>
+              <label class="note" for="gamma">Gamma</label>
+              <input id="gamma" type="range" min="0.2" max="3" step="0.05" value="1" />
+            </div>
+            <div>
+              <label class="note" for="phase">Palette phase</label>
+              <input id="phase" type="range" min="0" max="1" step="0.001" value="0" />
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="group">
+        <h2>Display</h2>
+        <div class="inline">
+          <div>
+            <label class="note" for="aa">Antialias</label>
+            <select id="aa">
+              <option value="on" selected>On</option>
+              <option value="off">Off (pixel-ish)</option>
+            </select>
+          </div>
+          <div>
+            <label class="note" for="dpr">Resolution</label>
+            <select id="dpr">
+              <option value="auto" selected>Auto</option>
+              <option value="1">1x</option>
+              <option value="2">2x</option>
+              <option value="3">3x</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="btnRow">
+          <button id="randomize" type="button">Randomize</button>
+          <button id="export" type="button">Export PNG</button>
+        </div>
+        <div class="btnRow">
+          <button id="exportSVG" type="button">Export SVG</button>
+          <button type="button" style="visibility:hidden">.</button>
+        </div>
+
+        <div class="note" style="margin-top:10px">Tips: Drag canvas to rotate. Shift+drag radius. Alt+drag skip.</div>
+      </div>
+
+      <div class="note">
+        Modes:
+        <div class="chips">
+          <span class="chip">Radiating color</span>
+          <span class="chip">Distance symmetry</span>
+          <span class="chip">Line gradient</span>
+          <span class="chip">Distance fade</span>
+          <span class="chip">Solid</span>
+        </div>
+      </div>
+    </aside>
+
+    <main class="canvasWrap">
+      <canvas id="c"></canvas>
+      <div class="hud" id="hud"></div>
+    </main>
+  </div>
+
+<script>
+(() => {
+  const $ = (id) => document.getElementById(id);
+
+  const el = {
+    canvas: $('c'),
+    hud: $('hud'),
+    meta: $('meta'),
+
+    n: $('n'), nVal: $('nVal'),
+    radius: $('radius'), radiusVal: $('radiusVal'),
+    rotation: $('rotation'), rotationVal: $('rotationVal'),
+    skip: $('skip'), skipVal: $('skipVal'),
+        jitter: $('jitter'),
+    showPolygon: $('showPolygon'),
+    labels: $('labels'),
+
+    shape: $('shape'), shapeVal: $('shapeVal'),
+    starControls: $('starControls'),
+    starInner: $('starInner'), starInnerVal: $('starInnerVal'),
+
+    mode: $('mode'), modeVal: $('modeVal'),
+    palette: $('palette'),
+    blend: $('blend'),
+    alpha: $('alpha'), alphaVal: $('alphaVal'),
+    width: $('width'), widthVal: $('widthVal'),
+
+    solidColor: $('solidColor'),
+    bg: $('bg'),
+    solidPreview: $('solidPreview'),
+    bgPreview: $('bgPreview'),
+
+    solidControls: $('solidControls'),
+    paletteControls: $('paletteControls'),
+    customGradientGroup: $('customGradientGroup'),
+
+    stops: $('stops'),
+    stopsUI: $('stopsUI'),
+    addStop: $('addStop'),
+    resetStops: $('resetStops'),
+    gamma: $('gamma'),
+    phase: $('phase'),
+
+    aa: $('aa'),
+    dpr: $('dpr'),
+
+    randomize: $('randomize'),
+    export: $('export'),
+    exportSVG: $('exportSVG'),
+  };
+
+  // ---------- utils ----------
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+  const lerp  = (a, b, t) => a + (b - a) * t;
+  const TAU   = Math.PI * 2;
+
+  function mulberry32(seed){
+    let t = seed >>> 0;
+    return function(){
+      t += 0x6D2B79F5;
+      let r = Math.imul(t ^ (t >>> 15), 1 | t);
+      r ^= r + Math.imul(r ^ (r >>> 7), 61 | r);
+      return ((r ^ (r >>> 14)) >>> 0) / 4294967296;
+    };
+  }
+
+  function parseHex(hex){
+    const h = (hex || '').trim();
+    if(!/^#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})$/.test(h)) return null;
+    let s = h.slice(1);
+    if(s.length === 3) s = s.split('').map(ch => ch + ch).join('');
+    const n = parseInt(s, 16);
+    return { r:(n>>16)&255, g:(n>>8)&255, b:n&255 };
+  }
+
+  function rgbToHex({r,g,b}){
+    const to = (n) => clamp(n|0, 0, 255).toString(16).padStart(2,'0');
+    return `#${to(r)}${to(g)}${to(b)}`;
+  }
+
+  function rgbToStr({r,g,b}, a=1){
+    return `rgba(${r|0},${g|0},${b|0},${clamp(a,0,1)})`;
+  }
+
+  // HSV rainbow
+  function hsvToRgb(h,s,v){
+    h = ((h % 1) + 1) % 1;
+    const i = Math.floor(h * 6);
+    const f = h * 6 - i;
+    const p = v * (1 - s);
+    const q = v * (1 - f * s);
+    const t = v * (1 - (1 - f) * s);
+    let r=0,g=0,b=0;
+    switch(i % 6){
+      case 0: r=v; g=t; b=p; break;
+      case 1: r=q; g=v; b=p; break;
+      case 2: r=p; g=v; b=t; break;
+      case 3: r=p; g=q; b=v; break;
+      case 4: r=t; g=p; b=v; break;
+      case 5: r=v; g=p; b=q; break;
+    }
+    return { r: Math.round(r*255), g: Math.round(g*255), b: Math.round(b*255) };
+  }
+
+  function parseStops(str){
+    const parts = (str || '').split(',').map(s => s.trim()).filter(Boolean);
+    const out = [];
+    for(const p of parts){
+      const c = parseHex(p);
+      if(c) out.push(c);
+    }
+    return out.slice(0, 10);
+  }
+
+  function sampleGradient(stops, t, gamma=1){
+    if(!stops || stops.length < 2) return {r:0,g:0,b:0};
+    t = clamp(t, 0, 1);
+    const tt = Math.pow(t, gamma);
+    const seg = (stops.length - 1) * tt;
+    const i = Math.floor(seg);
+    const f = seg - i;
+    const a = stops[clamp(i, 0, stops.length-1)];
+    const b = stops[clamp(i+1, 0, stops.length-1)];
+    return {
+      r: Math.round(lerp(a.r, b.r, f)),
+      g: Math.round(lerp(a.g, b.g, f)),
+      b: Math.round(lerp(a.b, b.b, f)),
+    };
+  }
+
+  function mix(a,b,t){
+    return {
+      r: Math.round(lerp(a.r, b.r, t)),
+      g: Math.round(lerp(a.g, b.g, t)),
+      b: Math.round(lerp(a.b, b.b, t)),
+    };
+  }
+
+  // ---------- geometry ----------
+  function polygonPoints(n, radius, rotDeg, centerPull=0, jitter=0, seed=1, w=0, h=0, shape='polygon', starInner=0.55){
+    const rand = mulberry32(seed);
+    const cx = w/2, cy = h/2;
+    const rot = (rotDeg * Math.PI) / 180;
+    const pts = [];
+    for(let i=0;i<n;i++){
+      const ang = rot + (i / n) * TAU;
+      const isStar = (shape === 'star');
+      const r = isStar ? radius * ((i % 2 === 0) ? 1 : clamp(starInner, 0.05, 0.98)) : radius;
+      let x = cx + Math.cos(ang) * r;
+      let y = cy + Math.sin(ang) * r;
+      if(jitter > 0){
+        x += (rand() - 0.5) * 2 * jitter;
+        y += (rand() - 0.5) * 2 * jitter;
+      }
+      if(centerPull > 0){
+        x = lerp(x, cx, centerPull);
+        y = lerp(y, cy, centerPull);
+      }
+      pts.push({x,y});
+    }
+    return pts;
+  }
+
+  function circularDistance(i, j, n){
+    const d = Math.abs(i - j);
+    return Math.min(d, n - d);
+  }
+
+  function isEdge(i, j, n){
+    const d = circularDistance(i, j, n);
+    return d === 1 || d === n-1;
+  }
+
+  function diagonalPairs(n, skipK){
+    const pairs = [];
+    for(let i=0;i<n;i++){
+      for(let j=i+1;j<n;j++){
+        if(isEdge(i, j, n)) continue;
+        const d = circularDistance(i, j, n);
+        if(d < skipK) continue;
+        pairs.push([i, j, d]);
+      }
+    }
+    return pairs;
+  }
+
+  // ---------- color ----------
+  function vertexColor(i, n, paletteSource, stops, gamma, phase){
+    // loop perfectly: vertex 0 and vertex n-1 share hue (no seam)
+    const denom = Math.max(1, n - 1);
+    const t = ((i / denom) + phase) % 1;
+    if(paletteSource === 'custom') return sampleGradient(stops, t, gamma);
+    return hsvToRgb(t, 0.95, 0.95);
+  }
+
+  // ---------- canvas ----------
+  const ctx = el.canvas.getContext('2d');
+  const state = { seed: 1337, drag: null };
+
+  function getDPR(){
+    const v = el.dpr.value;
+    if(v === 'auto') return Math.max(1, Math.min(3, window.devicePixelRatio || 1));
+    return parseFloat(v) || 1;
+  }
+
+  function resize(){
+    const dpr = getDPR();
+    const rect = el.canvas.getBoundingClientRect();
+    el.canvas.width  = Math.max(1, Math.floor(rect.width * dpr));
+    el.canvas.height = Math.max(1, Math.floor(rect.height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    draw();
+  }
+
+  function fmt(v, digits=0){
+    const p = Math.pow(10, digits);
+    return (Math.round(v*p)/p).toFixed(digits);
+  }
+
+  function updateLabels(){
+    const n = parseInt(el.n.value,10);
+    const radius = parseFloat(el.radius.value);
+    const rot = parseFloat(el.rotation.value);
+    const skip = parseInt(el.skip.value,10);
+    const shape = el.shape.value;
+    const starInner = parseFloat(el.starInner.value);
+
+    el.nVal.textContent = `${n}`;
+    el.radiusVal.textContent = `${Math.round(radius)}px`;
+    el.rotationVal.textContent = `${Math.round(rot)}°`;
+    el.skipVal.textContent = `${skip}`;
+    el.shapeVal.textContent = el.shape.options[el.shape.selectedIndex].textContent;
+    el.starInnerVal.textContent = fmt(parseFloat(el.starInner.value), 2);
+
+    el.alphaVal.textContent = fmt(parseFloat(el.alpha.value), 2);
+    el.widthVal.textContent = fmt(parseFloat(el.width.value), 1);
+
+    el.modeVal.textContent = el.mode.options[el.mode.selectedIndex].textContent;
+
+    const diagTotal = (n*(n-3))/2;
+    const shown = diagonalPairs(n, skip).length;
+    el.meta.textContent = `n=${n} | diagonals=${shown}/${diagTotal}`;
+
+    el.hud.innerHTML = `
+      <div><b>Drag</b>: rotate · <b>Shift+Drag</b>: radius · <b>Alt+Drag</b>: skip</div>
+      <div style="margin-top:6px">Mode: <b>${el.mode.value}</b> · Palette: <b>${el.palette.value}</b> · Blend: <b>${el.blend.value}</b></div>
+      <div style="margin-top:6px">Showing <b>${shown}</b> diagonals</div>
+    `;
+  }
+
+  function renderScene(targetCtx, w, h){
+    const n = parseInt(el.n.value,10);
+    const radius = parseFloat(el.radius.value);
+    const rot = parseFloat(el.rotation.value);
+    const skipK = parseInt(el.skip.value,10);
+    const jitter = parseFloat(el.jitter.value);
+    const shape = el.shape.value;
+    const starInner = parseFloat(el.starInner.value);
+
+    const alpha = parseFloat(el.alpha.value);
+    const lineW = parseFloat(el.width.value);
+
+    const paletteSource = el.palette.value;
+    const stops = parseStops(el.stops.value);
+    const gamma = parseFloat(el.gamma.value);
+    const phase = parseFloat(el.phase.value);
+
+    const mode = el.mode.value;
+    const solid = parseHex(el.solidColor.value) || {r:0,g:0,b:0};
+
+    // background
+    const bg = parseHex(el.bg.value) || {r:255,g:255,b:255};
+    targetCtx.globalCompositeOperation = 'source-over';
+    targetCtx.fillStyle = rgbToStr(bg, 1);
+    targetCtx.fillRect(0,0,w,h);
+
+    targetCtx.imageSmoothingEnabled = (el.aa.value === 'on');
+
+    // points + colors
+    const pts = polygonPoints(n, radius, rot, 0, jitter, state.seed, w, h, shape, starInner);
+    const vcols = new Array(n);
+    for(let i=0;i<n;i++) vcols[i] = vertexColor(i, n, paletteSource, stops, gamma, phase);
+
+    const pairs = diagonalPairs(n, skipK);
+    const maxD = Math.floor(n/2);
+
+    targetCtx.globalCompositeOperation = (mode === 'solid') ? 'source-over' : el.blend.value;
+    targetCtx.lineWidth = lineW;
+    targetCtx.lineCap = 'round';
+
+    for(const [i,j,d] of pairs){
+      if(mode === 'solid'){
+        targetCtx.strokeStyle = rgbToStr(solid, alpha);
+        targetCtx.beginPath();
+        targetCtx.moveTo(pts[i].x, pts[i].y);
+        targetCtx.lineTo(pts[j].x, pts[j].y);
+        targetCtx.stroke();
+        continue;
+      }
+
+      if(mode === 'byOrigin'){
+        // Draw each diagonal twice so BOTH endpoints radiate their own color.
+        const a2 = alpha * 0.5;
+
+        targetCtx.strokeStyle = rgbToStr(vcols[i], a2);
+        targetCtx.beginPath();
+        targetCtx.moveTo(pts[i].x, pts[i].y);
+        targetCtx.lineTo(pts[j].x, pts[j].y);
+        targetCtx.stroke();
+
+        targetCtx.strokeStyle = rgbToStr(vcols[j], a2);
+        targetCtx.beginPath();
+        targetCtx.moveTo(pts[i].x, pts[i].y);
+        targetCtx.lineTo(pts[j].x, pts[j].y);
+        targetCtx.stroke();
+        continue;
+      }
+
+      if(mode === 'symmetric'){
+        const t = (d-2) / Math.max(1, (maxD-2));
+        const col = (paletteSource === 'custom')
+          ? sampleGradient(stops.length ? stops : [{r:0,g:0,b:0},{r:0,g:0,b:0}], (t + phase) % 1, gamma)
+          : hsvToRgb(((t + phase) % 1), 0.95, 0.95);
+
+        targetCtx.strokeStyle = rgbToStr(col, alpha);
+        targetCtx.beginPath();
+        targetCtx.moveTo(pts[i].x, pts[i].y);
+        targetCtx.lineTo(pts[j].x, pts[j].y);
+        targetCtx.stroke();
+        continue;
+      }
+
+      if(mode === 'pairGradient'){
+        const g = targetCtx.createLinearGradient(pts[i].x, pts[i].y, pts[j].x, pts[j].y);
+        g.addColorStop(0, rgbToStr(vcols[i], alpha));
+        g.addColorStop(1, rgbToStr(vcols[j], alpha));
+        targetCtx.strokeStyle = g;
+        targetCtx.beginPath();
+        targetCtx.moveTo(pts[i].x, pts[i].y);
+        targetCtx.lineTo(pts[j].x, pts[j].y);
+        targetCtx.stroke();
+        continue;
+      }
+
+      if(mode === 'distanceFade'){
+        const base = vcols[i];
+        const t = clamp((d-1) / Math.max(1, maxD-1), 0, 1);
+        const col = mix({r:0,g:0,b:0}, base, t);
+        targetCtx.strokeStyle = rgbToStr(col, alpha);
+        targetCtx.beginPath();
+        targetCtx.moveTo(pts[i].x, pts[i].y);
+        targetCtx.lineTo(pts[j].x, pts[j].y);
+        targetCtx.stroke();
+        continue;
+      }
+    }
+
+    // polygon overlay
+    if(el.showPolygon.value === 'on'){
+      targetCtx.globalCompositeOperation = 'source-over';
+      targetCtx.strokeStyle = 'rgba(0,0,0,0.9)';
+      targetCtx.lineWidth = Math.max(1, lineW);
+      targetCtx.lineCap = 'round';
+      targetCtx.beginPath();
+      for(let i=0;i<n;i++){
+        const p = pts[i];
+        if(i===0) targetCtx.moveTo(p.x, p.y);
+        else targetCtx.lineTo(p.x, p.y);
+      }
+      targetCtx.closePath();
+      targetCtx.stroke();
+
+      targetCtx.fillStyle = 'rgba(0,0,0,1)';
+      for(let i=0;i<n;i++){
+        const p = pts[i];
+        targetCtx.beginPath();
+        targetCtx.arc(p.x, p.y, 2.2, 0, TAU);
+        targetCtx.fill();
+      }
+
+      if(el.labels.value === 'on'){
+        const mono = getComputedStyle(document.documentElement).getPropertyValue('--mono').trim() || 'monospace';
+        targetCtx.font = `12px ${mono}`;
+        targetCtx.fillStyle = 'rgba(0,0,0,0.9)';
+        for(let i=0;i<n;i++){
+          const p = pts[i];
+          targetCtx.fillText(String(i), p.x + 6, p.y - 6);
+        }
+      }
+    }
+  }
+
+  function draw(){
+    updateLabels();
+
+    const rect = el.canvas.getBoundingClientRect();
+    const w = rect.width, h = rect.height;
+
+    // clear with correct transform already set by resize()
+    ctx.setTransform(getDPR(),0,0,getDPR(),0,0);
+    ctx.clearRect(0,0,w,h);
+
+    renderScene(ctx, w, h);
+  }
+
+  // ---------- gradient stops UI ----------
+  function ensureStopsAtLeast2(hexes){
+    const out = (hexes || []).slice(0,10);
+    if(out.length === 0) return ['#000000', '#ffffff'];
+    if(out.length === 1) return [out[0], '#ffffff'];
+    return out;
+  }
+
+  function buildStopsUI(){
+    const wrap = el.stopsUI;
+    if(!wrap) return;
+    wrap.innerHTML = '';
+
+    const current = ensureStopsAtLeast2(parseStops(el.stops.value).map(rgbToHex));
+    el.stops.value = current.join(', ');
+
+    current.forEach((hex, idx) => {
+      const chip = document.createElement('div');
+      chip.className = 'stopChip';
+
+      const sw = document.createElement('div');
+      sw.className = 'stopSwatch';
+      sw.style.background = hex;
+
+      const label = document.createElement('span');
+      label.textContent = `Stop ${idx+1}`;
+
+      const input = document.createElement('input');
+      input.type = 'color';
+      input.value = hex;
+
+      input.addEventListener('input', () => {
+        const next = ensureStopsAtLeast2(parseStops(el.stops.value).map(rgbToHex));
+        next[idx] = input.value;
+        el.stops.value = next.join(', ');
+        sw.style.background = input.value;
+        draw();
+      });
+
+      const removeBtn = document.createElement('button');
+      removeBtn.type = 'button';
+      removeBtn.textContent = 'Remove';
+      removeBtn.disabled = current.length <= 2;
+      removeBtn.addEventListener('click', () => {
+        const next = ensureStopsAtLeast2(parseStops(el.stops.value).map(rgbToHex));
+        if(next.length <= 2) return;
+        next.splice(idx, 1);
+        el.stops.value = next.join(', ');
+        buildStopsUI();
+        draw();
+      });
+
+      chip.appendChild(sw);
+      chip.appendChild(label);
+      chip.appendChild(input);
+      chip.appendChild(removeBtn);
+      wrap.appendChild(chip);
+    });
+  }
+
+  // ---------- UI state ----------
+  function syncSwatches(){
+    el.solidPreview.style.background = el.solidColor.value;
+    el.bgPreview.style.background = el.bg.value;
+  }
+
+  function show(node, on){
+    if(!node) return;
+    node.style.display = on ? '' : 'none';
+  }
+
+  function syncColorUI(){
+    const isSolid = (el.mode.value === 'solid');
+    show(el.solidControls, isSolid);
+    show(el.paletteControls, !isSolid);
+    const showCustom = (!isSolid) && (el.palette.value === 'custom');
+    show(el.customGradientGroup, showCustom);
+  }
+
+  function syncGeometryUI(){
+    const isStar = (el.shape.value === 'star');
+    show(el.starControls, isStar);
+  }
+
+  // ---------- pointer interaction ----------
+  function pointerPos(e){
+    const rect = el.canvas.getBoundingClientRect();
+    return { x: e.clientX - rect.left, y: e.clientY - rect.top };
+  }
+
+  function onDown(e){
+    el.canvas.setPointerCapture(e.pointerId);
+    const p = pointerPos(e);
+    state.drag = {
+      id: e.pointerId,
+      x0: p.x,
+      y0: p.y,
+      rot0: parseFloat(el.rotation.value),
+      r0: parseFloat(el.radius.value),
+      k0: parseInt(el.skip.value,10),
+    };
+  }
+
+  function onMove(e){
+    if(!state.drag || state.drag.id !== e.pointerId) return;
+    const p = pointerPos(e);
+    const dx = p.x - state.drag.x0;
+    const dy = p.y - state.drag.y0;
+
+    if(e.shiftKey){
+      const dr = -dy;
+      const nextR = clamp(state.drag.r0 + dr, parseFloat(el.radius.min), parseFloat(el.radius.max));
+      el.radius.value = String(nextR);
+    } else if(e.altKey){
+      const dk = Math.round(dx / 18);
+      const nextK = clamp(state.drag.k0 + dk, parseInt(el.skip.min,10), parseInt(el.skip.max,10));
+      el.skip.value = String(nextK);
+    } else {
+      const dRot = dx * 0.35;
+      const nextRot = clamp(state.drag.rot0 + dRot, parseFloat(el.rotation.min), parseFloat(el.rotation.max));
+      el.rotation.value = String(nextRot);
+    }
+
+    syncSwatches();
+    draw();
+  }
+
+  function onUp(e){
+    if(state.drag && state.drag.id === e.pointerId) state.drag = null;
+  }
+
+  // ---------- export ----------
+  function exportPNG(){
+    const rect = el.canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.floor(rect.width));
+    const h = Math.max(1, Math.floor(rect.height));
+    const dpr = getDPR();
+
+    const off = document.createElement('canvas');
+    off.width = Math.max(1, Math.floor(w * dpr));
+    off.height = Math.max(1, Math.floor(h * dpr));
+    const octx = off.getContext('2d');
+
+    // render at same dpr
+    octx.setTransform(dpr,0,0,dpr,0,0);
+    renderScene(octx, w, h);
+
+    const a = document.createElement('a');
+    const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+    a.download = `polygon-diagonals-${stamp}.png`;
+    a.href = off.toDataURL('image/png');
+    a.click();
+  }
+
+  function exportSVG(){
+    const rect = el.canvas.getBoundingClientRect();
+    const w = Math.max(1, Math.floor(rect.width));
+    const h = Math.max(1, Math.floor(rect.height));
+
+    const n = parseInt(el.n.value,10);
+    const radius = parseFloat(el.radius.value);
+    const rot = parseFloat(el.rotation.value);
+    const skipK = parseInt(el.skip.value,10);
+    const jitter = parseFloat(el.jitter.value);
+    const shape = el.shape.value;
+    const starInner = parseFloat(el.starInner.value);
+
+    const alpha = parseFloat(el.alpha.value);
+    const lineW = parseFloat(el.width.value);
+
+    const paletteSource = el.palette.value;
+    const stops = parseStops(el.stops.value);
+    const gamma = parseFloat(el.gamma.value);
+    const phase = parseFloat(el.phase.value);
+
+    const mode = el.mode.value;
+    const solid = parseHex(el.solidColor.value) || {r:0,g:0,b:0};
+    const bg = parseHex(el.bg.value) || {r:255,g:255,b:255};
+
+    const pts = polygonPoints(n, radius, rot, 0, jitter, state.seed, w, h, shape, starInner);
+    const vcols = new Array(n);
+    for(let i=0;i<n;i++) vcols[i] = vertexColor(i, n, paletteSource, stops, gamma, phase);
+
+    const pairs = diagonalPairs(n, skipK);
+    const maxD = Math.floor(n/2);
+
+    const stamp = new Date().toISOString().slice(0,19).replace(/[:T]/g,'-');
+
+    const esc = (s) => String(s)
+      .replace(/&/g,'&amp;')
+      .replace(/</g,'&lt;')
+      .replace(/>/g,'&gt;')
+      .replace(/"/g,'&quot;');
+
+    const hex = (c) => rgbToHex(c);
+    const op = (a) => clamp(a,0,1);
+
+    const defs = [];
+    let gradId = 0;
+
+    const blend = (mode === 'solid') ? 'normal' : el.blend.value;
+    const blendAttr = (blend && blend !== 'normal') ? ` style="mix-blend-mode:${esc(blend)}"` : '';
+
+    let svg = '';
+    svg += `<?xml version="1.0" encoding="UTF-8"?>
+`;
+    svg += `<svg xmlns="http://www.w3.org/2000/svg" width="${w}" height="${h}" viewBox="0 0 ${w} ${h}">
+`;
+    svg += `<rect x="0" y="0" width="${w}" height="${h}" fill="${hex(bg)}"/>
+`;
+
+    // Per-line gradients in pairGradient mode
+    if(mode === 'pairGradient'){
+      for(const [i,j] of pairs){
+        const id = `g${gradId++}`;
+        defs.push(
+          `<linearGradient id="${id}" gradientUnits="userSpaceOnUse" x1="${pts[i].x}" y1="${pts[i].y}" x2="${pts[j].x}" y2="${pts[j].y}">` +
+          `<stop offset="0" stop-color="${hex(vcols[i])}" stop-opacity="${op(alpha)}"/>` +
+          `<stop offset="1" stop-color="${hex(vcols[j])}" stop-opacity="${op(alpha)}"/>` +
+          `</linearGradient>`
+        );
+      }
+    }
+
+    if(defs.length){
+      svg += `<defs>
+${defs.join('\n')}
+</defs>
+`;
+    }
+
+    svg += `<g stroke-linecap="round" stroke-width="${lineW}" fill="none"${blendAttr}>
+`;
+
+    let gIndex = 0;
+    for(const [i,j,d] of pairs){
+      if(mode === 'solid'){
+        svg += `<line x1="${pts[i].x}" y1="${pts[i].y}" x2="${pts[j].x}" y2="${pts[j].y}" stroke="${hex(solid)}" stroke-opacity="${op(alpha)}"/>\n`;
+        continue;
+      }
+
+      if(mode === 'byOrigin'){
+        const a2 = op(alpha*0.5);
+        svg += `<line x1="${pts[i].x}" y1="${pts[i].y}" x2="${pts[j].x}" y2="${pts[j].y}" stroke="${hex(vcols[i])}" stroke-opacity="${a2}"/>\n`;
+        svg += `<line x1="${pts[i].x}" y1="${pts[i].y}" x2="${pts[j].x}" y2="${pts[j].y}" stroke="${hex(vcols[j])}" stroke-opacity="${a2}"/>\n`;
+        continue;
+      }
+
+      if(mode === 'symmetric'){
+        const t = (d-2) / Math.max(1, (maxD-2));
+        const col = (paletteSource === 'custom')
+          ? sampleGradient(stops.length ? stops : [{r:0,g:0,b:0},{r:0,g:0,b:0}], (t + phase) % 1, gamma)
+          : hsvToRgb(((t + phase) % 1), 0.95, 0.95);
+        svg += `<line x1="${pts[i].x}" y1="${pts[i].y}" x2="${pts[j].x}" y2="${pts[j].y}" stroke="${hex(col)}" stroke-opacity="${op(alpha)}"/>\n`;
+        continue;
+      }
+
+      if(mode === 'pairGradient'){
+        const id = `g${gIndex++}`;
+        svg += `<line x1="${pts[i].x}" y1="${pts[i].y}" x2="${pts[j].x}" y2="${pts[j].y}" stroke="url(#${id})"/>\n`;
+        continue;
+      }
+
+      if(mode === 'distanceFade'){
+        const base = vcols[i];
+        const t = clamp((d-1) / Math.max(1, maxD-1), 0, 1);
+        const col = mix({r:0,g:0,b:0}, base, t);
+        svg += `<line x1="${pts[i].x}" y1="${pts[i].y}" x2="${pts[j].x}" y2="${pts[j].y}" stroke="${hex(col)}" stroke-opacity="${op(alpha)}"/>\n`;
+        continue;
+      }
+    }
+
+    svg += `</g>
+`;
+
+    // Polygon/points/labels overlay
+    if(el.showPolygon.value === 'on'){
+      const path = pts.map((p, idx) => `${idx===0?'M':'L'}${p.x} ${p.y}`).join(' ') + ' Z';
+      svg += `<path d="${path}" stroke="#000000" stroke-opacity="0.9" stroke-linecap="round" stroke-width="${Math.max(1,lineW)}" fill="none"/>
+`;
+      for(const p of pts){
+        svg += `<circle cx="${p.x}" cy="${p.y}" r="2.2" fill="#000000"/>
+`;
+      }
+      if(el.labels.value === 'on'){
+        const mono = esc(getComputedStyle(document.documentElement).getPropertyValue('--mono').trim() || 'monospace');
+        svg += `<g font-family="${mono}" font-size="12" fill="#000000" fill-opacity="0.9">
+`;
+        for(let i=0;i<n;i++){
+          const p = pts[i];
+          svg += `<text x="${p.x + 6}" y="${p.y - 6}">${esc(i)}</text>
+`;
+        }
+        svg += `</g>
+`;
+      }
+    }
+
+    svg += `</svg>
+`;
+
+    const blob = new Blob([svg], {type: 'image/svg+xml;charset=utf-8'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.download = `polygon-diagonals-${stamp}.svg`;
+    a.href = url;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }
+
+  // ---------- randomize ----------
+  function randomize(){
+    const rand = mulberry32((Math.random()*1e9)>>>0);
+
+    const n = Math.floor(lerp(4, 28, rand()));
+    el.n.value = String(n);
+
+    const rad = Math.floor(lerp(120, 380, rand()));
+    el.radius.value = String(rad);
+
+    const rot = Math.floor(lerp(-180, 180, rand()));
+    el.rotation.value = String(rot);
+
+    const maxK = Math.max(2, Math.min(30, Math.floor(n/2)));
+    el.skip.max = String(maxK);
+    el.skip.value = String(clamp(2 + Math.floor(rand()*Math.min(10, Math.floor(n/2))), 2, maxK));
+
+    el.alpha.value = String(lerp(0.08, 0.7, rand()).toFixed(2));
+    el.width.value = String(lerp(0.7, 2.6, rand()).toFixed(1));
+
+        el.jitter.value = String(Math.floor(lerp(0, 18, rand())));
+
+    el.shape.value = (rand() < 0.35) ? 'star' : 'polygon';
+    el.starInner.value = String(lerp(0.25, 0.85, rand()).toFixed(2));
+
+    const modes = ['byOrigin','symmetric','pairGradient','distanceFade','solid'];
+    el.mode.value = modes[Math.floor(rand()*modes.length)];
+
+    const blends = ['normal','multiply','screen','overlay','lighter'];
+    el.blend.value = blends[Math.floor(rand()*blends.length)];
+
+    el.palette.value = (rand() < 0.45) ? 'custom' : 'rainbow';
+
+    const stopSets = [
+      ['#000000','#ff00ff','#00ffff','#ffff00'],
+      ['#000000','#ffffff'],
+      ['#ff0000','#00ff00','#0000ff'],
+      ['#111111','#ff8800','#ffee00'],
+      ['#000000','#00ffcc','#000000'],
+      ['#000000','#ff0000','#000000','#00ffff'],
+    ];
+    el.stops.value = stopSets[Math.floor(rand()*stopSets.length)].join(', ');
+
+    el.gamma.value = String(lerp(0.7, 1.6, rand()).toFixed(2));
+    el.phase.value = String(rand().toFixed(3));
+
+    if(el.mode.value === 'solid'){
+      const solids = ['#000000','#111111','#ff00ff','#00ffff','#ff0000'];
+      el.solidColor.value = solids[Math.floor(rand()*solids.length)];
+    }
+
+    state.seed = Math.floor(rand()*1e9)>>>0;
+
+    syncSwatches();
+    buildStopsUI();
+    syncColorUI();
+    draw();
+  }
+
+  // ---------- wiring ----------
+  const inputs = [
+    el.shape, el.starInner,
+    el.n, el.radius, el.rotation, el.skip, el.jitter,
+    el.showPolygon, el.labels,
+    el.mode, el.palette, el.blend, el.alpha, el.width,
+    el.gamma, el.phase,
+    el.aa, el.dpr,
+  ];
+
+  for(const inp of inputs){
+    inp.addEventListener('input', () => {
+      if(inp === el.n){
+        const n = parseInt(el.n.value,10);
+        const maxK = Math.max(2, Math.min(30, Math.floor(n/2)));
+        el.skip.max = String(maxK);
+        el.skip.value = String(clamp(parseInt(el.skip.value,10), 2, maxK));
+      }
+      if(inp === el.mode || inp === el.palette){
+        syncColorUI();
+      }
+      if(inp === el.shape){
+        syncGeometryUI();
+      }
+      if(inp === el.dpr) resize();
+      draw();
+    });
+  }
+
+  el.solidColor.addEventListener('input', () => { syncSwatches(); draw(); });
+  el.bg.addEventListener('input', () => { syncSwatches(); draw(); });
+
+  el.addStop.addEventListener('click', () => {
+    const current = ensureStopsAtLeast2(parseStops(el.stops.value).map(rgbToHex));
+    if(current.length >= 10) return;
+    current.push(current[current.length-1] || '#777777');
+    el.stops.value = current.join(', ');
+    buildStopsUI();
+    draw();
+  });
+
+  el.resetStops.addEventListener('click', () => {
+    el.stops.value = '#000000, #ff00ff, #00ffff, #ffff00';
+    buildStopsUI();
+    draw();
+  });
+
+  el.randomize.addEventListener('click', randomize);
+  el.export.addEventListener('click', exportPNG);
+  el.exportSVG.addEventListener('click', exportSVG);
+
+  el.canvas.addEventListener('pointerdown', onDown);
+  el.canvas.addEventListener('pointermove', onMove);
+  el.canvas.addEventListener('pointerup', onUp);
+  el.canvas.addEventListener('pointercancel', onUp);
+
+  const ro = new ResizeObserver(resize);
+  ro.observe(document.body);
+
+  // ---------- self tests (console) ----------
+  function assert(cond, msg){
+    if(!cond) throw new Error('Test failed: ' + msg);
+  }
+
+  function runSelfTests(){
+    // diagonal formula sanity
+    for(const n of [3,4,5,6,10]){
+      const total = (n*(n-3))/2;
+      const pairs = diagonalPairs(n, 2);
+      assert(pairs.length === total, `diagonal count n=${n} expected ${total} got ${pairs.length}`);
+    }
+
+    // skip should never increase count
+    const p2 = diagonalPairs(12, 2).length;
+    const p3 = diagonalPairs(12, 3).length;
+    const p4 = diagonalPairs(12, 4).length;
+    assert(p2 >= p3 && p3 >= p4, 'skip should be monotonic decreasing');
+
+    // edge detection sanity
+    assert(isEdge(0,1,9) === true, 'adjacent should be edge');
+    assert(isEdge(0,8,9) === true, 'wrap-adjacent should be edge');
+    assert(isEdge(0,2,9) === false, 'non-adjacent should not be edge');
+
+    // rainbow loop seam sanity: i=0 and i=n-1 should match
+    const c0 = vertexColor(0, 9, 'rainbow', [], 1, 0);
+    const cL = vertexColor(8, 9, 'rainbow', [], 1, 0);
+    assert(c0.r === cL.r && c0.g === cL.g && c0.b === cL.b, 'rainbow loop should close');
+
+    // export should exist
+    assert(typeof exportPNG === 'function', 'exportPNG should be defined');
+    assert(typeof exportSVG === 'function', 'exportSVG should be defined');
+
+    // UI state sanity
+    el.mode.value = 'solid';
+    el.palette.value = 'custom';
+    syncColorUI();
+    assert(el.solidControls.style.display !== 'none', 'solidControls should show in solid mode');
+    assert(el.paletteControls.style.display === 'none', 'paletteControls should hide in solid mode');
+
+    el.mode.value = 'pairGradient';
+    el.palette.value = 'rainbow';
+    syncColorUI();
+    assert(el.paletteControls.style.display !== 'none', 'paletteControls should show in non-solid modes');
+
+    // star geometry sanity: alternating radii
+    const w=500,h=500;
+    const ptsStar = polygonPoints(8, 100, 0, 0, 0, 1, w, h, 'star', 0.5);
+    const cx=w/2, cy=h/2;
+    const r0 = Math.hypot(ptsStar[0].x-cx, ptsStar[0].y-cy);
+    const r1 = Math.hypot(ptsStar[1].x-cx, ptsStar[1].y-cy);
+    assert(r0 > r1, 'star should alternate outer/inner radii');
+
+    console.log('[Polygon Diagonals Color Lab] self-tests passed');
+  }
+
+  // ---------- init ----------
+  el.skip.max = String(Math.max(2, Math.min(30, Math.floor(parseInt(el.n.value,10)/2))));
+  el.skip.value = String(clamp(parseInt(el.skip.value,10), 2, parseInt(el.skip.max,10)));
+
+  syncSwatches();
+  buildStopsUI();
+  syncColorUI();
+  syncGeometryUI();
+  runSelfTests();
+  syncGeometryUI();
+  resize();
+  draw();
+})();
+</script>
+</body>
+</html>
