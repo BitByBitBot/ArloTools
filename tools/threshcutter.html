@@ -1,0 +1,1105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>ArloTool — Threshold + Extract Drawings + 1‑bit TIFF ZIP</title>
+  <style>
+    html, body {
+      margin: 0; padding: 0;
+      background: #fff; color: #000;
+      font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    }
+    h1 { font-size: 22px; margin: 20px 20px 10px; text-transform: uppercase; }
+    .container { padding: 0 20px 24px; }
+
+    .controls {
+      display: flex; flex-wrap: wrap; align-items: center; gap: 16px;
+      border: 1px solid #000; padding: 14px;
+    }
+    .controls .group { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+
+    label { font-weight: 700; }
+    input[type="file"], input[type="number"] { border: 1px solid #000; padding: 4px; font: inherit; }
+    input[type="range"] { width: 220px; }
+
+    button {
+      padding: 6px 12px;
+      border: 1px solid #000;
+      background: #fff;
+      font: inherit;
+      cursor: pointer;
+    }
+    button:hover { background: #f0f0f0; }
+    button:disabled { opacity: 0.5; cursor: not-allowed; }
+
+    .hint { font-size: 12px; opacity: 0.85; }
+    .status {
+      margin-top: 12px;
+      border: 1px solid #000;
+      padding: 10px;
+      min-height: 44px;
+      font-size: 12px;
+      white-space: pre-wrap;
+    }
+
+    .section-title {
+      margin: 18px 0 8px;
+      font-size: 12px;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+    }
+
+    .images-container { display: flex; flex-wrap: wrap; gap: 18px; margin-top: 10px; }
+    .drawings-container { display: flex; flex-wrap: wrap; gap: 14px; margin-top: 8px; }
+
+    .image-card {
+      width: 320px;
+      border: 1px solid #000;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      position: relative;
+    }
+
+    .drawing-card {
+      width: 240px;
+      border: 1px solid #000;
+      padding: 10px;
+      display: flex;
+      flex-direction: column;
+      gap: 8px;
+      position: relative;
+    }
+
+    .xbtn {
+      position: absolute;
+      top: 6px;
+      right: 6px;
+      width: 22px;
+      height: 22px;
+      padding: 0;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border: 1px solid #000;
+      background: #fff;
+      font: inherit;
+      font-weight: 700;
+      cursor: pointer;
+      line-height: 1;
+      user-select: none;
+    }
+    .xbtn:hover { background: #f0f0f0; }
+
+    .image-card h3 { margin: 0; font-size: 14px; padding-bottom: 6px; border-bottom: 1px solid #000; }
+
+    .row { display: flex; gap: 8px; }
+    .row canvas { width: 150px; height: auto; border: 1px solid #000; image-rendering: pixelated; }
+
+    .metrics { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; }
+    .card-actions { display: flex; gap: 8px; flex-wrap: wrap; }
+
+    .pill {
+      border: 1px solid #000;
+      padding: 2px 6px;
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+    .pill input { transform: translateY(1px); }
+
+    .drawing-card .meta { font-size: 12px; display: flex; justify-content: space-between; gap: 10px; }
+    .drawing-card canvas { width: 100%; height: auto; border: 1px solid #000; image-rendering: pixelated; }
+  </style>
+</head>
+<body>
+  <h1>Automatic Threshold Tool</h1>
+  <div class="container">
+    <div class="controls">
+      <div class="group">
+        <label for="file-input">Upload images:</label>
+        <input type="file" id="file-input" multiple accept="image/*" />
+      </div>
+
+      <div class="group">
+        <label for="threshold">Global Threshold (<span id="threshold-value">128</span>):</label>
+        <input type="range" id="threshold" min="0" max="255" step="1" value="128" />
+      </div>
+
+      <div class="group pill" title="When enabled, each image uses its own computed threshold (Otsu).">
+        <label style="font-weight:700;">
+          <input type="checkbox" id="per-image" checked />
+          Per-image auto thresholds
+        </label>
+      </div>
+
+      <div class="group">
+        <label for="drawing-count">Drawings per page (N):</label>
+        <input type="number" id="drawing-count" min="0" step="1" value="0" style="width:72px;" />
+        <span class="hint">0 = auto (extract all above size threshold)</span>
+      </div>
+
+      <div class="group">
+        <button id="auto-threshold" title="Recompute an Otsu threshold for each loaded image">Auto threshold (per image)</button>
+        <button id="extract" title="If N>0: extract N largest. If N=0: extract all components above size threshold.">Extract drawings</button>
+        <button id="export-zip" title="Export thresholded full pages as 1-bit TIFFs inside one ZIP">Export ZIP (Full Pages)</button>
+        <button id="export-drawings-zip" title="Export isolated drawings (thresholded) as 1-bit TIFFs inside one ZIP">Export ZIP (Drawings)</button>
+        <button id="clear-images" title="Remove all loaded images and extracted drawings">Clear all</button>
+      </div>
+
+      <div class="hint">Workflow: upload → (optional) auto threshold → extract drawings → export drawings ZIP. (Previews are downscaled; all TIFF exports are full original resolution.)</div>
+    </div>
+
+    <div id="status" class="status">Ready.</div>
+
+    <div class="section-title">Pages</div>
+    <div class="images-container" id="images-container"></div>
+
+    <div class="section-title">Extracted drawings</div>
+    <div class="drawings-container" id="drawings-container"></div>
+  </div>
+
+  <!-- JSZip -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
+
+  <script>
+    // ---------- DOM refs & state ----------
+    const elFile = document.getElementById('file-input');
+    const elThreshold = document.getElementById('threshold');
+    const elThresholdValue = document.getElementById('threshold-value');
+    const elPerImage = document.getElementById('per-image');
+    const elDrawingCount = document.getElementById('drawing-count');
+    const elAuto = document.getElementById('auto-threshold');
+    const elExtract = document.getElementById('extract');
+    const elExportZip = document.getElementById('export-zip');
+    const elExportDrawingsZip = document.getElementById('export-drawings-zip');
+    const elClear = document.getElementById('clear-images');
+    const elImages = document.getElementById('images-container');
+    const elDrawings = document.getElementById('drawings-container');
+    const elStatus = document.getElementById('status');
+
+    const cards = [];      // pages
+    const extracted = [];  // drawings
+
+    let pageUid = 0;
+    let drawingUid = 0;
+
+    function setStatus(msg) { elStatus.textContent = msg; }
+    function clamp(v, a, b) { return Math.max(a, Math.min(b, v)); }
+
+    // ---------- removal helpers ----------
+    function clearExtracted() {
+      extracted.length = 0;
+      elDrawings.innerHTML = '';
+    }
+
+    function removeDrawingsByPredicate(pred) {
+      for (let i = extracted.length - 1; i >= 0; i--) {
+        const it = extracted[i];
+        if (!pred(it)) continue;
+        if (it.cardEl && it.cardEl.parentNode) it.cardEl.remove();
+        extracted.splice(i, 1);
+      }
+    }
+
+    function removeDrawingById(id) {
+      removeDrawingsByPredicate(d => d.id === id);
+      setStatus('Removed drawing.');
+    }
+
+    function removePageById(id) {
+      const idx = cards.findIndex(c => c.id === id);
+      if (idx === -1) return;
+      const page = cards[idx];
+      if (page.cardEl && page.cardEl.parentNode) page.cardEl.remove();
+      cards.splice(idx, 1);
+      removeDrawingsByPredicate(d => d.pageId === id);
+      if (cards.length) {
+        updateAllProcessed();
+        setStatus(`Removed page. Remaining pages: ${cards.length}.`);
+      } else {
+        clearExtracted();
+        setStatus('Removed page. No pages loaded.');
+      }
+    }
+
+    // ---------- image decode ----------
+    async function loadImageFromFile(file) {
+      try {
+        if ('createImageBitmap' in window) {
+          const bmp = await createImageBitmap(file);
+          return bmp;
+        }
+      } catch (e) {
+        console.warn('createImageBitmap failed:', file.name, e);
+      }
+
+      return new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onerror = () => reject(new Error('FileReader failed: ' + file.name));
+        reader.onload = () => {
+          const img = new Image();
+          img.onload = () => resolve(img);
+          img.onerror = () => reject(new Error('Could not decode image: ' + file.name));
+          img.src = String(reader.result);
+        };
+        reader.readAsDataURL(file);
+      });
+    }
+
+    // ---------- canvas utils ----------
+    function makeCanvas(w, h) {
+      const c = document.createElement('canvas');
+      c.width = w; c.height = h;
+      return c;
+    }
+
+    function drawPreview(fromCanvas, toCanvas, maxW = 150) {
+      const iw = fromCanvas.width || 1;
+      const ih = fromCanvas.height || 1;
+      const scale = Math.min(1, maxW / iw);
+      const w = Math.max(1, Math.round(iw * scale));
+      const h = Math.max(1, Math.round(ih * scale));
+      toCanvas.width = w; toCanvas.height = h;
+      const ctx = toCanvas.getContext('2d');
+      ctx.imageSmoothingEnabled = false;
+      ctx.clearRect(0, 0, w, h);
+      ctx.drawImage(fromCanvas, 0, 0, iw, ih, 0, 0, w, h);
+    }
+
+    // ---------- thresholding ----------
+    function getGrayscaleHistogram(imageData) {
+      const hist = new Array(256).fill(0);
+      const d = imageData.data;
+      for (let i = 0; i < d.length; i += 4) {
+        const gray = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) | 0;
+        hist[gray]++;
+      }
+      return hist;
+    }
+
+    function otsuFromHistogram(hist) {
+      const total = hist.reduce((a, b) => a + b, 0);
+      if (!total) return 128;
+      let sum = 0;
+      for (let t = 0; t < 256; t++) sum += t * hist[t];
+      let sumB = 0;
+      let wB = 0;
+      let maxVar = -1;
+      let threshold = 128;
+      for (let t = 0; t < 256; t++) {
+        wB += hist[t];
+        if (wB === 0) continue;
+        const wF = total - wB;
+        if (wF === 0) break;
+        sumB += t * hist[t];
+        const mB = sumB / wB;
+        const mF = (sum - sumB) / wF;
+        const between = wB * wF * (mB - mF) * (mB - mF);
+        if (between > maxVar) {
+          maxVar = between;
+          threshold = t;
+        }
+      }
+      return threshold;
+    }
+
+    function applyThresholdToCanvas(inCanvas, outCanvas, threshold) {
+      const w = inCanvas.width, h = inCanvas.height;
+      outCanvas.width = w; outCanvas.height = h;
+      const inCtx = inCanvas.getContext('2d', { willReadFrequently: true });
+      const outCtx = outCanvas.getContext('2d', { willReadFrequently: true });
+      inCtx.imageSmoothingEnabled = false;
+      outCtx.imageSmoothingEnabled = false;
+      const img = inCtx.getImageData(0, 0, w, h);
+      const d = img.data;
+      let black = 0;
+      const thr = clamp(threshold | 0, 0, 255);
+      for (let i = 0; i < d.length; i += 4) {
+        const gray = (0.2126 * d[i] + 0.7152 * d[i + 1] + 0.0722 * d[i + 2]) | 0;
+        const isBlack = gray < thr;
+        const v = isBlack ? 0 : 255;
+        if (isBlack) black++;
+        d[i] = v; d[i + 1] = v; d[i + 2] = v; d[i + 3] = 255;
+      }
+      outCtx.putImageData(img, 0, 0);
+      const total = (w * h) || 1;
+      return black / total;
+    }
+
+    function cleanName(name) {
+      const base = name.replace(/\.[^.]+$/, '');
+      return base.replace(/[^a-zA-Z0-9\-_]+/g, '_').slice(0, 120) || 'image';
+    }
+
+    function getCurrentThreshold(card) {
+      if (elPerImage.checked && Number.isFinite(card.autoThreshold)) return clamp(Math.round(card.autoThreshold), 0, 255) | 0;
+      return clamp(Math.round(+elThreshold.value), 0, 255) | 0;
+    }
+
+    function updateAllProcessed() {
+      const globalT = clamp(Math.round(+elThreshold.value), 0, 255) | 0;
+      elThresholdValue.textContent = String(globalT);
+      for (const card of cards) {
+        const t = getCurrentThreshold(card);
+        const blackRatio = applyThresholdToCanvas(card.fullCanvas, card.outCanvas, t);
+        card.blackRatioEl.textContent = (blackRatio * 100).toFixed(1) + '%';
+        card.thresholdEl.textContent = String(t);
+        drawPreview(card.fullCanvas, card.previewOriginal);
+        drawPreview(card.outCanvas, card.previewProcessed);
+      }
+      if (cards.length) {
+        setStatus(
+          elPerImage.checked
+            ? `Processed ${cards.length} page(s) using per-image thresholds (global slider is fallback).`
+            : `Processed ${cards.length} page(s) at global threshold ${globalT}.`
+        );
+      }
+    }
+
+    function downloadBlob(blob, filename) {
+      const a = document.createElement('a');
+      const url = URL.createObjectURL(blob);
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    // ---------- 1‑bit TIFF encoder ----------
+    function canvasTo1BitTiffArrayBuffer(canvas, opts = {}) {
+      const dpi = clamp(Math.round(opts.dpi ?? 300), 1, 2400);
+      const w = canvas.width | 0;
+      const h = canvas.height | 0;
+      if (w <= 0 || h <= 0) throw new Error('Invalid canvas size');
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const data = ctx.getImageData(0, 0, w, h).data;
+      const rowBytes = Math.ceil(w / 8);
+      const imageBytes = rowBytes * h;
+      const pixelData = new Uint8Array(imageBytes);
+      let p = 0;
+      for (let y = 0; y < h; y++) {
+        let byte = 0;
+        let bitPos = 7;
+        for (let x = 0; x < w; x++) {
+          const i = (y * w + x) * 4;
+          const isWhite = data[i] >= 128;
+          if (isWhite) byte |= (1 << bitPos);
+          bitPos--;
+          if (bitPos < 0) {
+            pixelData[p++] = byte;
+            byte = 0;
+            bitPos = 7;
+          }
+        }
+        if (bitPos !== 7) pixelData[p++] = byte;
+      }
+      const TYPE = { SHORT: 3, LONG: 4, RATIONAL: 5 };
+      const TAGS = 13;
+      const ifdOffset = 8;
+      const ifdSize = 2 + TAGS * 12 + 4;
+      const extraOffset = 8 + ifdSize;
+      const xResOffset = extraOffset;
+      const yResOffset = extraOffset + 8;
+      const stripOffset = extraOffset + 16;
+      const totalSize = stripOffset + imageBytes;
+      const buf = new ArrayBuffer(totalSize);
+      const dv = new DataView(buf);
+      const u8 = new Uint8Array(buf);
+      dv.setUint16(0, 0x4949, true);
+      dv.setUint16(2, 42, true);
+      dv.setUint32(4, ifdOffset, true);
+      let o = ifdOffset;
+      dv.setUint16(o, TAGS, true); o += 2;
+      function tag(id, type, count, value) {
+        dv.setUint16(o, id, true);
+        dv.setUint16(o + 2, type, true);
+        dv.setUint32(o + 4, count >>> 0, true);
+        dv.setUint32(o + 8, value >>> 0, true);
+        o += 12;
+      }
+      tag(256, TYPE.LONG, 1, w);
+      tag(257, TYPE.LONG, 1, h);
+      tag(258, TYPE.SHORT, 1, 1);
+      tag(259, TYPE.SHORT, 1, 1);
+      tag(262, TYPE.SHORT, 1, 1);
+      tag(266, TYPE.SHORT, 1, 1);
+      tag(273, TYPE.LONG, 1, stripOffset);
+      tag(277, TYPE.SHORT, 1, 1);
+      tag(278, TYPE.LONG, 1, h);
+      tag(279, TYPE.LONG, 1, imageBytes);
+      tag(282, TYPE.RATIONAL, 1, xResOffset);
+      tag(283, TYPE.RATIONAL, 1, yResOffset);
+      tag(296, TYPE.SHORT, 1, 2);
+      dv.setUint32(o, 0, true);
+      dv.setUint32(xResOffset + 0, dpi >>> 0, true);
+      dv.setUint32(xResOffset + 4, 1, true);
+      dv.setUint32(yResOffset + 0, dpi >>> 0, true);
+      dv.setUint32(yResOffset + 4, 1, true);
+      u8.set(pixelData, stripOffset);
+      return buf;
+    }
+
+    // ---------- detection + grouping ----------
+    function canvasToBinary(canvas) {
+      const ctx = canvas.getContext('2d', { willReadFrequently: true });
+      const w = canvas.width, h = canvas.height;
+      const img = ctx.getImageData(0, 0, w, h).data;
+      const bin = new Uint8Array(w * h);
+      for (let i = 0, p = 0; i < img.length; i += 4, p++) {
+        bin[p] = img[i] < 128 ? 1 : 0;
+      }
+      return bin;
+    }
+
+    function dilate(bin, w, h) {
+      const out = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          let v = 0;
+          for (let dy = -1; dy <= 1 && !v; dy++) {
+            const yy = y + dy;
+            if (yy < 0 || yy >= h) continue;
+            for (let dx = -1; dx <= 1; dx++) {
+              const xx = x + dx;
+              if (xx < 0 || xx >= w) continue;
+              if (bin[yy * w + xx]) { v = 1; break; }
+            }
+          }
+          out[y * w + x] = v;
+        }
+      }
+      return out;
+    }
+
+    function erode(bin, w, h) {
+      const out = new Uint8Array(w * h);
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          let v = 1;
+          for (let dy = -1; dy <= 1 && v; dy++) {
+            const yy = y + dy;
+            if (yy < 0 || yy >= h) { v = 0; break; }
+            for (let dx = -1; dx <= 1; dx++) {
+              const xx = x + dx;
+              if (xx < 0 || xx >= w) { v = 0; break; }
+              if (!bin[yy * w + xx]) { v = 0; break; }
+            }
+          }
+          out[y * w + x] = v;
+        }
+      }
+      return out;
+    }
+
+    function closeMorph(bin, w, h) {
+      return erode(dilate(bin, w, h), w, h);
+    }
+
+    class DSU {
+      constructor(n) {
+        this.p = new Int32Array(n);
+        this.r = new Int8Array(n);
+        for (let i = 0; i < n; i++) this.p[i] = i;
+      }
+      find(a) {
+        let p = this.p[a];
+        if (p === a) return a;
+        this.p[a] = this.find(p);
+        return this.p[a];
+      }
+      union(a, b) {
+        a = this.find(a); b = this.find(b);
+        if (a === b) return;
+        const ra = this.r[a], rb = this.r[b];
+        if (ra < rb) this.p[a] = b;
+        else if (ra > rb) this.p[b] = a;
+        else { this.p[b] = a; this.r[a] = (ra + 1) | 0; }
+      }
+    }
+
+    function bboxContains(a, b) {
+      return a.x0 <= b.x0 && a.y0 <= b.y0 && a.x1 >= b.x1 && a.y1 >= b.y1;
+    }
+
+    function bboxUnion(a, b) {
+      return {
+        x0: Math.min(a.x0, b.x0),
+        y0: Math.min(a.y0, b.y0),
+        x1: Math.max(a.x1, b.x1),
+        y1: Math.max(a.y1, b.y1),
+      };
+    }
+
+    function bboxArea(b) {
+      return Math.max(0, (b.x1 - b.x0 + 1)) * Math.max(0, (b.y1 - b.y0 + 1));
+    }
+
+    function findComponentsLabeled(bin, w, h) {
+      const visited = new Uint8Array(w * h);
+      const labels = new Uint32Array(w * h);
+      const comps = [];
+      const qx = new Int32Array(w * h);
+      const qy = new Int32Array(w * h);
+      const push = (x, y, tail) => { qx[tail] = x; qy[tail] = y; return tail + 1; };
+      let compId = 0;
+      for (let y = 0; y < h; y++) {
+        for (let x = 0; x < w; x++) {
+          const idx = y * w + x;
+          if (!bin[idx] || visited[idx]) continue;
+          compId++;
+          let head = 0, tail = 0;
+          tail = push(x, y, tail);
+          visited[idx] = 1;
+          labels[idx] = compId;
+          let area = 0;
+          let x0 = x, y0 = y, x1 = x, y1 = y;
+          while (head < tail) {
+            const cx = qx[head];
+            const cy = qy[head];
+            head++;
+            area++;
+            if (cx < x0) x0 = cx;
+            if (cy < y0) y0 = cy;
+            if (cx > x1) x1 = cx;
+            if (cy > y1) y1 = cy;
+            for (let dy = -1; dy <= 1; dy++) {
+              const ny = cy + dy;
+              if (ny < 0 || ny >= h) continue;
+              for (let dx = -1; dx <= 1; dx++) {
+                const nx = cx + dx;
+                if (nx < 0 || nx >= w) continue;
+                const nidx = ny * w + nx;
+                if (!bin[nidx] || visited[nidx]) continue;
+                visited[nidx] = 1;
+                labels[nidx] = compId;
+                tail = push(nx, ny, tail);
+              }
+            }
+          }
+          comps.push({ id: compId, area, x0, y0, x1, y1 });
+        }
+      }
+      return { comps, labels };
+    }
+
+    function groupComponentsIntoDrawings(comps, dw, dh) {
+      const n = comps.length;
+      if (!n) return [];
+      const dsu = new DSU(n);
+      for (let i = 0; i < n; i++) {
+        const a = comps[i];
+        for (let j = 0; j < n; j++) {
+          if (i === j) continue;
+          const b = comps[j];
+          if (b.area < a.area) continue;
+          if (bboxContains(b, a)) dsu.union(i, j);
+        }
+      }
+      const clusters = new Map();
+      for (let i = 0; i < n; i++) {
+        const root = dsu.find(i);
+        if (!clusters.has(root)) clusters.set(root, { ids: [], area: 0, bbox: null });
+        const c = clusters.get(root);
+        const comp = comps[i];
+        c.ids.push(comp.id);
+        c.area += comp.area;
+        const bb = { x0: comp.x0, y0: comp.y0, x1: comp.x1, y1: comp.y1 };
+        c.bbox = c.bbox ? bboxUnion(c.bbox, bb) : bb;
+      }
+      const out = Array.from(clusters.values());
+      const minClusterArea = Math.max(30, Math.floor((dw * dh) * 0.00008));
+      return out.filter(c => c.area >= minClusterArea && bboxArea(c.bbox) >= minClusterArea);
+    }
+
+    function makeBinaryDetectionCanvas(srcCanvas) {
+      const w = srcCanvas.width, h = srcCanvas.height;
+      const c = makeCanvas(w, h);
+      const ctx = c.getContext('2d', { willReadFrequently: true });
+      ctx.imageSmoothingEnabled = false;
+      ctx.drawImage(srcCanvas, 0, 0);
+      return { canvas: c, scale: 1 };
+    }
+
+    function makeDrawingCropForCluster(page, labels, lw, lh, cluster, scale, pad = 8) {
+      const full = page.fullCanvas;
+      const w = full.width, h = full.height;
+      const bbox = cluster.bbox;
+      const x0 = bbox.x0 / scale;
+      const y0 = bbox.y0 / scale;
+      const x1 = bbox.x1 / scale;
+      const y1 = bbox.y1 / scale;
+      const px0 = clamp(Math.floor(x0 - pad), 0, w - 1);
+      const py0 = clamp(Math.floor(y0 - pad), 0, h - 1);
+      const px1 = clamp(Math.ceil(x1 + pad), 0, w - 1);
+      const py1 = clamp(Math.ceil(y1 + pad), 0, h - 1);
+      const cw = Math.max(1, px1 - px0 + 1);
+      const ch = Math.max(1, py1 - py0 + 1);
+      const src = makeCanvas(cw, ch);
+      const sctx = src.getContext('2d', { willReadFrequently: true });
+      sctx.imageSmoothingEnabled = false;
+      sctx.drawImage(full, px0, py0, cw, ch, 0, 0, cw, ch);
+      const mask = new Uint8Array(cw * ch);
+      const idSet = new Set(cluster.ids.map(id => id >>> 0));
+      for (let y = 0; y < ch; y++) {
+        const oy = py0 + y;
+        const ly = clamp(Math.floor(oy * scale), 0, lh - 1);
+        const rowOff = ly * lw;
+        for (let x = 0; x < cw; x++) {
+          const ox = px0 + x;
+          const lx = clamp(Math.floor(ox * scale), 0, lw - 1);
+          const id = labels[rowOff + lx] >>> 0;
+          if (idSet.has(id)) mask[y * cw + x] = 1;
+        }
+      }
+      return { srcCanvas: src, mask, bbox: { px0, py0, cw, ch } };
+    }
+
+    function thresholdDrawingCanvas(item, thresholdOverride) {
+      const srcCanvas = item.srcCanvas;
+      if (!srcCanvas) return;
+      const w = srcCanvas.width, h = srcCanvas.height;
+      const srcCtx = srcCanvas.getContext('2d', { willReadFrequently: true });
+      const srcData = srcCtx.getImageData(0, 0, w, h);
+      const s = srcData.data;
+      let out = item.canvas;
+      if (!out) {
+        out = makeCanvas(w, h);
+        item.canvas = out;
+      } else {
+        out.width = w;
+        out.height = h;
+      }
+      const octx = out.getContext('2d', { willReadFrequently: true });
+      const outData = octx.createImageData(w, h);
+      const d = outData.data;
+      const baseMask = item.mask || new Uint8Array(w * h);
+      const thr = clamp(Math.round(thresholdOverride != null ? thresholdOverride : (item.threshold ?? 128)), 0, 255) | 0;
+      const bin = new Uint8Array(w * h);
+      for (let p = 0, i = 0; p < baseMask.length; p++, i += 4) {
+        if (!baseMask[p]) { bin[p] = 0; continue; }
+        const gray = (0.2126 * s[i] + 0.7152 * s[i + 1] + 0.0722 * s[i + 2]) | 0;
+        bin[p] = gray < thr ? 1 : 0;
+      }
+      let filtered = bin;
+      const rawMask = clamp(Math.round(item.maskLevel ?? 128), 0, 255) | 0;
+      const area = w * h;
+      if (area > 0) {
+        const norm = (rawMask - 128) / 127;
+        const maxFrac = 0.015;
+        let frac = norm > 0 ? norm * maxFrac : 0;
+        if (frac < 0) frac = 0;
+        if (frac > maxFrac) frac = maxFrac;
+        if (frac > 0) {
+          const minLocalArea = Math.max(1, Math.floor(area * frac));
+          filtered = removeSmallComponents(bin, w, h, minLocalArea);
+        }
+      }
+      for (let p = 0, i = 0; p < filtered.length; p++, i += 4) {
+        if (!baseMask[p]) {
+          d[i] = 255; d[i + 1] = 255; d[i + 2] = 255; d[i + 3] = 255;
+          continue;
+        }
+        const isOn = filtered[p] === 1;
+        const v = isOn ? 0 : 255;
+        d[i] = v; d[i + 1] = v; d[i + 2] = v; d[i + 3] = 255;
+      }
+      octx.putImageData(outData, 0, 0);
+    }
+
+    function removeSmallComponents(bin, w, h, minKeepArea) {
+      const labeled = findComponentsLabeled(bin, w, h);
+      const keep = new Uint8Array(labeled.comps.length + 1);
+      for (const c of labeled.comps) if (c.area >= minKeepArea) keep[c.id] = 1;
+      const out = new Uint8Array(w * h);
+      for (let i = 0; i < out.length; i++) {
+        const id = labeled.labels[i];
+        out[i] = id && keep[id] ? 1 : 0;
+      }
+      return out;
+    }
+
+    // ---------- export ZIPs ----------
+    async function exportDrawingsZip() {
+      if (!extracted.length) { setStatus('No drawings extracted yet. Click “Extract drawings” first.'); return; }
+      if (!window.JSZip) { setStatus('ZIP export needs JSZip (CDN).'); return; }
+      const zip = new JSZip();
+      setStatus('Building drawings ZIP…');
+      elExportDrawingsZip.disabled = true;
+      elExtract.disabled = true;
+      elAuto.disabled = true;
+      elClear.disabled = true;
+      elFile.disabled = true;
+      elExportZip.disabled = true;
+      try {
+        for (let i = 0; i < extracted.length; i++) {
+          const item = extracted[i];
+          setStatus(`Encoding drawing ${i + 1}/${extracted.length}: ${item.filename}`);
+          thresholdDrawingCanvas(item, item.threshold ?? 128);
+          const buf = canvasTo1BitTiffArrayBuffer(item.canvas, { dpi: 300 });
+          zip.file(item.filename, buf);
+        }
+        setStatus('Compressing drawings ZIP…');
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } }, (metadata) => {
+          if (metadata && typeof metadata.percent === 'number') setStatus(`Compressing drawings ZIP… ${metadata.percent.toFixed(0)}%`);
+        });
+        const stamp = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const zipName = `threshold_drawings_${stamp.getFullYear()}-${pad(stamp.getMonth() + 1)}-${pad(stamp.getDate())}_${pad(stamp.getHours())}${pad(stamp.getMinutes())}.zip`;
+        downloadBlob(zipBlob, zipName);
+        setStatus(`Done. Downloaded ${zipName}`);
+      } catch (e) {
+        console.error(e);
+        setStatus('Export failed: ' + (e?.message || String(e)));
+      } finally {
+        elExportDrawingsZip.disabled = false;
+        elExtract.disabled = false;
+        elAuto.disabled = false;
+        elClear.disabled = false;
+        elFile.disabled = false;
+        elExportZip.disabled = false;
+      }
+    }
+
+    async function exportFullPagesZip() {
+      if (!cards.length) { setStatus('No pages loaded.'); return; }
+      if (!window.JSZip) { setStatus('ZIP export needs JSZip (CDN).'); return; }
+      const zip = new JSZip();
+      setStatus('Building full-pages ZIP…');
+      elExportZip.disabled = true;
+      elAuto.disabled = true;
+      elClear.disabled = true;
+      elFile.disabled = true;
+      elExtract.disabled = true;
+      elExportDrawingsZip.disabled = true;
+      try {
+        updateAllProcessed();
+        for (let i = 0; i < cards.length; i++) {
+          const card = cards[i];
+          const t = getCurrentThreshold(card);
+          setStatus(`Encoding page ${i + 1}/${cards.length}: ${card.filename} (T=${t})`);
+          const buf = canvasTo1BitTiffArrayBuffer(card.outCanvas, { dpi: 300 });
+          const fname = cleanName(card.filename) + `_threshold_${t}.tiff`;
+          zip.file(fname, buf);
+        }
+        setStatus('Compressing full-pages ZIP…');
+        const zipBlob = await zip.generateAsync({ type: 'blob', compression: 'DEFLATE', compressionOptions: { level: 6 } }, (metadata) => {
+          if (metadata && typeof metadata.percent === 'number') setStatus(`Compressing full-pages ZIP… ${metadata.percent.toFixed(0)}%`);
+        });
+        const stamp = new Date();
+        const pad = (n) => String(n).padStart(2, '0');
+        const zipName = `threshold_pages_${stamp.getFullYear()}-${pad(stamp.getMonth() + 1)}-${pad(stamp.getDate())}_${pad(stamp.getHours())}${pad(stamp.getMinutes())}.zip`;
+        downloadBlob(zipBlob, zipName);
+        setStatus(`Done. Downloaded ${zipName}`);
+      } catch (e) {
+        console.error(e);
+        setStatus('Export failed: ' + (e?.message || String(e)));
+      } finally {
+        elExportZip.disabled = false;
+        elAuto.disabled = false;
+        elClear.disabled = false;
+        elFile.disabled = false;
+        elExtract.disabled = false;
+        elExportDrawingsZip.disabled = false;
+      }
+    }
+
+    // ---------- page loading ----------
+    async function onFilesSelected(files) {
+      if (!files || !files.length) return;
+      setStatus(`Loading ${files.length} image(s)…`);
+      let loaded = 0;
+      let skipped = 0;
+      for (const file of files) {
+        try {
+          const img = await loadImageFromFile(file);
+          const iw = img.naturalWidth || img.width || 1;
+          const ih = img.naturalHeight || img.height || 1;
+          const fullCanvas = makeCanvas(iw, ih);
+          const fullCtx = fullCanvas.getContext('2d', { willReadFrequently: true });
+          fullCtx.imageSmoothingEnabled = false;
+          fullCtx.drawImage(img, 0, 0);
+          if (typeof img.close === 'function') { try { img.close(); } catch (_) {} }
+          const outCanvas = makeCanvas(iw, ih);
+          const imgData = fullCtx.getImageData(0, 0, iw, ih);
+          const hist = getGrayscaleHistogram(imgData);
+          const autoT = otsuFromHistogram(hist);
+          const cardEl = document.createElement('div');
+          cardEl.className = 'image-card';
+          const pid = ++pageUid;
+          const xbtn = document.createElement('button');
+          xbtn.className = 'xbtn';
+          xbtn.type = 'button';
+          xbtn.textContent = '×';
+          xbtn.title = 'Remove this page';
+          xbtn.addEventListener('click', () => removePageById(pid));
+          const title = document.createElement('h3');
+          title.textContent = file.name;
+          const row = document.createElement('div');
+          row.className = 'row';
+          const previewOriginal = document.createElement('canvas');
+          const previewProcessed = document.createElement('canvas');
+          row.appendChild(previewOriginal);
+          row.appendChild(previewProcessed);
+          const metrics = document.createElement('div');
+          metrics.className = 'metrics';
+          const blackRatioWrap = document.createElement('div');
+          blackRatioWrap.textContent = 'Black: ';
+          const blackRatioEl = document.createElement('span');
+          blackRatioEl.textContent = '—';
+          blackRatioWrap.appendChild(blackRatioEl);
+          const thresholdWrap = document.createElement('div');
+          thresholdWrap.textContent = 'T: ';
+          const thresholdEl = document.createElement('span');
+          thresholdEl.textContent = String(autoT);
+          thresholdWrap.appendChild(thresholdEl);
+          const sizeEl = document.createElement('div');
+          sizeEl.textContent = `${iw}×${ih}`;
+          metrics.appendChild(blackRatioWrap);
+          metrics.appendChild(thresholdWrap);
+          metrics.appendChild(sizeEl);
+          const actions = document.createElement('div');
+          actions.className = 'card-actions';
+          const card = {
+            id: pid,
+            cardEl,
+            filename: file.name,
+            fullCanvas,
+            outCanvas,
+            previewOriginal,
+            previewProcessed,
+            blackRatioEl,
+            thresholdEl,
+            autoThreshold: autoT,
+          };
+          const btnTiff = document.createElement('button');
+          btnTiff.textContent = 'Download TIFF';
+          btnTiff.addEventListener('click', () => {
+            try {
+              updateAllProcessed();
+              const tNow = getCurrentThreshold(card);
+              setStatus(`Encoding TIFF… (${file.name}, T=${tNow})`);
+              const buf = canvasTo1BitTiffArrayBuffer(outCanvas, { dpi: 300 });
+              const blob = new Blob([buf], { type: 'image/tiff' });
+              downloadBlob(blob, cleanName(file.name) + `_threshold_${tNow}.tiff`);
+              setStatus('TIFF downloaded.');
+            } catch (e) {
+              console.error(e);
+              setStatus('TIFF export failed: ' + (e?.message || String(e)));
+            }
+          });
+          actions.appendChild(btnTiff);
+          cardEl.appendChild(xbtn);
+          cardEl.appendChild(title);
+          cardEl.appendChild(row);
+          cardEl.appendChild(metrics);
+          cardEl.appendChild(actions);
+          elImages.appendChild(cardEl);
+          cards.push(card);
+          loaded++;
+        } catch (e) {
+          console.error(e);
+          skipped++;
+          setStatus(`Skipped: ${file.name}\nReason: ${e?.message || String(e)}\n(Loaded so far: ${loaded}, skipped: ${skipped})`);
+        }
+      }
+      if (loaded) updateAllProcessed();
+      setStatus(`Done loading. Loaded: ${loaded}. Skipped: ${skipped}.`);
+    }
+
+    function computeAutoThresholdPerImage() {
+      if (!cards.length) { setStatus('No pages loaded.'); return; }
+      for (const card of cards) {
+        const ctx = card.fullCanvas.getContext('2d', { willReadFrequently: true });
+        const img = ctx.getImageData(0, 0, card.fullCanvas.width, card.fullCanvas.height);
+        const hist = getGrayscaleHistogram(img);
+        card.autoThreshold = otsuFromHistogram(hist);
+      }
+      elPerImage.checked = true;
+      updateAllProcessed();
+      setStatus(`Auto thresholds recomputed per page (${cards.length} total).`);
+    }
+
+    function clearAll() {
+      cards.length = 0;
+      elImages.innerHTML = '';
+      clearExtracted();
+      elFile.value = '';
+      setStatus('Cleared. You can upload new images.');
+    }
+
+    // ---------- extraction: pages → drawings ----------
+    function extractDrawingsAllPages() {
+      if (!cards.length) { setStatus('No pages loaded.'); return; }
+      clearExtracted();
+      const N = Math.max(0, (+elDrawingCount.value || 0) | 0);
+      let total = 0;
+      updateAllProcessed(); // ensure outCanvas is up to date
+      for (const card of cards) {
+        const det = makeBinaryDetectionCanvas(card.outCanvas);
+        const detCanvas = det.canvas;
+        const dw = detCanvas.width, dh = detCanvas.height;
+        if (dw <= 0 || dh <= 0) continue;
+        let bin = canvasToBinary(detCanvas);
+        bin = closeMorph(bin, dw, dh);
+        const labeled = findComponentsLabeled(bin, dw, dh);
+        const minCompArea = Math.max(30, Math.floor((dw * dh) * 0.00008));
+        const comps = labeled.comps.filter(c => c.area >= minCompArea);
+        if (!comps.length) continue;
+        const clustersAll = groupComponentsIntoDrawings(comps, dw, dh);
+        let clusters = clustersAll;
+        if (N > 0 && clustersAll.length > N) {
+          clusters = clustersAll.slice().sort((a, b) => b.area - a.area).slice(0, N);
+        }
+        let indexForPage = 0;
+        for (const cluster of clusters) {
+          indexForPage++;
+          const crop = makeDrawingCropForCluster(card, labeled.labels, dw, dh, cluster, det.scale, 6);
+          const item = {
+            id: ++drawingUid,
+            pageId: card.id,
+            filename: `${cleanName(card.filename)}_drawing_${indexForPage}.tiff`,
+            srcCanvas: crop.srcCanvas,
+            mask: crop.mask,
+            canvas: null,
+            threshold: getCurrentThreshold(card),
+            maskLevel: 128,
+            bbox: crop.bbox,
+            cardEl: null,
+          };
+          thresholdDrawingCanvas(item, item.threshold);
+          const dCard = document.createElement('div');
+          dCard.className = 'drawing-card';
+          item.cardEl = dCard;
+          const xbtn = document.createElement('button');
+          xbtn.className = 'xbtn';
+          xbtn.type = 'button';
+          xbtn.textContent = '×';
+          xbtn.title = 'Remove this drawing';
+          const thisId = item.id;
+          xbtn.addEventListener('click', () => removeDrawingById(thisId));
+          const title = document.createElement('div');
+          title.textContent = `${cleanName(card.filename)} — drawing ${indexForPage}`;
+          const meta = document.createElement('div');
+          meta.className = 'meta';
+          const sizeEl = document.createElement('span');
+          sizeEl.textContent = `${crop.srcCanvas.width}×${crop.srcCanvas.height}`;
+          const pageEl = document.createElement('span');
+          pageEl.textContent = `Page ${card.id}`;
+          meta.appendChild(sizeEl);
+          meta.appendChild(pageEl);
+          const thumb = document.createElement('canvas');
+          drawPreview(item.canvas, thumb, 220);
+          const controls = document.createElement('div');
+          controls.className = 'card-actions';
+          controls.style.flexDirection = 'column';
+          const thrWrap = document.createElement('div');
+          thrWrap.style.display = 'flex';
+          thrWrap.style.flexDirection = 'column';
+          const thrLabel = document.createElement('div');
+          thrLabel.textContent = `Threshold: ${item.threshold}`;
+          const thrSlider = document.createElement('input');
+          thrSlider.type = 'range';
+          thrSlider.min = '0';
+          thrSlider.max = '255';
+          thrSlider.step = '1';
+          thrSlider.value = String(item.threshold);
+          thrSlider.addEventListener('input', () => {
+            item.threshold = clamp(Math.round(+thrSlider.value), 0, 255);
+            thrLabel.textContent = `Threshold: ${item.threshold}`;
+            thresholdDrawingCanvas(item, item.threshold);
+            drawPreview(item.canvas, thumb, 220);
+          });
+          thrWrap.appendChild(thrLabel);
+          thrWrap.appendChild(thrSlider);
+          const maskWrap = document.createElement('div');
+          maskWrap.style.display = 'flex';
+          maskWrap.style.flexDirection = 'column';
+          const maskLabel = document.createElement('div');
+          maskLabel.textContent = `Mask level: ${item.maskLevel}`;
+          const maskSlider = document.createElement('input');
+          maskSlider.type = 'range';
+          maskSlider.min = '0';
+          maskSlider.max = '255';
+          maskSlider.step = '1';
+          maskSlider.value = String(item.maskLevel);
+          maskSlider.addEventListener('input', () => {
+            item.maskLevel = clamp(Math.round(+maskSlider.value), 0, 255);
+            maskLabel.textContent = `Mask level: ${item.maskLevel}`;
+            thresholdDrawingCanvas(item, item.threshold);
+            drawPreview(item.canvas, thumb, 220);
+          });
+          maskWrap.appendChild(maskLabel);
+          maskWrap.appendChild(maskSlider);
+          controls.appendChild(thrWrap);
+          controls.appendChild(maskWrap);
+          dCard.appendChild(xbtn);
+          dCard.appendChild(title);
+          dCard.appendChild(meta);
+          dCard.appendChild(thumb);
+          dCard.appendChild(controls);
+          elDrawings.appendChild(dCard);
+          extracted.push(item);
+          total++;
+        }
+      }
+      setStatus(`Extracted ${total} drawing(s) from ${cards.length} page(s).`);
+    }
+
+    // ---------- self-tests ----------
+    function runSelfTests() {
+      const results = [];
+      const hist = new Array(256).fill(0);
+      for (let i = 20; i <= 40; i++) hist[i] = 100;
+      for (let i = 210; i <= 230; i++) hist[i] = 100;
+      const t1 = otsuFromHistogram(hist);
+      results.push(`Test otsu bimodal: ${(t1 > 60 && t1 < 200) ? 'PASS' : 'FAIL'} (t=${t1})`);
+      const c = makeCanvas(10, 10);
+      const ctx = c.getContext('2d');
+      ctx.fillStyle = 'black'; ctx.fillRect(0, 0, 5, 10);
+      ctx.fillStyle = 'white'; ctx.fillRect(5, 0, 5, 10);
+      const out = makeCanvas(10, 10);
+      const ratio = applyThresholdToCanvas(c, out, 128);
+      results.push(`Test threshold ratio: ${(Math.abs(ratio - 0.5) < 0.11) ? 'PASS' : 'FAIL'} (ratio=${ratio.toFixed(2)})`);
+      const c2 = makeCanvas(40, 20);
+      const ctx2 = c2.getContext('2d');
+      ctx2.fillStyle = 'white'; ctx2.fillRect(0, 0, 40, 20);
+      ctx2.fillStyle = 'black'; ctx2.fillRect(2, 2, 8, 8);
+      ctx2.fillRect(26, 6, 10, 10);
+      const labeled2 = findComponentsLabeled(canvasToBinary(c2), 40, 20);
+      const comps2 = labeled2.comps.filter(cc => cc.area > 10);
+      results.push(`Test components count: ${comps2.length === 2 ? 'PASS' : 'FAIL'} (count=${comps2.length})`);
+      try {
+        const tc = makeCanvas(8, 8);
+        const tctx = tc.getContext('2d');
+        tctx.fillStyle = 'white'; tctx.fillRect(0, 0, 8, 8);
+        tctx.fillStyle = 'black'; tctx.fillRect(0, 0, 4, 8);
+        const tb = canvasTo1BitTiffArrayBuffer(tc, { dpi: 300 });
+        const dv = new DataView(tb);
+        const okHdr = dv.getUint16(0, true) === 0x4949 && dv.getUint16(2, true) === 42;
+        results.push(`Test TIFF header: ${okHdr ? 'PASS' : 'FAIL'}`);
+      } catch (e) {
+        results.push(`Test TIFF header: FAIL (${e?.message || String(e)})`);
+      }
+      for (const line of results) console.log('[SelfTest]', line);
+    }
+
+    // ---------- events ----------
+    elThreshold.addEventListener('input', updateAllProcessed);
+    elPerImage.addEventListener('change', updateAllProcessed);
+    elFile.addEventListener('change', (e) => onFilesSelected(e.target.files));
+    elAuto.addEventListener('click', computeAutoThresholdPerImage);
+    elExtract.addEventListener('click', extractDrawingsAllPages);
+    elExportZip.addEventListener('click', exportFullPagesZip);
+    elExportDrawingsZip.addEventListener('click', exportDrawingsZip);
+    elClear.addEventListener('click', clearAll);
+
+    runSelfTests();
+    setStatus('Ready. Load images to begin.');
+  </script>
+</body>
+</html>

@@ -1,0 +1,508 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Plaid Generator</title>
+  <style>
+    :root{
+      --bg:#f7f7f7; --ink:#111; --muted:#777; --panel:#ffffff; --accent:#0a0a0a;
+    }
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0; font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Inter, Arial, sans-serif;
+      color:var(--ink); background:var(--bg);
+    }
+    .wrap{
+      display:grid; grid-template-columns: 360px 1fr; height:100vh;
+    }
+    aside{
+      background:var(--panel); border-right:1px solid #e5e5e5; overflow:auto; padding:18px 16px 24px;
+    }
+    main{display:grid; grid-template-rows: 1fr auto; padding:16px; gap:12px}
+    h1{font-size:18px; margin:0 0 8px 0; letter-spacing:.2px}
+    .sub{font-size:12px; color:var(--muted); margin-bottom:14px}
+    fieldset{border:1px solid #e6e6e6; border-radius:10px; padding:12px; margin:12px 0}
+    legend{font-weight:600; padding:0 6px}
+    label{font-size:12px; color:#444}
+    .row{display:grid; grid-template-columns: 1fr 1fr; gap:8px; align-items:center; margin:8px 0}
+    .row-3{display:grid; grid-template-columns: 1fr 1fr 1fr; gap:8px; align-items:center; margin:8px 0}
+    input[type="number"], input[type="text"], select{
+      width:100%; padding:7px 8px; border:1px solid #ddd; border-radius:8px; font:inherit; background:white
+    }
+    input[type="range"]{width:100%}
+    input[type="color"]{width:100%; height:32px; border:none; background:none}
+    button{
+      appearance:none; border:1px solid #ddd; background:#fff; padding:8px 10px; border-radius:10px; font-weight:600; cursor:pointer;
+    }
+    button.icon{ width:28px; height:28px; padding:0; display:inline-grid; place-items:center; border-radius:8px }
+    button:hover{border-color:#bbb}
+    .btn-row{display:flex; gap:8px; flex-wrap:wrap}
+    .list{display:flex; flex-direction:column; gap:10px; margin-top:10px}
+    .stripe{
+      display:grid;
+      grid-template-columns: 28px minmax(56px,90px) minmax(96px,140px) minmax(180px,1fr) auto;
+      align-items:center; gap:10px; padding:10px;
+      border:1px dashed #ddd; border-radius:10px; background:#fafafa
+    }
+    .stripe > *{min-width:0}
+    .row > *{min-width:0}
+    .row-3 > *{min-width:0}
+    .stripe label{display:block}
+    .stripe label small{display:block; margin-bottom:4px}
+    .stripe .idx{font-size:11px; color:#666}
+    .stripe .ops{display:flex; gap:6px; justify-content:flex-end; flex-wrap:nowrap}
+    .preview-area{
+      border:1px solid #e5e5e5; border-radius:14px; background:#fff; position:relative; overflow:hidden; min-height:240px;
+      display:grid; place-items:center; padding:10px;
+    }
+    #tileBg{position:absolute; inset:0; background-size: 320px 320px; background-repeat: repeat; image-rendering: pixelated}
+    #tileBorder{position:absolute; inset:0; background-image: linear-gradient(transparent,transparent); pointer-events:none}
+    .preview-topbar{
+      position:absolute; top:10px; left:10px; display:flex; gap:8px; background:rgba(255,255,255,.8); border:1px solid #ddd; border-radius:10px; padding:6px 8px; backdrop-filter: blur(8px);
+    }
+    .hint{font-size:11px; color:#666}
+    .actions{display:flex; gap:8px; justify-content:flex-end}
+    .kbd{font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; font-size:11px; background:#f0f0f0; border:1px solid #ddd; border-radius:6px; padding:1px 5px}
+    .pill{font-size:11px; padding:3px 8px; border:1px solid #ddd; border-radius:999px; background:#fff}
+    .hr{height:1px; background:#eee; margin:10px 0}
+    .muted{color:#666}
+    .stack{display:flex; flex-direction:column; gap:6px}
+  </style>
+</head>
+<body>
+  <div class="wrap" id="app">
+    <aside>
+      <h1>Plaid Generator</h1>
+      <div class="sub">Make seamless warp/weft patterns, then export the tile or copy CSS.</div>
+
+      <fieldset>
+        <legend>General</legend>
+        <div class="row">
+          <label>Unit size (px)<br><input type="number" id="unit" min="1" max="128" value="8"></label>
+          <label>Zoom<br><input type="range" id="zoom" min="0.5" max="6" step="0.1" value="2"></label>
+        </div>
+        <div class="row">
+          <label>Blend mode<br>
+            <select id="blend">
+              <option>multiply</option>
+              <option>overlay</option>
+              <option>screen</option>
+              <option>hard-light</option>
+              <option>soft-light</option>
+            </select>
+          </label>
+          <label>Base color<br>
+            <input type="color" id="base" value="#ffffff">
+          </label>
+        </div>
+        <div class="row">
+          <label>Seed<br><input type="number" id="seed" value="123456"></label>
+          <div class="btn-row" style="align-self:end">
+            <button id="randAll">Randomize</button>
+            <button id="swap">Swap axes</button>
+          </div>
+        </div>
+        <div class="row">
+          <label><input type="checkbox" id="showTile" checked> Show tile frame</label>
+          <label><input type="checkbox" id="pixelated" checked> Pixelate preview</label>
+        </div>
+        <div class="hint">Tile size is derived from stripe units × unit size for perfect seamless repeats.</div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Vertical stripes (warp)</legend>
+        <div class="btn-row">
+          <button id="vAdd">Add</button>
+          <button id="vEq">Equalize</button>
+          <button id="vRnd">Randomize widths</button>
+          <label class="pill"><input type="checkbox" id="vRainbow"> Rainbow</label>
+        </div>
+        <div id="vList" class="list"></div>
+      </fieldset>
+
+      <fieldset>
+        <legend>Horizontal stripes (weft)</legend>
+        <div class="btn-row">
+          <button id="hAdd">Add</button>
+          <button id="hEq">Equalize</button>
+          <button id="hRnd">Randomize widths</button>
+          <label class="pill"><input type="checkbox" id="hRainbow"> Rainbow</label>
+        </div>
+        <div id="hList" class="list"></div>
+      </fieldset>
+
+    </aside>
+    <main>
+      <div class="preview-area">
+        <div id="tileBg"></div>
+        <div id="tileBorder"></div>
+        <div class="preview-topbar">
+          <span class="pill" id="tileSize">–</span>
+          <span class="pill">Drag to pan</span>
+        </div>
+      </div>
+      <div class="actions">
+        <button id="copyCSS">Copy CSS</button>
+        <button id="exportPNG">Export PNG tile</button>
+      </div>
+      <canvas id="tile" width="16" height="16" hidden></canvas>
+    </main>
+  </div>
+
+<script>
+(function(){
+  // --- Utilities ------------------------------------------------------------
+  const el = id => document.getElementById(id);
+  const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+
+  // Seedable RNG (mulberry32)
+  function mulberry32(a){return function(){var t = a += 0x6D2B79F5; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296;}}
+
+  function hexToRgb(hex){
+    const m = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return m ? {r:parseInt(m[1],16), g:parseInt(m[2],16), b:parseInt(m[3],16)} : {r:255,g:255,b:255};
+  }
+  function rgbaStr(hex, a){const {r,g,b} = hexToRgb(hex); return `rgba(${r},${g},${b},${a})`;}
+
+  function hslToHex(h, s, l){
+    // h 0..360, s/l 0..100
+    s/=100; l/=100;
+    const k=n=> (n + h/30) % 12,
+      a=s*Math.min(l,1-l),
+      f=n=> l - a * Math.max(-1, Math.min(k(n)-3, Math.min(9-k(n),1)));
+    const toHex = x => Math.round(x*255).toString(16).padStart(2,'0');
+    return `#${toHex(f(0))}${toHex(f(8))}${toHex(f(4))}`;
+  }
+
+  // --- State ---------------------------------------------------------------
+  let state = {
+    unit: 8,
+    zoom: 2,
+    blend: 'multiply',
+    base: '#ffffff',
+    seed: 123456,
+    pixelated: true,
+    showTile: true,
+    vRainbow:false,
+    hRainbow:false,
+    vertical: [
+      { color:'#2b6cb0', alpha:0.55, units:4 },
+      { color:'#63b3ed', alpha:0.35, units:2 },
+      { color:'#2b6cb0', alpha:0.55, units:4 },
+      { color:'#63b3ed', alpha:0.35, units:2 }
+    ],
+    horizontal: [
+      { color:'#b83280', alpha:0.55, units:3 },
+      { color:'#f6ad55', alpha:0.35, units:3 },
+      { color:'#b83280', alpha:0.55, units:3 },
+      { color:'#f6ad55', alpha:0.35, units:3 }
+    ]
+  };
+
+  // --- DOM refs ------------------------------------------------------------
+  const tileCanvas = el('tile');
+  const ctx = tileCanvas.getContext('2d');
+  const preview = el('tileBg');
+  const border = el('tileBorder');
+  const sizeBadge = el('tileSize');
+
+  // --- UI binding ----------------------------------------------------------
+  function bindGeneral(){
+    el('unit').value = state.unit;
+    el('zoom').value = state.zoom;
+    el('blend').value = state.blend;
+    el('base').value = state.base;
+    el('seed').value = state.seed;
+    el('pixelated').checked = state.pixelated;
+    el('showTile').checked = state.showTile;
+
+    el('unit').addEventListener('input', e=>{ state.unit = clamp(parseInt(e.target.value||1),1,512); render();});
+    el('zoom').addEventListener('input', e=>{ state.zoom = parseFloat(e.target.value||1); updatePreviewOnly();});
+    el('blend').addEventListener('change', e=>{ state.blend = e.target.value; render();});
+    el('base').addEventListener('input', e=>{ state.base = e.target.value; render();});
+    el('seed').addEventListener('input', e=>{ state.seed = parseInt(e.target.value||0);});
+    el('pixelated').addEventListener('change', e=>{ state.pixelated = !!e.target.checked; preview.style.imageRendering = state.pixelated ? 'pixelated' : 'auto'; });
+    el('showTile').addEventListener('change', e=>{ state.showTile = !!e.target.checked; updateTileFrame();});
+
+    el('randAll').addEventListener('click', ()=>{ randomizeAll(); render();});
+    el('swap').addEventListener('click', ()=>{ [state.vertical, state.horizontal] = [state.horizontal, state.vertical]; renderLists(); render();});
+  }
+
+  function stripeRow(axis, idx, s){
+    return `
+    <div class="stripe" data-axis="${axis}" data-idx="${idx}">
+      <div class="idx">${idx+1}</div>
+      <input type="color" class="color" value="${s.color}" ${axis==='v'&&state.vRainbow||axis==='h'&&state.hRainbow? 'disabled': ''}>
+      <div>
+        <label><small>Units</small>
+          <input type="number" class="units" min="1" max="128" value="${s.units}">
+        </label>
+      </div>
+      <div>
+        <label><small>Opacity</small>
+          <input type="range" class="alpha" min="0" max="1" step="0.01" value="${s.alpha}">
+        </label>
+      </div>
+      <div class="ops">
+        <button class="icon up" title="Move up">▲</button>
+        <button class="icon down" title="Move down">▼</button>
+        <button class="icon del" title="Delete">✕</button>
+      </div>
+    </div>`;
+  }
+
+  function renderLists(){
+    // Rainbow auto-colors
+    if(state.vRainbow){ applyRainbow('v'); }
+    if(state.hRainbow){ applyRainbow('h'); }
+
+    el('vList').innerHTML = state.vertical.map((s,i)=>stripeRow('v',i,s)).join('');
+    el('hList').innerHTML = state.horizontal.map((s,i)=>stripeRow('h',i,s)).join('');
+  }
+
+  function bindListHandlers(){
+    function onListClick(e){
+      const row = e.target.closest('.stripe'); if(!row) return;
+      const axis = row.dataset.axis, idx = +row.dataset.idx;
+      const arr = axis==='v' ? state.vertical : state.horizontal;
+      if(e.target.classList.contains('del')){ arr.splice(idx,1); renderLists(); render(); }
+      if(e.target.classList.contains('up')){ if(idx>0){ [arr[idx-1],arr[idx]] = [arr[idx],arr[idx-1]]; renderLists(); render(); } }
+      if(e.target.classList.contains('down')){ if(idx<arr.length-1){ [arr[idx+1],arr[idx]] = [arr[idx],arr[idx+1]]; renderLists(); render(); } }
+    }
+    function onListInput(e){
+      const row = e.target.closest('.stripe'); if(!row) return;
+      const axis = row.dataset.axis, idx = +row.dataset.idx;
+      const arr = axis==='v' ? state.vertical : state.horizontal;
+      const s = arr[idx];
+      if(e.target.classList.contains('color')) s.color = e.target.value;
+      if(e.target.classList.contains('units')) s.units = clamp(parseInt(e.target.value||1),1,512);
+      if(e.target.classList.contains('alpha')) s.alpha = clamp(parseFloat(e.target.value||0),0,1);
+      render();
+    }
+    el('vList').addEventListener('click', onListClick);
+    el('hList').addEventListener('click', onListClick);
+    el('vList').addEventListener('input', onListInput);
+    el('hList').addEventListener('input', onListInput);
+
+    el('vAdd').addEventListener('click', ()=>{ state.vertical.push({color:'#8888ff',alpha:.4,units:3}); renderLists(); render(); });
+    el('hAdd').addEventListener('click', ()=>{ state.horizontal.push({color:'#ff8888',alpha:.4,units:3}); renderLists(); render(); });
+
+    el('vEq').addEventListener('click', ()=>{ const v = state.vertical; if(!v.length) return; const avg = Math.max(1, Math.round(v.reduce((a,b)=>a+b.units,0)/v.length)); v.forEach(s=>s.units=avg); renderLists(); render(); });
+    el('hEq').addEventListener('click', ()=>{ const v = state.horizontal; if(!v.length) return; const avg = Math.max(1, Math.round(v.reduce((a,b)=>a+b.units,0)/v.length)); v.forEach(s=>s.units=avg); renderLists(); render(); });
+
+    el('vRnd').addEventListener('click', ()=>{ randomizeWidths('v'); renderLists(); render(); });
+    el('hRnd').addEventListener('click', ()=>{ randomizeWidths('h'); renderLists(); render(); });
+
+    el('vRainbow').addEventListener('change', e=>{ state.vRainbow = !!e.target.checked; renderLists(); render(); });
+    el('hRainbow').addEventListener('change', e=>{ state.hRainbow = !!e.target.checked; renderLists(); render(); });
+  }
+
+  // --- Pattern + Render ----------------------------------------------------
+  function sumUnits(arr){ return arr.reduce((a,b)=>a + (b.units|0), 0); }
+  function tileSize(){ return { w: Math.max(1, sumUnits(state.vertical) * state.unit), h: Math.max(1, sumUnits(state.horizontal) * state.unit) }; }
+
+  function drawTile(){
+    const {w,h} = tileSize();
+    if(tileCanvas.width !== w) tileCanvas.width = w;
+    if(tileCanvas.height !== h) tileCanvas.height = h;
+
+    // background
+    ctx.globalCompositeOperation = 'source-over';
+    ctx.clearRect(0,0,w,h);
+    ctx.fillStyle = state.base; ctx.fillRect(0,0,w,h);
+
+    // vertical stripes (warp)
+    let x = 0;
+    for(const s of state.vertical){
+      const wpx = s.units * state.unit;
+      ctx.fillStyle = rgbaStr(s.color, s.alpha);
+      ctx.fillRect(x, 0, wpx, h);
+      x += wpx;
+    }
+
+    // horizontal stripes (weft)
+    ctx.globalCompositeOperation = state.blend;
+    let y = 0;
+    for(const s of state.horizontal){
+      const hpx = s.units * state.unit;
+      ctx.fillStyle = rgbaStr(s.color, s.alpha);
+      ctx.fillRect(0, y, w, hpx);
+      y += hpx;
+    }
+    ctx.globalCompositeOperation = 'source-over';
+  }
+
+  function updatePreviewOnly(){
+    const {w,h} = tileSize();
+    const data = tileCanvas.toDataURL('image/png');
+    preview.style.backgroundImage = `url(${data})`;
+    preview.style.backgroundSize = `${Math.round(w*state.zoom)}px ${Math.round(h*state.zoom)}px`;
+  }
+
+  function updateTileFrame(){
+    const {w,h} = tileSize();
+    border.style.boxShadow = state.showTile ? `inset 0 0 0 2px rgba(0,0,0,.08), 0 0 0 1px rgba(0,0,0,.05)` : 'none';
+    border.style.backgroundImage = state.showTile ? `linear-gradient(to right, rgba(0,0,0,.08) 0 1px, transparent 1px), linear-gradient(to bottom, rgba(0,0,0,.08) 0 1px, transparent 1px)` : 'none';
+    border.style.backgroundSize = state.showTile ? `${Math.round(w*state.zoom)}px ${Math.round(h*state.zoom)}px` : 'auto';
+    sizeBadge.textContent = `${w} × ${h} px`;
+  }
+
+  function render(){
+    // enforce at least 1 stripe each side
+    if(state.vertical.length===0) state.vertical.push({color:'#999999', alpha:.4, units:4});
+    if(state.horizontal.length===0) state.horizontal.push({color:'#999999', alpha:.4, units:4});
+
+    // rainbow recolor if toggled
+    if(state.vRainbow) applyRainbow('v');
+    if(state.hRainbow) applyRainbow('h');
+
+    drawTile();
+    updatePreviewOnly();
+    updateTileFrame();
+  }
+
+  function applyRainbow(axis){
+    const arr = axis==='v' ? state.vertical : state.horizontal;
+    const n = Math.max(1, arr.length);
+    for(let i=0;i<n;i++){
+      const h = Math.round(360 * (i/n));
+      arr[i].color = hslToHex(h, 70, 50);
+    }
+  }
+
+  function randomizeWidths(axis){
+    // bump seed so repeated clicks yield fresh results
+    state.seed = (state.seed + 1) >>> 0;
+    el('seed').value = state.seed;
+    const rng = mulberry32((state.seed|0) ^ (axis==='v'?0xA5A5:0x5A5A));
+    const arr = axis==='v' ? state.vertical : state.horizontal;
+    for(const s of arr){ s.units = 1 + Math.floor(rng()*8); }
+  }
+
+  function randomizeAll(){
+    // bump seed so repeated clicks yield fresh results
+    state.seed = (state.seed + 1) >>> 0;
+    el('seed').value = state.seed;
+    const rng = mulberry32(state.seed|0);
+
+    state.unit = 4 + Math.floor(rng()*12); el('unit').value = state.unit;
+
+    // counts
+    const vCount = 3 + Math.floor(rng()*6);
+    const hCount = 3 + Math.floor(rng()*6);
+
+    state.vertical = Array.from({length:vCount}, ()=>({
+      color: hslToHex(Math.floor(rng()*360), 60 + Math.floor(rng()*30), 40 + Math.floor(rng()*20)),
+      alpha: 0.3 + Math.round(rng()*0.5*100)/100,
+      units: 1 + Math.floor(rng()*8)
+    }));
+    state.horizontal = Array.from({length:hCount}, ()=>({
+      color: hslToHex(Math.floor(rng()*360), 60 + Math.floor(rng()*30), 40 + Math.floor(rng()*20)),
+      alpha: 0.3 + Math.round(rng()*0.5*100)/100,
+      units: 1 + Math.floor(rng()*8)
+    }));
+
+    state.vRainbow = false; state.hRainbow = false;
+    el('vRainbow').checked = false; el('hRainbow').checked = false;
+    renderLists();
+  }
+
+  // --- Export --------------------------------------------------------------
+  function copyCSS(){
+    const u = state.unit;
+    const vStops = [];
+    let acc = 0; // px
+    for(const s of state.vertical){
+      const w = s.units*u; const rgba = rgbaStr(s.color, s.alpha);
+      vStops.push(`${rgba} ${acc}px ${acc+w}px`);
+      acc += w;
+    }
+    const hStops = [];
+    acc = 0;
+    for(const s of state.horizontal){
+      const w = s.units*u; const rgba = rgbaStr(s.color, s.alpha);
+      hStops.push(`${rgba} ${acc}px ${acc+w}px`);
+      acc += w;
+    }
+    const {w,h} = tileSize();
+    const css = `/* Plaid background (uses two repeating-linear-gradients + blend) */\n`+
+`background-color: ${state.base};\n`+
+`background-image: repeating-linear-gradient(90deg, ${vStops.join(', ')}),\n                   repeating-linear-gradient(0deg, ${hStops.join(', ')});\n`+
+`background-blend-mode: ${state.blend};\n`+
+`background-size: ${w}px ${h}px;\n`+
+`background-repeat: repeat;`;
+
+    navigator.clipboard.writeText(css).then(()=>{
+      flash('CSS copied to clipboard');
+    }).catch(()=>{
+      alert(css);
+    });
+  }
+
+  function exportPNG(){
+    const a = document.createElement('a');
+    const {w,h} = tileSize();
+    a.download = `plaid_${w}x${h}.png`;
+    a.href = tileCanvas.toDataURL('image/png');
+    a.click();
+  }
+
+  function flash(msg){
+    const n = document.createElement('div');
+    n.textContent = msg; n.style.position='fixed'; n.style.bottom='16px'; n.style.right='16px'; n.style.background='#111'; n.style.color='#fff'; n.style.padding='8px 10px'; n.style.borderRadius='10px'; n.style.fontSize='12px'; n.style.boxShadow='0 6px 16px rgba(0,0,0,.18)';
+    document.body.appendChild(n); setTimeout(()=>n.remove(), 1400);
+  }
+
+  // --- Preview panning -----------------------------------------------------
+  (function enablePan(){
+    let down=false, sx=0, sy=0, ox=0, oy=0;
+    const area = document.querySelector('.preview-area');
+    const update = ()=>{ preview.style.backgroundPosition = `${ox}px ${oy}px`; };
+    area.addEventListener('mousedown', e=>{ down=true; sx=e.clientX; sy=e.clientY; area.style.cursor='grabbing'; });
+    window.addEventListener('mouseup', ()=>{ down=false; area.style.cursor='default'; });
+    window.addEventListener('mousemove', e=>{ if(!down) return; ox += (e.clientX - sx); oy += (e.clientY - sy); sx=e.clientX; sy=e.clientY; update(); });
+  })();
+
+  // --- Hook up actions -----------------------------------------------------
+  el('copyCSS').addEventListener('click', copyCSS);
+  el('exportPNG').addEventListener('click', exportPNG);
+
+  // Build initial lists and handlers
+  bindGeneral();
+  renderLists();
+  bindListHandlers();
+  render();
+
+  // --- Self-tests (console) -----------------------------------------------
+  (function runTests(){
+    try{
+      // Test 1: tileSize equals sum of units * unit
+      const vUnits = state.vertical.reduce((a,b)=>a+b.units,0);
+      const hUnits = state.horizontal.reduce((a,b)=>a+b.units,0);
+      const t = tileSize();
+      console.assert(t.w === vUnits*state.unit && t.h === hUnits*state.unit, 'tileSize mismatch');
+
+      // Test 2: randomizeWidths does change some widths
+      const before = state.vertical.map(s=>s.units).join(',');
+      randomizeWidths('v');
+      const after = state.vertical.map(s=>s.units).join(',');
+      console.assert(before !== after, 'randomizeWidths did not change widths');
+
+      // Test 3: randomizeAll produces reasonable counts and bumps seed
+      const seedBefore = state.seed;
+      randomizeAll();
+      console.assert(state.vertical.length>=3 && state.horizontal.length>=3, 'randomizeAll counts too small');
+      console.assert(state.seed !== seedBefore, 'randomizeAll did not bump seed');
+
+      console.log('%cPlaid Generator self-tests passed','color:green');
+      render();
+    }catch(err){
+      console.error('Self-tests failed', err);
+    }
+  })();
+})();
+</script>
+</body>
+</html>

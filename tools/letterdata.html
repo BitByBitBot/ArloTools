@@ -1,0 +1,802 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Letter Count Word Highlighter</title>
+  <style>
+    :root {
+      color-scheme: dark;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      padding: 20px;
+      background: #0b0b10;
+      color: #f5f5f5;
+      font-family: system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    .container {
+      max-width: 1080px;
+      margin: 0 auto;
+    }
+
+    h1 {
+      font-size: 1.6rem;
+      margin: 0 0 1rem;
+      letter-spacing: 0.03em;
+    }
+
+    h2 {
+      font-size: 1rem;
+      margin: 0 0 0.6rem;
+      letter-spacing: 0.06em;
+      text-transform: uppercase;
+      opacity: 0.9;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px 16px;
+      align-items: flex-end;
+      padding: 12px 14px;
+      border-radius: 10px;
+      background: #12121a;
+      border: 1px solid #202030;
+      margin-bottom: 12px;
+    }
+
+    .control-group {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+      font-size: 0.85rem;
+    }
+
+    label span {
+      opacity: 0.8;
+    }
+
+    input[type="number"],
+    input[type="file"],
+    button {
+      font: inherit;
+      padding: 5px 8px;
+      border-radius: 6px;
+      border: 1px solid #33374a;
+      background: #11131b;
+      color: inherit;
+      outline: none;
+    }
+
+    input[type="number"]:focus,
+    input[type="file"]:focus {
+      border-color: #4ea3ff;
+      box-shadow: 0 0 0 1px #4ea3ff55;
+    }
+
+    button {
+      cursor: pointer;
+      background: linear-gradient(135deg, #ff9a3c, #ff5e7a);
+      border: none;
+      color: #050509;
+      padding-inline: 14px;
+      font-weight: 600;
+      box-shadow: 0 0 0 1px #ff9a3c33;
+      transition: transform 0.07s ease, box-shadow 0.07s ease, filter 0.07s ease;
+    }
+
+    button:hover {
+      transform: translateY(-1px);
+      filter: brightness(1.05);
+      box-shadow: 0 6px 14px #000000aa;
+    }
+
+    button:active {
+      transform: translateY(0);
+      box-shadow: 0 2px 8px #000000aa;
+      filter: brightness(0.97);
+    }
+
+    #status {
+      font-size: 0.85rem;
+      opacity: 0.8;
+      margin: 4px 0 12px;
+    }
+
+    .legend {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      font-size: 0.8rem;
+      opacity: 0.85;
+    }
+
+    .legend-item {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    .legend-swatch {
+      width: 10px;
+      height: 10px;
+      border-radius: 999px;
+    }
+
+    .legend-swatch.vowel {
+      background: #4ea3ff;
+    }
+
+    .legend-swatch.consonant {
+      background: #ff9a3c;
+    }
+
+    .panel-row {
+      display: grid;
+      grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
+      gap: 12px;
+      margin-top: 10px;
+    }
+
+    @media (max-width: 800px) {
+      .panel-row {
+        grid-template-columns: minmax(0, 1fr);
+      }
+    }
+
+    .panel {
+      padding: 12px 10px 10px;
+      border-radius: 10px;
+      background: radial-gradient(circle at top left, #1b2738 0, #050509 52%);
+      border: 1px solid #1c2336;
+      min-height: 80px;
+    }
+
+    .words {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .word {
+      background: #11131b;
+      border-radius: 8px;
+      padding: 5px 9px 6px;
+      box-shadow: 0 0 0 1px #292d3f;
+      font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+      font-size: 0.95rem;
+      letter-spacing: 0.05em;
+      white-space: nowrap;
+      transition: box-shadow 0.12s ease, background-color 0.12s ease, transform 0.12s ease;
+    }
+
+    .word.highlighted {
+      box-shadow: 0 0 0 1px #4ea3ff, 0 0 0 2px #4ea3ff55;
+      background-color: #0d1624;
+      transform: translateY(-1px);
+    }
+
+    .letter {
+      display: inline-block;
+      padding: 0 1px;
+    }
+
+    /* Letters inherit color from their run span; no fixed color here. */
+    .letter.vowel,
+    .letter.consonant {
+      color: inherit;
+    }
+
+    .empty-message {
+      font-size: 0.85rem;
+      opacity: 0.85;
+    }
+
+    .tip {
+      margin-top: 8px;
+      font-size: 0.78rem;
+      opacity: 0.7;
+    }
+
+    .stats-empty {
+      font-size: 0.85rem;
+      opacity: 0.8;
+    }
+
+    table.pattern-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.8rem;
+      table-layout: fixed;
+    }
+
+    .pattern-table th,
+    .pattern-table td {
+      padding: 4px 6px;
+      border-bottom: 1px solid #23263a;
+      text-align: left;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .pattern-table th {
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      opacity: 0.7;
+    }
+
+    .pattern-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 2px 6px;
+      border-radius: 999px;
+      background: #10121c;
+      border: 1px solid #262b40;
+      font-family: "SF Mono", "JetBrains Mono", Menlo, Consolas, monospace;
+      font-size: 0.78rem;
+    }
+
+    .pattern-chip span.v {
+      color: #4ea3ff;
+    }
+
+    .pattern-chip span.c {
+      color: #ff9a3c;
+    }
+
+    .bar-cell {
+      width: 50%;
+    }
+
+    .bar-track {
+      width: 100%;
+      height: 4px;
+      border-radius: 999px;
+      background: #141722;
+      overflow: hidden;
+    }
+
+    .bar-fill {
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, #4ea3ff, #ff9a3c);
+    }
+
+    .pattern-table tr.pattern-row {
+      cursor: pointer;
+      transition: background-color 0.12s ease;
+    }
+
+    .pattern-table tr.pattern-row:hover {
+      background-color: #15192a;
+    }
+
+    .pattern-table tr.pattern-row-selected {
+      background-color: #1b2136;
+    }
+
+    .mode-toggle {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px 12px;
+      align-items: center;
+      font-size: 0.78rem;
+      opacity: 0.85;
+      margin-bottom: 6px;
+    }
+
+    .mode-toggle label {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      cursor: pointer;
+    }
+
+    .mode-toggle input[type="radio"] {
+      cursor: pointer;
+      accent-color: #4ea3ff;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h1>Letter Count Word Highlighter</h1>
+
+    <div class="controls">
+      <div class="control-group">
+        <label>
+          <span>Letter count</span>
+          <input id="lengthInput" type="number" min="1" value="5" />
+        </label>
+      </div>
+
+      <div class="control-group">
+        <span>&nbsp;</span>
+        <button id="loadBtn" type="button">Show words</button>
+      </div>
+
+      <div class="control-group">
+        <label>
+          <span>Optional custom word list (.txt, one word per line)</span>
+          <input id="fileInput" type="file" accept=".txt" />
+        </label>
+      </div>
+    </div>
+
+    <div id="status">Enter a letter count, optionally pick a word-list file, then click <strong>Show words</strong>.</div>
+
+    <div class="legend">
+      <div class="legend-item">
+        <span class="legend-swatch vowel"></span> <span>Vowels</span>
+      </div>
+      <div class="legend-item">
+        <span class="legend-swatch consonant"></span> <span>Consonants (including Y)</span>
+      </div>
+    </div>
+
+    <div class="panel-row">
+      <div class="panel">
+        <h2>Words</h2>
+        <div id="words" class="words"></div>
+        <div id="emptyMsg" class="empty-message" style="display:none;"></div>
+      </div>
+
+      <div class="panel">
+        <h2>V/C Sequences</h2>
+        <div class="mode-toggle">
+          <span>Mode:</span>
+          <label>
+            <input type="radio" name="patternMode" value="full" checked />
+            <span>Per-letter (e.g. CVVVC)</span>
+          </label>
+          <label>
+            <input type="radio" name="patternMode" value="clumped" />
+            <span>Clumped runs (e.g. CVC)</span>
+          </label>
+        </div>
+        <div id="patternSummary" class="stats-empty">Load some words to see vowel/consonant sequence stats.</div>
+      </div>
+    </div>
+
+    <p class="tip">
+      Uses the Datamuse word-finding API to fetch real words of the chosen length. You can optionally upload
+      a custom <code>.txt</code> word list (one word per line) to override the API. A tiny built-in list is used
+      only as a last-resort fallback.
+    </p>
+  </div>
+
+  <script>
+    // Very small fallback word list so the tool still works even if the API is unavailable.
+    const DEFAULT_WORDS = `about
+other
+which
+there
+their
+world
+sound
+light
+shape
+color
+stone
+water
+pixel
+grid
+music
+noise
+letter
+typo
+word
+vowel
+consonant
+orange
+blue
+sample
+random
+simple
+complex
+system
+pattern`;
+
+    const vowels = new Set(["a", "e", "i", "o", "u"]);
+
+    // Color palettes for sequences (runs) of vowels and consonants in the word view
+    const VOWEL_RUN_COLORS = [
+      "#7fc3ff",
+      "#4ea3ff",
+      "#9ad0ff",
+      "#c2e0ff"
+    ];
+
+    const CONSONANT_RUN_COLORS = [
+      "#ffb35c",
+      "#ff9a3c",
+      "#ffcd85",
+      "#ffd7a3"
+    ];
+
+    const lengthInput = document.getElementById("lengthInput");
+    const loadBtn = document.getElementById("loadBtn");
+    const fileInput = document.getElementById("fileInput");
+    const statusEl = document.getElementById("status");
+    const wordsEl = document.getElementById("words");
+    const emptyMsgEl = document.getElementById("emptyMsg");
+    const patternSummaryEl = document.getElementById("patternSummary");
+    const modeRadios = document.querySelectorAll('input[name="patternMode"]');
+
+    let currentSelectedPattern = null;
+    let patternMode = 'full'; // 'full' per-letter or 'clumped' runs
+    let currentWordList = [];
+    let currentLength = null;
+
+    function parseWordList(text) {
+      return text
+        .split(/\r?\n/)
+        .map(function (w) { return w.trim().toLowerCase(); })
+        .filter(function (w) { return w && /^[a-z]+$/.test(w); });
+    }
+
+    function readFileAsText(file) {
+      return new Promise(function (resolve, reject) {
+        var reader = new FileReader();
+        reader.onload = function (e) { resolve(e.target.result); };
+        reader.onerror = function () { reject(reader.error || new Error("File read error")); };
+        reader.readAsText(file);
+      });
+    }
+
+    async function fetchWordsFromAPI(length) {
+      var pattern = "?".repeat(length);
+      var url = "https://api.datamuse.com/words?sp=" + encodeURIComponent(pattern) + "&max=1000";
+
+      var resp = await fetch(url);
+      if (!resp.ok) {
+        throw new Error("API request failed with status " + resp.status);
+      }
+
+      var data = await resp.json();
+      var words = data
+        .map(function (entry) { return String(entry.word || "").toLowerCase(); })
+        .filter(function (w) { return w && /^[a-z]+$/.test(w) && w.length === length; });
+
+      return words;
+    }
+
+    async function getWordList(length) {
+      // 1) Try the Datamuse word-finding API first.
+      try {
+        var apiWords = await fetchWordsFromAPI(length);
+        if (apiWords.length > 0) {
+          return apiWords;
+        }
+      } catch (err) {
+        console.error("API error", err);
+      }
+
+      // 2) If user uploaded a file, use that.
+      if (fileInput.files && fileInput.files[0]) {
+        var text = await readFileAsText(fileInput.files[0]);
+        return parseWordList(text).filter(function (w) { return w.length === length; });
+      }
+
+      // 3) Fallback to the tiny built-in list.
+      return parseWordList(DEFAULT_WORDS).filter(function (w) { return w.length === length; });
+    }
+
+    function wordToPatternFull(word) {
+      // Full-word V/C pattern, e.g. "about" -> "CVVVC"
+      var pattern = "";
+      for (var i = 0; i < word.length; i++) {
+        var ch = word[i].toLowerCase();
+        pattern += vowels.has(ch) ? "V" : "C";
+      }
+      return pattern;
+    }
+
+    function wordToPatternClumped(word) {
+      // Clumped runs, e.g. "about" -> "CVC" (C, then vowel run, then C)
+      var pattern = "";
+      if (!word || !word.length) return pattern;
+
+      var prevIsVowel = vowels.has(word[0].toLowerCase());
+      pattern += prevIsVowel ? "V" : "C";
+
+      for (var i = 1; i < word.length; i++) {
+        var ch = word[i].toLowerCase();
+        var isVowel = vowels.has(ch);
+        if (isVowel !== prevIsVowel) {
+          pattern += isVowel ? "V" : "C";
+          prevIsVowel = isVowel;
+        }
+      }
+      return pattern;
+    }
+
+    function getPatternForWord(word) {
+      return patternMode === 'clumped' ? wordToPatternClumped(word) : wordToPatternFull(word);
+    }
+
+    function applyPatternHighlight(pattern) {
+      currentSelectedPattern = pattern;
+
+      var wordDivs = wordsEl.querySelectorAll('.word');
+      wordDivs.forEach(function (wd) {
+        if (!pattern) {
+          wd.classList.remove('highlighted');
+        } else {
+          var attr = patternMode === 'clumped' ? 'patternClumped' : 'patternFull';
+          if (wd.dataset[attr] === pattern) {
+            wd.classList.add('highlighted');
+          } else {
+            wd.classList.remove('highlighted');
+          }
+        }
+      });
+    }
+
+    function renderWords(words, length) {
+      wordsEl.innerHTML = "";
+
+      if (!words.length) {
+        emptyMsgEl.textContent = "No words of length " + length + " were found in the current source.";
+        emptyMsgEl.style.display = "block";
+        return;
+      }
+
+      emptyMsgEl.style.display = "none";
+
+      words.forEach(function (word) {
+        var wordDiv = document.createElement("div");
+        wordDiv.className = "word";
+
+        var patternFull = wordToPatternFull(word);
+        var patternClumped = wordToPatternClumped(word);
+        wordDiv.dataset.patternFull = patternFull;
+        wordDiv.dataset.patternClumped = patternClumped;
+
+        var vowelRunIndex = 0;
+        var consonantRunIndex = 0;
+
+        var i = 0;
+        while (i < word.length) {
+          var ch = word[i];
+          var isVowelRun = vowels.has(ch.toLowerCase());
+
+          // Build up this run of same-type letters
+          var runText = "";
+          while (
+            i < word.length &&
+            vowels.has(word[i].toLowerCase()) === isVowelRun
+          ) {
+            runText += word[i];
+            i++;
+          }
+
+          var runSpan = document.createElement("span");
+          runSpan.className = "run " + (isVowelRun ? "vowel-run" : "consonant-run");
+
+          // Choose color for this run based on its index within the word
+          if (isVowelRun) {
+            var vColor = VOWEL_RUN_COLORS[vowelRunIndex % VOWEL_RUN_COLORS.length];
+            runSpan.style.color = vColor;
+            vowelRunIndex++;
+          } else {
+            var cColor = CONSONANT_RUN_COLORS[consonantRunIndex % CONSONANT_RUN_COLORS.length];
+            runSpan.style.color = cColor;
+            consonantRunIndex++;
+          }
+
+          // Add individual letter spans
+          for (var j = 0; j < runText.length; j++) {
+            var letterSpan = document.createElement("span");
+            letterSpan.textContent = runText[j];
+            letterSpan.className = "letter";
+            runSpan.appendChild(letterSpan);
+          }
+
+          wordDiv.appendChild(runSpan);
+        }
+
+        wordsEl.appendChild(wordDiv);
+      });
+
+      // Re-apply highlight if a pattern is already selected
+      if (currentSelectedPattern) {
+        applyPatternHighlight(currentSelectedPattern);
+      }
+    }
+
+    function renderPatternStats(words, length) {
+      patternSummaryEl.innerHTML = "";
+
+      if (!words.length) {
+        patternSummaryEl.textContent = "No words of this length yet — load some to see stats.";
+        patternSummaryEl.className = "stats-empty";
+        return;
+      }
+
+      var patternCounts = Object.create(null);
+      words.forEach(function (w) {
+        var p = getPatternForWord(w);
+        patternCounts[p] = (patternCounts[p] || 0) + 1;
+      });
+
+      var patterns = Object.keys(patternCounts);
+      if (!patterns.length) {
+        patternSummaryEl.textContent = "No patterns found.";
+        patternSummaryEl.className = "stats-empty";
+        return;
+      }
+
+      patterns.sort(function (a, b) {
+        // Sort by frequency desc, then alphabetically
+        var diff = patternCounts[b] - patternCounts[a];
+        if (diff !== 0) return diff;
+        return a.localeCompare(b);
+      });
+
+      var total = words.length;
+
+      var table = document.createElement("table");
+      table.className = "pattern-table";
+
+      var thead = document.createElement("thead");
+      var headRow = document.createElement("tr");
+
+      ["Pattern", "Count", "% of words", ""].forEach(function (label) {
+        var th = document.createElement("th");
+        th.textContent = label;
+        headRow.appendChild(th);
+      });
+      thead.appendChild(headRow);
+      table.appendChild(thead);
+
+      var tbody = document.createElement("tbody");
+
+      patterns.forEach(function (p) {
+        var row = document.createElement("tr");
+        row.className = "pattern-row";
+        row.dataset.pattern = p;
+
+        // Pattern chip
+        var patternCell = document.createElement("td");
+        var chip = document.createElement("span");
+        chip.className = "pattern-chip";
+        for (var i = 0; i < p.length; i++) {
+          var chSpan = document.createElement("span");
+          chSpan.textContent = p[i];
+          chSpan.className = p[i] === "V" ? "v" : "c";
+          chip.appendChild(chSpan);
+        }
+        patternCell.appendChild(chip);
+        row.appendChild(patternCell);
+
+        // Count
+        var countCell = document.createElement("td");
+        var count = patternCounts[p];
+        countCell.textContent = count;
+        row.appendChild(countCell);
+
+        // Percentage
+        var pctCell = document.createElement("td");
+        var pct = (count / total) * 100;
+        pctCell.textContent = pct.toFixed(1) + "%";
+        row.appendChild(pctCell);
+
+        // Tiny bar
+        var barCell = document.createElement("td");
+        barCell.className = "bar-cell";
+        var track = document.createElement("div");
+        track.className = "bar-track";
+        var fill = document.createElement("div");
+        fill.className = "bar-fill";
+        fill.style.width = pct.toFixed(1) + "%";
+        track.appendChild(fill);
+        barCell.appendChild(track);
+        row.appendChild(barCell);
+
+        // Click handler to highlight matching words
+        row.addEventListener('click', function () {
+          var alreadySelected = row.classList.contains('pattern-row-selected');
+
+          // Clear selection on all rows
+          var allRows = tbody.querySelectorAll('.pattern-row');
+          allRows.forEach(function (r) {
+            r.classList.remove('pattern-row-selected');
+          });
+
+          if (alreadySelected) {
+            // Toggle off
+            applyPatternHighlight(null);
+          } else {
+            row.classList.add('pattern-row-selected');
+            applyPatternHighlight(p);
+          }
+        });
+
+        tbody.appendChild(row);
+      });
+
+      table.appendChild(tbody);
+      patternSummaryEl.className = "";
+      patternSummaryEl.appendChild(table);
+    }
+
+    async function handleShowWords() {
+      var length = parseInt(lengthInput.value, 10);
+      if (!Number.isFinite(length) || length < 1) {
+        statusEl.textContent = "Please enter a positive letter count.";
+        return;
+      }
+
+      statusEl.textContent = "Fetching words (API → file → fallback list)…";
+      wordsEl.innerHTML = "";
+      emptyMsgEl.style.display = "none";
+      patternSummaryEl.textContent = "Computing patterns…";
+      patternSummaryEl.className = "stats-empty";
+      currentSelectedPattern = null;
+
+      try {
+        var wordList = await getWordList(length);
+        currentWordList = wordList;
+        currentLength = length;
+        statusEl.textContent = "Showing " + wordList.length.toLocaleString() + " word(s) of length " + length + ".";
+        renderWords(wordList, length);
+        renderPatternStats(wordList, length);
+      } catch (err) {
+        console.error(err);
+        statusEl.textContent = "Something went wrong fetching words.";
+        patternSummaryEl.textContent = "Could not compute patterns due to an error.";
+      }
+    }
+
+    // Simple console-based tests for parseWordList and pattern helpers
+    (function runTests() {
+      try {
+        var t1 = parseWordList("Foo\nBar \n\n baz");
+        console.assert(t1.length === 3 && t1[0] === "foo" && t1[1] === "bar" && t1[2] === "baz", "parseWordList basic newline handling failed");
+
+        var t2 = parseWordList("abc123\n!!\nxyz");
+        console.assert(t2.length === 1 && t2[0] === "xyz", "parseWordList alpha-only filter failed");
+
+        console.assert(wordToPatternFull("about") === "CVVVC", "wordToPatternFull about");
+        console.assert(wordToPatternFull("grid") === "CVCC", "wordToPatternFull grid");
+        console.assert(wordToPatternClumped("about") === "CVC", "wordToPatternClumped about");
+        console.assert(wordToPatternClumped("queue") === "V", "wordToPatternClumped queue (all vowels)");
+
+        console.log("parseWordList & pattern helper tests passed");
+      } catch (e) {
+        console.warn("tests encountered an error", e);
+      }
+    })();
+
+    loadBtn.addEventListener("click", handleShowWords);
+    lengthInput.addEventListener("keydown", function (e) {
+      if (e.key === "Enter") {
+        handleShowWords();
+      }
+    });
+
+    modeRadios.forEach(function (radio) {
+      radio.addEventListener('change', function () {
+        if (!radio.checked) return;
+        patternMode = radio.value; // 'full' or 'clumped'
+        currentSelectedPattern = null;
+        applyPatternHighlight(null);
+        if (currentWordList && currentWordList.length) {
+          renderPatternStats(currentWordList, currentLength || parseInt(lengthInput.value, 10) || 0);
+        }
+      });
+    });
+  </script>
+</body>
+</html>

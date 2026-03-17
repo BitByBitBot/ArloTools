@@ -1,0 +1,530 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="UTF-8">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { background: black; overflow: hidden; font-family: monospace; }
+  #sim     { display: block; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); visibility: hidden; }
+  #display { display: block; position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%); }
+
+  #ui {
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: black;
+    color: white;
+    padding: 10px 16px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 16px;
+    align-items: center;
+    font-family: monospace;
+    font-size: 10px;
+    letter-spacing: 0.1em;
+    z-index: 10;
+  }
+
+  .row {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    white-space: nowrap;
+    flex: 1 1 auto;
+    min-width: 140px;
+  }
+
+  .row label { opacity: 0.35; text-transform: uppercase; flex-shrink: 0; }
+
+  /* fixed-width value box so UI doesn't jitter */
+  .row span {
+    opacity: 0.4;
+    width: 36px;
+    flex-shrink: 0;
+    display: inline-block;
+    text-align: right;
+    overflow: hidden;
+  }
+
+  input[type=range] {
+    -webkit-appearance: none;
+    flex: 1 1 auto;
+    min-width: 40px;
+    max-width: 90px;
+    height: 1px;
+    background: #444;
+    outline: none;
+  }
+  input[type=range]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 7px; height: 7px;
+    background: #888;
+    cursor: pointer;
+  }
+
+  .rnd-dot {
+    width: 5px; height: 5px;
+    border: 1px solid #444;
+    cursor: pointer;
+    flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .rnd-dot.on { background: #666; border-color: #666; }
+
+  .swatch {
+    position: relative;
+    width: 14px; height: 14px;
+    cursor: pointer;
+    border: 1px solid #444;
+    flex-shrink: 0;
+  }
+  .swatch input[type=color] {
+    position: absolute; inset: 0;
+    width: 100%; height: 100%;
+    opacity: 0; cursor: pointer;
+    padding: 0; border: none;
+  }
+  .swatch-rnd {
+    width: 5px; height: 5px;
+    border: 1px solid #444;
+    cursor: pointer; flex-shrink: 0;
+    transition: background 0.15s, border-color 0.15s;
+  }
+  .swatch-rnd.on { background: #666; border-color: #666; }
+
+  .ui-btn {
+    font-family: monospace; font-size: 10px;
+    letter-spacing: 0.1em; text-transform: uppercase;
+    color: #555; cursor: pointer; user-select: none;
+    flex-shrink: 0;
+    transition: color 0.15s;
+  }
+  .ui-btn.on { color: #999; }
+
+  .divider { display: none; }
+</style>
+</head>
+<body>
+<canvas id="sim"></canvas>
+<canvas id="display"></canvas>
+
+<div id="ui">
+  <div class="row"><label>Blur</label><input type="range" id="sBlur" min="0" max="100" step="0.5" value="8"><span id="vBlur">8</span><div class="rnd-dot on" data-key="blur"></div></div>
+  <div class="row"><label>Threshold</label><input type="range" id="sContrast" min="1" max="100" step="1" value="30"><span id="vContrast">22</span><div class="rnd-dot on" data-key="contrast"></div></div>
+  <div class="row"><label>Count</label><input type="range" id="sCount" min="10" max="300" value="120"><span id="vCount">120</span><div class="rnd-dot on" data-key="count"></div></div>
+  <div class="row"><label>Speed</label><input type="range" id="sSpeed" min="0.5" max="6" step="0.1" value="2.5"><span id="vSpeed">2.5</span><div class="rnd-dot on" data-key="speed"></div></div>
+  <div class="row"><label>Vision</label><input type="range" id="sVision" min="20" max="200" value="75"><span id="vVision">75</span><div class="rnd-dot on" data-key="vision"></div></div>
+  <div class="row"><label>Separation</label><input type="range" id="sSep" min="5" max="80" value="20"><span id="vSep">20</span><div class="rnd-dot on" data-key="sep"></div></div>
+  <div class="row"><label>Alignment</label><input type="range" id="sAlign" min="0" max="0.2" step="0.005" value="0.04"><span id="vAlign">0.04</span><div class="rnd-dot on" data-key="align"></div></div>
+  <div class="row"><label>Cohesion</label><input type="range" id="sCohesion" min="0" max="0.02" step="0.0005" value="0.003"><span id="vCohesion">0.003</span><div class="rnd-dot on" data-key="cohesion"></div></div>
+  <div class="row"><label>Size</label><input type="range" id="sSize" min="2" max="200" value="7"><span id="vSize">7</span><div class="rnd-dot on" data-key="size"></div></div>
+  <div class="swatch" id="bgSwatch" style="background:#ffffff"><input type="color" id="bgColor" value="#ffffff"></div>
+  <div class="swatch-rnd on" id="bgRndDot"></div>
+  <div class="swatch" id="fgSwatch" style="background:#000000"><input type="color" id="fgColor" value="#000000"></div>
+  <div class="swatch-rnd on" id="fgRndDot"></div>
+  <div class="ui-btn" id="randBtn" onclick="toggleRand()">RND</div>
+  <div class="ui-btn" id="flowBtn" onclick="toggleFlow()">FLOW</div>
+</div>
+
+<script>
+const canvas  = document.getElementById('sim');
+const ctx     = canvas.getContext('2d');
+const display = document.getElementById('display');
+const dctx    = display.getContext('2d');
+
+let p = { blur: 8, contrast: 30, count: 120, speed: 2.5, vision: 75, sep: 20, size: 7, align: 0.04, cohesion: 0.003 };
+let colors = { bg: '#ffffff', fg: '#000000' };
+
+function hexToRgb(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+function rgbToHex(r, g, b) {
+  return '#' + [r,g,b].map(v => Math.max(0,Math.min(255,Math.round(v))).toString(16).padStart(2,'0')).join('');
+}
+function sliderToContrast(v) {
+  return Math.round(Math.pow(10, (v - 1) / 99 * 3));
+}
+function fmtVal(key, v) {
+  if (key === 'contrast') return String(sliderToContrast(v));
+  if (key === 'count' || key === 'vision' || key === 'sep' || key === 'size') return String(Math.round(v));
+  if (key === 'blur') return v.toFixed(1);
+  if (key === 'align' || key === 'cohesion') return v.toFixed(4);
+  return v.toFixed(2);
+}
+
+// ── Canvas sizing: PAD must cover maximum blur radius ──────────
+// blur(100px) needs ~3× the sigma to fully fade, so 300px pad
+const PAD = 320;
+let W, H;
+
+function applyGradientMap() {
+  const tmp = document.createElement('canvas');
+  tmp.width = canvas.width; tmp.height = canvas.height;
+  const tc = tmp.getContext('2d');
+  tc.filter = `blur(${p.blur}px) contrast(${sliderToContrast(p.contrast)})`;
+  tc.drawImage(canvas, 0, 0);
+  const imageData = tc.getImageData(0, 0, tmp.width, tmp.height);
+  const data = imageData.data;
+  const bgRgb = hexToRgb(colors.bg);
+  const fgRgb = hexToRgb(colors.fg);
+  for (let i = 0; i < data.length; i += 4) {
+    const t = data[i] / 255;
+    data[i]   = Math.round(fgRgb[0] + (bgRgb[0] - fgRgb[0]) * t);
+    data[i+1] = Math.round(fgRgb[1] + (bgRgb[1] - fgRgb[1]) * t);
+    data[i+2] = Math.round(fgRgb[2] + (bgRgb[2] - fgRgb[2]) * t);
+  }
+  display.width = tmp.width; display.height = tmp.height;
+  dctx.putImageData(imageData, 0, 0);
+}
+
+function applyColors() {
+  document.getElementById('bgSwatch').style.background = colors.bg;
+  document.getElementById('fgSwatch').style.background = colors.fg;
+}
+document.getElementById('bgColor').addEventListener('input', e => { colors.bg = e.target.value; applyColors(); });
+document.getElementById('fgColor').addEventListener('input', e => { colors.fg = e.target.value; applyColors(); });
+
+function resize() {
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width  = W + PAD * 2; canvas.height = H + PAD * 2;
+  display.width = canvas.width; display.height = canvas.height;
+}
+window.addEventListener('resize', resize);
+resize();
+
+class Boid {
+  constructor() {
+    this.x = Math.random() * W; this.y = Math.random() * H;
+    const a = Math.random() * Math.PI * 2;
+    this.vx = Math.cos(a) * p.speed; this.vy = Math.sin(a) * p.speed;
+    this.scale = 0; // birth animation: 0 → 1
+  }
+}
+let boids = Array.from({ length: p.count }, () => { const b = new Boid(); b.scale = 1; return b; });
+
+function wire(id, valId, key, cb) {
+  const s = document.getElementById(id), v = document.getElementById(valId);
+  s.addEventListener('input', () => {
+    p[key] = parseFloat(s.value);
+    v.textContent = fmtVal(key, p[key]);
+    if (cb) cb();
+  });
+}
+wire('sBlur',     'vBlur',     'blur');
+wire('sContrast', 'vContrast', 'contrast');
+wire('sSpeed',    'vSpeed',    'speed');
+wire('sVision',   'vVision',   'vision');
+wire('sSep',      'vSep',      'sep');
+wire('sAlign',    'vAlign',    'align');
+wire('sCohesion', 'vCohesion', 'cohesion');
+wire('sSize',     'vSize',     'size');
+wire('sCount',    'vCount',    'count', () => {
+  const n = Math.round(p.count);
+  while (boids.length < n) boids.push(new Boid());
+  if (boids.length > n) boids.length = n;
+});
+
+// ── Randomizer ────────────────────────────────────────────────
+let randOn   = false; // minute-interval jump targets
+let flowOn   = false; // continuous perlin-like drift
+
+const sliderDefs = [
+  { id: 'sBlur',     key: 'blur',     min: 0,   max: 100  },
+  { id: 'sContrast', key: 'contrast', min: 1,   max: 100  },
+  { id: 'sCount',    key: 'count',    min: 10,  max: 300  },
+  { id: 'sSpeed',    key: 'speed',    min: 0.5, max: 6    },
+  { id: 'sVision',   key: 'vision',   min: 20,  max: 200  },
+  { id: 'sSep',      key: 'sep',      min: 5,   max: 80   },
+  { id: 'sAlign',    key: 'align',    min: 0,   max: 0.2  },
+  { id: 'sCohesion', key: 'cohesion', min: 0,   max: 0.02 },
+  { id: 'sSize',     key: 'size',     min: 2,   max: 200  },
+];
+
+const rndEnabled = {};
+sliderDefs.forEach(s => rndEnabled[s.key] = true);
+rndEnabled.bg = true; rndEnabled.fg = true;
+
+document.querySelectorAll('.rnd-dot').forEach(dot => {
+  dot.addEventListener('click', () => {
+    const key = dot.dataset.key;
+    rndEnabled[key] = !rndEnabled[key];
+    dot.classList.toggle('on', rndEnabled[key]);
+  });
+});
+document.getElementById('bgRndDot').addEventListener('click', function() {
+  rndEnabled.bg = !rndEnabled.bg; this.classList.toggle('on', rndEnabled.bg);
+});
+document.getElementById('fgRndDot').addEventListener('click', function() {
+  rndEnabled.fg = !rndEnabled.fg; this.classList.toggle('on', rndEnabled.fg);
+});
+
+// RND mode: drift toward discrete random targets, new target every 60s
+let randTargets = {};
+let colorTargets = { bg: [255,255,255], fg: [0,0,0] };
+function pickNewTargets(force) {
+  for (const s of sliderDefs) {
+    if (rndEnabled[s.key] || force) randTargets[s.key] = s.min + Math.random() * (s.max - s.min);
+  }
+  if (rndEnabled.bg || force) colorTargets.bg = [Math.random()*255, Math.random()*255, Math.random()*255];
+  if (rndEnabled.fg || force) colorTargets.fg = [Math.random()*255, Math.random()*255, Math.random()*255];
+}
+pickNewTargets();
+setInterval(() => { if (randOn) pickNewTargets(); }, 60000);
+
+function toggleRand() {
+  randOn = !randOn;
+  if (randOn && flowOn) { flowOn = false; document.getElementById('flowBtn').classList.remove('on'); }
+  document.getElementById('randBtn').classList.toggle('on', randOn);
+  if (randOn) pickNewTargets();
+}
+
+// FLOW mode: each param has a slow sine oscillator with random phase/freq
+let flowPhases = {};
+let flowFreqs  = {};
+function initFlow() {
+  for (const s of sliderDefs) {
+    flowPhases[s.key] = Math.random() * Math.PI * 2;
+    flowFreqs[s.key]  = 0.0002 + Math.random() * 0.0003; // cycles/frame
+  }
+  flowPhases.bg = [Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2];
+  flowPhases.fg = [Math.random()*Math.PI*2, Math.random()*Math.PI*2, Math.random()*Math.PI*2];
+  flowFreqs.bg  = [0.0001+Math.random()*0.0002, 0.0001+Math.random()*0.0002, 0.0001+Math.random()*0.0002];
+  flowFreqs.fg  = [0.0001+Math.random()*0.0002, 0.0001+Math.random()*0.0002, 0.0001+Math.random()*0.0002];
+}
+initFlow();
+let flowFrame = 0;
+
+function toggleFlow() {
+  flowOn = !flowOn;
+  if (flowOn && randOn) { randOn = false; document.getElementById('randBtn').classList.remove('on'); }
+  document.getElementById('flowBtn').classList.toggle('on', flowOn);
+  if (flowOn) initFlow();
+}
+
+// Current color as float RGB for smooth interpolation
+let currentBgRgb = hexToRgb('#ffffff');
+let currentFgRgb = hexToRgb('#000000');
+
+// ── Boredom detection ─────────────────────────────────────────
+// Sample a small grid of pixels from the display canvas every N frames
+// If >92% of visible pixels are the same color → kick targets immediately
+// Boredom: how urgently params should drift (multiplier on DRIFT speed)
+// 1 = normal, ramps up when screen is boring
+let boredUrgency = 1.0;
+let boredCheckFrame = 0;
+
+function checkBoredom() {
+  boredCheckFrame++;
+  if (boredCheckFrame % 90 !== 0) return;
+  if (!randOn && !flowOn) return;
+
+  let data;
+  try {
+    const imgData = dctx.getImageData(PAD, PAD, W, H);
+    data = imgData.data;
+  } catch(e) { return; }
+
+  const sampleW = 20, sampleH = 20;
+  const buckets = {};
+  let total = 0;
+  for (let sy = 0; sy < sampleH; sy++) {
+    for (let sx = 0; sx < sampleW; sx++) {
+      const px = Math.floor(sx * W / sampleW);
+      const py = Math.floor(sy * H / sampleH);
+      const idx = (py * W + px) * 4;
+      const r = data[idx]   >> 4;
+      const g = data[idx+1] >> 4;
+      const b = data[idx+2] >> 4;
+      const key = (r << 8) | (g << 4) | b;
+      buckets[key] = (buckets[key] || 0) + 1;
+      total++;
+    }
+  }
+  const maxBucket = Math.max(...Object.values(buckets));
+  const boredom = maxBucket / total; // 0 = diverse, 1 = totally flat
+
+  if (boredom > 0.92) {
+    // Very boring — ramp up param drift speed significantly, but don't jump colors
+    boredUrgency = Math.min(boredUrgency + 0.5, 20);
+    // Also pick new param targets immediately (but NOT color targets)
+    if (randOn) {
+      for (const s of sliderDefs) {
+        if (rndEnabled[s.key]) randTargets[s.key] = s.min + Math.random() * (s.max - s.min);
+      }
+    }
+    if (flowOn) {
+      // Randomise phases/freqs for params only, not colors
+      for (const s of sliderDefs) {
+        flowPhases[s.key] = Math.random() * Math.PI * 2;
+        flowFreqs[s.key]  = 0.0002 + Math.random() * 0.0003;
+      }
+    }
+  } else {
+    // Gradually calm back down
+    boredUrgency = Math.max(1.0, boredUrgency - 0.1);
+  }
+}
+
+function setParam(key, val, s) {
+  p[key] = val;
+  const el = document.getElementById(s.id);
+  if (el) el.value = val;
+  const vEl = document.getElementById(s.id.replace(/^s/, 'v'));
+  if (vEl) vEl.textContent = fmtVal(key, val);
+}
+
+function tickRandomizer() {
+  const active = randOn || flowOn;
+  if (!active) return;
+  flowFrame++;
+
+  const DRIFT = 0.0004 * boredUrgency;  // params speed up when bored
+  const COLOR_SPEED = 0.3;              // colors always drift slowly, never jump
+
+  for (const s of sliderDefs) {
+    if (!rndEnabled[s.key]) continue;
+    let target;
+
+    if (flowOn) {
+      // Sine oscillation: map sin output to [min, max]
+      flowPhases[s.key] += flowFreqs[s.key] * Math.PI * 2;
+      target = s.min + (Math.sin(flowPhases[s.key]) * 0.5 + 0.5) * (s.max - s.min);
+    } else {
+      target = randTargets[s.key];
+      if (target === undefined) continue;
+    }
+
+    const cur = p[s.key];
+    const range = s.max - s.min;
+    const speed = range * DRIFT;
+    const diff = target - cur;
+    const next = Math.max(s.min, Math.min(s.max, cur + (Math.abs(diff) < speed ? diff : Math.sign(diff) * speed)));
+    setParam(s.key, next, s);
+  }
+
+  // Sync boid count
+  const n = Math.round(p.count);
+  while (boids.length < n) boids.push(new Boid());
+  if (boids.length > n) boids.length = n;
+
+  // Colors
+  for (const ch of ['bg', 'fg']) {
+    if (!rndEnabled[ch]) continue;
+    const cur = ch === 'bg' ? currentBgRgb : currentFgRgb;
+
+    if (flowOn) {
+      for (let i = 0; i < 3; i++) {
+        flowPhases[ch][i] += flowFreqs[ch][i] * Math.PI * 2;
+        cur[i] = (Math.sin(flowPhases[ch][i]) * 0.5 + 0.5) * 255;
+      }
+    } else {
+      const tgt = colorTargets[ch];
+      for (let i = 0; i < 3; i++) {
+        const diff = tgt[i] - cur[i];
+        cur[i] += Math.abs(diff) < COLOR_SPEED ? diff : Math.sign(diff) * COLOR_SPEED;
+      }
+    }
+    colors[ch] = rgbToHex(cur[0], cur[1], cur[2]);
+  }
+  applyColors();
+}
+
+// ── Mouse ─────────────────────────────────────────────────────
+const mouse = { x: null, y: null, down: false, button: 0 };
+const MOUSE_RADIUS = 250;
+
+display.addEventListener('mousemove', e => {
+  const r = display.getBoundingClientRect();
+  // display canvas is centered and oversized by PAD on each side
+  // scale factor in case CSS has resized it (shouldn't, but safe)
+  const scaleX = display.width  / r.width;
+  const scaleY = display.height / r.height;
+  mouse.x = (e.clientX - r.left) * scaleX - PAD;
+  mouse.y = (e.clientY - r.top)  * scaleY - PAD;
+});
+display.addEventListener('mousedown', e => {
+  mouse.down = true; mouse.button = e.button;
+});
+display.addEventListener('mouseup',    () => { mouse.down = false; });
+display.addEventListener('mouseleave', () => { mouse.x=null; mouse.y=null; mouse.down=false; });
+display.addEventListener('contextmenu', e => e.preventDefault());
+
+// Pause on spacebar
+let paused = false;
+document.addEventListener('keydown', e => {
+  if (e.code === 'Space') { e.preventDefault(); paused = !paused; }
+});
+
+// ── Simulation ────────────────────────────────────────────────
+function update() {
+  for (const b of boids) {
+    let sx=0,sy=0,ax=0,ay=0,cx=0,cy=0,n=0;
+    for (const o of boids) {
+      if (o===b) continue;
+      let dx=o.x-b.x, dy=o.y-b.y;
+      if (dx> W/2) dx-=W; if (dx<-W/2) dx+=W;
+      if (dy> H/2) dy-=H; if (dy<-H/2) dy+=H;
+      const d=Math.sqrt(dx*dx+dy*dy);
+      if (d>p.vision) continue;
+      if (d<p.sep){sx-=dx/(d||1);sy-=dy/(d||1);}
+      ax+=o.vx;ay+=o.vy;cx+=dx;cy+=dy;n++;
+    }
+    if (n>0){ax/=n;ay/=n;cx/=n;cy/=n;}
+    b.vx+=sx*0.07+ax*p.align+cx*p.cohesion;
+    b.vy+=sy*0.07+ay*p.align+cy*p.cohesion;
+    if (mouse.x!==null && mouse.down) {
+      const dx=mouse.x-b.x, dy=mouse.y-b.y, d=Math.sqrt(dx*dx+dy*dy)||1;
+      if (d < MOUSE_RADIUS) {
+        // left = attract, right = repel
+        const sign = (mouse.button === 2) ? -1 : 1;
+        const str = 3.0 * sign;
+        b.vx += dx/d * str;
+        b.vy += dy/d * str;
+      }
+    }
+    const mag=Math.sqrt(b.vx*b.vx+b.vy*b.vy)||1;
+    b.vx=b.vx/mag*p.speed; b.vy=b.vy/mag*p.speed;
+    b.x+=b.vx; b.y+=b.vy;
+    if(b.x<0)b.x+=W; if(b.x>W)b.x-=W;
+    if(b.y<0)b.y+=H; if(b.y>H)b.y-=H;
+  }
+}
+
+function drawBoid(x,y,scale){const r=p.size*scale;if(r<=0)return;ctx.beginPath();ctx.arc(x,y,r,0,Math.PI*2);ctx.fill();}
+
+function draw() {
+  ctx.fillStyle='rgba(255,255,255,0.4)'; ctx.fillRect(0,0,canvas.width,canvas.height);
+  ctx.fillStyle='#000000';
+  for (const b of boids) {
+    if (b.scale < 1) b.scale = Math.min(1, b.scale + 0.05);
+    for (let ox=-1;ox<=1;ox++)
+      for (let oy=-1;oy<=1;oy++)
+        drawBoid(b.x+ox*W+PAD, b.y+oy*H+PAD, b.scale);
+  }
+  applyGradientMap();
+}
+
+function loop() {
+  if (!paused) {
+    tickRandomizer();
+    checkBoredom();
+    update();
+  }
+  draw();
+  requestAnimationFrame(loop);
+}
+loop();
+
+// Fullscreen
+function goFullscreen(){
+  const el=document.documentElement;
+  if(el.requestFullscreen)el.requestFullscreen();
+  else if(el.webkitRequestFullscreen)el.webkitRequestFullscreen();
+  document.removeEventListener('click',goFullscreen);
+  document.removeEventListener('keydown',goFullscreen);
+}
+document.addEventListener('click',goFullscreen);
+document.addEventListener('keydown',goFullscreen);
+</script>
+</body>
+</html>

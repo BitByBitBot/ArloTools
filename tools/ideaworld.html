@@ -1,0 +1,774 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>IDEA WORLD</title>
+  <style>
+    :root{
+      --bg:#fff;
+      --fg:#000;
+      --muted:#555;
+      --panel:#fff;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+      --sans: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji","Segoe UI Emoji";
+    }
+    *{ box-sizing:border-box; }
+    html,body{ height:100%; }
+    body{ margin:0; background:var(--bg); color:var(--fg); font-family: var(--sans); }
+
+    .wrap{ display:grid; grid-template-columns: 360px 1fr; min-height:100vh; }
+    .panel{ padding:14px; border-right:2px solid var(--fg); background:var(--panel); }
+
+    h1{ font-size:16px; margin:0 0 8px 0; font-family: var(--mono); text-transform: uppercase; letter-spacing: .08em; }
+    .sub{ font-size:12px; color:var(--muted); line-height:1.3; margin-bottom:12px; }
+
+    .row{ display:flex; gap:8px; align-items:center; margin:8px 0; }
+    .row label{ font-size:12px; font-family: var(--mono); }
+
+    input[type="range"]{ width:100%; }
+    input[type="number"]{ width:72px; border:2px solid var(--fg); font-family: var(--mono); padding:4px 6px; background:#fff; }
+
+    .btn{ appearance:none; border:2px solid var(--fg); background:#fff; color:#000; padding:8px 10px; font-family: var(--mono); font-size:12px; cursor:pointer; text-transform:uppercase; letter-spacing:.06em; }
+    .btn:active{ transform: translate(1px,1px); }
+
+    .btnbar{ display:flex; gap:8px; flex-wrap:wrap; margin-top:10px; }
+
+    textarea{
+      width:100%;
+      height:290px;
+      resize:vertical;
+      border:2px solid var(--fg);
+      padding:10px;
+      font-family: var(--mono);
+      font-size:12px;
+      line-height:1.35;
+      background:#fff;
+      color:#000;
+      outline:none;
+      white-space:pre;
+    }
+
+    .hint{ font-size:11px; color:var(--muted); margin-top:8px; line-height:1.35; }
+    .stage{ position:relative; overflow:hidden; }
+    #svg{ width:100%; height:100vh; display:block; background:#fff; }
+
+    .tag{ display:inline-block; border:2px solid var(--fg); padding:2px 6px; font-family: var(--mono); font-size:11px; margin:6px 0 0; }
+    .mini{ font-size:11px; font-family: var(--mono); color: var(--muted); }
+    .divider{ height:1px; background:#000; margin:12px 0; }
+
+    @media (max-width: 920px){
+      .wrap{ grid-template-columns: 1fr; }
+      .panel{ border-right:none; border-bottom:2px solid var(--fg); }
+      #svg{ height: calc(100vh - 560px); min-height: 420px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <aside class="panel">
+      <h1>IDEA WORLD</h1>
+      <div class="sub">
+        Type bullets + sub-bullets to build the web.
+        Drag nodes. Click a node to collapse/expand its children. Shift-click to pin/unpin.
+        Duplicate labels merge into a single shared node.
+      </div>
+
+      <div class="row">
+        <label style="min-width:110px;">Link distance</label>
+        <input id="linkDistance" type="range" min="30" max="220" value="90" />
+        <div class="mini" id="linkDistanceVal" style="width:36px;text-align:right;">90</div>
+      </div>
+      <div class="row">
+        <label style="min-width:110px;">Repulsion</label>
+        <input id="repel" type="range" min="-1200" max="-60" value="-420" />
+        <div class="mini" id="repelVal" style="width:36px;text-align:right;">-420</div>
+      </div>
+      <div class="row">
+        <label style="min-width:110px;">Node size</label>
+        <input id="nodeSize" type="range" min="4" max="22" value="10" />
+        <div class="mini" id="nodeSizeVal" style="width:36px;text-align:right;">10</div>
+      </div>
+      <div class="row">
+        <label style="min-width:110px;">Label size</label>
+        <input id="labelSize" type="range" min="8" max="20" value="12" />
+        <div class="mini" id="labelSizeVal" style="width:36px;text-align:right;">12</div>
+      </div>
+      <div class="row">
+        <label style="min-width:110px;">Indent size</label>
+        <input id="indent" type="number" min="1" max="8" value="2" />
+        <span class="mini">spaces</span>
+      </div>
+      <div class="row">
+        <label style="min-width:110px;">Show labels</label>
+        <input id="showLabels" type="checkbox" checked />
+        <span class="mini">(toggle)</span>
+      </div>
+
+      <div class="btnbar">
+        <button class="btn" id="reheat">Reheat</button>
+        <button class="btn" id="center">Center</button>
+        <button class="btn" id="exportSvg">Export SVG</button>
+        <button class="btn" id="exportPng">Export PNG</button>
+      </div>
+
+      <div class="divider"></div>
+
+      <div class="tag">BULLETS</div>
+      <div class="hint">
+        Use <b>-</b>, <b>*</b>, or <b>•</b>.<br/>
+        <b>Tab</b> indents the current line/selection.<br/>
+        <b>Enter</b> continues a bullet.<br/>
+        Press <b>Enter again on an empty bullet</b> to step back out one level (no blank line).<br/>
+        <b>Shift+Enter</b> makes a plain newline.
+      </div>
+      <textarea id="bullets" spellcheck="false"></textarea>
+
+      <div class="btnbar">
+        <button class="btn" id="reset">Reset default</button>
+      </div>
+
+      <div class="hint">
+        <b>Gestures</b><br/>
+        • Drag = move node<br/>
+        • Shift+Click = pin/unpin node<br/>
+        • Click node = collapse/expand subtree<br/>
+        • Scroll / trackpad = zoom<br/>
+        • Drag background = pan
+      </div>
+
+      <div class="divider"></div>
+      <div class="hint"><b>Note:</b> link lines stay stable across edits/resets.</div>
+    </aside>
+
+    <main class="stage">
+      <svg id="svg" role="img" aria-label="Idea world"></svg>
+    </main>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/d3@7"></script>
+  <script>
+    // --------------------
+    // DEFAULT BULLETS
+    // --------------------
+    const DEFAULT_BULLETS = `- CORE IDEA
+  - CONTEXT
+    - What space does this live in?
+    - Who is it for?
+  - GOALS
+    - Primary goal
+    - Secondary goal
+  - OPTIONS
+    - A) Conservative approach
+    - B) Experimental approach
+    - C) Hybrid approach
+  - COMPONENTS
+    - Visual elements
+    - Text / language
+    - Interaction
+  - CONSTRAINTS
+    - Budget
+    - Time
+    - Tools
+  - OPEN QUESTIONS
+    - What am I unsure about?
+    - What needs testing?
+  - NEXT STEPS
+    - Immediate actions
+    - Longer-term directions`;
+
+    // --------------------
+    // BULLET PARSER
+    // --------------------
+    function isBulletLine(line){
+      const t = line.trimStart();
+      return t.startsWith('- ') || t.startsWith('* ') || t.startsWith('• ');
+    }
+
+    function stripBullet(line){
+      const t = line.trimStart();
+      if (t.startsWith('- ')) return t.slice(2);
+      if (t.startsWith('* ')) return t.slice(2);
+      if (t.startsWith('• ')) return t.slice(2);
+      return t;
+    }
+
+    // Stable-ish id
+    function hashId(str){
+      let h = 5381;
+      for (let i=0;i<str.length;i++) h = ((h<<5)+h) ^ str.charCodeAt(i);
+      return 'n_' + (h >>> 0).toString(36);
+    }
+
+    function bulletsToTree(text, indentSize){
+      // Convert tab chars into spaces for hierarchy calculations
+      const lines = text.replace(/\t/g, ' '.repeat(indentSize)).split(/\r?\n/);
+      const root = { id: 'root', label: 'ROOT', type: 'root', children: [] };
+      const stack = [{ node: root, indent: -1, path: 'ROOT' }];
+
+      for (const raw of lines) {
+        if (!raw.trim()) continue;
+
+        let leading = 0;
+        let level = 0;
+        let label = null;
+
+        if (isBulletLine(raw)) {
+          leading = (raw.match(/^\s*/)||[''])[0].length;
+          level = Math.floor(leading / indentSize);
+          label = stripBullet(raw).trim();
+        } else {
+          // Bulletless lines:
+          // - if indented, treat as if it were a '-' bullet at that indent level
+          // - if not indented, treat as a new root-level node
+          leading = (raw.match(/^\s*/)||[''])[0].length;
+          level = leading > 0 ? Math.floor(leading / indentSize) : 0;
+          label = raw.trim();
+        }
+
+        if (!label) continue;
+
+        while (stack.length && stack[stack.length-1].indent >= level) stack.pop();
+        const parent = stack[stack.length-1];
+
+        const node = {
+          // Merge identical labels globally: same exact text = same node
+          id: hashId(label),
+          label,
+          type: /CONFIGURATION|CHOICE|FORMAT|DIRECTION|METHOD|ART\b|MATERIAL|STRUCTURE|PRINT\b|SLEEVE/i.test(label)
+            ? 'decision'
+            : (/\bA\)|\bB\)|\bC\)/.test(label) ? 'option' : 'leaf'),
+          children: []
+        };
+
+        parent.node.children.push(node);
+        stack.push({ node, indent: level, path: parent.path + ' > ' + label });
+      }
+
+      if (root.children.length === 1) return root.children[0];
+      return root;
+    }
+
+    // --------------------
+    // TREE → GRAPH
+    // --------------------
+    function treeToGraph(tree, collapsedSet) {
+      const nodes = [];
+      const links = [];
+      const seen = new Set();
+
+      function walk(node, parent=null, depth=0) {
+        if (!node || !node.id) return;
+
+        // Always add link if there is a parent (even if node already seen)
+        if (parent) links.push({ source: parent.id, target: node.id });
+
+        if (seen.has(node.id)) return;
+        seen.add(node.id);
+
+        const hasChildren = Array.isArray(node.children) && node.children.length > 0;
+        nodes.push({
+          id: node.id,
+          label: node.label ?? node.id,
+          type: node.type ?? 'leaf',
+          depth,
+          _hasChildren: hasChildren,
+          _collapsed: collapsedSet.has(node.id)
+        });
+
+        if (hasChildren && !collapsedSet.has(node.id)) {
+          for (const child of node.children) walk(child, node, depth+1);
+        }
+      }
+
+      walk(tree);
+      return { nodes, links };
+    }
+
+    // --------------------
+    // D3 SETUP
+    // --------------------
+    const svg = d3.select('#svg');
+    const g = svg.append('g');
+    const linkLayer = g.append('g').attr('stroke', '#000').attr('stroke-width', 2);
+    const nodeLayer = g.append('g');
+
+    const width = () => svg.node().clientWidth;
+    const height = () => svg.node().clientHeight;
+
+    const zoomBehavior = d3.zoom()
+      .scaleExtent([0.25, 3.5])
+      .on('zoom', (event) => g.attr('transform', event.transform));
+    svg.call(zoomBehavior);
+
+    // --------------------
+    // STATE
+    // --------------------
+    let simulation = null;
+    const nodeById = new Map();
+    let collapsed = new Set();
+    let currentLinks = [];
+
+    // Updated on every rebuild so tick() always draws current DOM.
+    let drawLinksSel = null;
+    let drawNodesSel = null;
+
+    // Controls
+    const $ = (id) => document.getElementById(id);
+    const linkDistanceEl = $('linkDistance');
+    const repelEl = $('repel');
+    const nodeSizeEl = $('nodeSize');
+    const labelSizeEl = $('labelSize');
+    const showLabelsEl = $('showLabels');
+    const indentEl = $('indent');
+    const bulletsEl = $('bullets');
+
+    function syncControlLabels(){
+      $('linkDistanceVal').textContent = linkDistanceEl.value;
+      $('repelVal').textContent = repelEl.value;
+      $('nodeSizeVal').textContent = nodeSizeEl.value;
+      $('labelSizeVal').textContent = labelSizeEl.value;
+    }
+
+    function nodeRadius(d){
+      const base = +nodeSizeEl.value;
+      const bump = d.depth === 0 ? 6 : (d.type === 'decision' ? 4 : 0);
+      return Math.max(4, base + bump);
+    }
+
+    function dashForType(d){
+      if (d.type === 'decision') return '0';
+      if (d.type === 'option') return '0';
+      if (d.type === 'root') return '0';
+      return '2 10';
+    }
+
+    function updateLabelVisibility(){
+      nodeLayer.selectAll('text').attr('display', showLabelsEl.checked ? null : 'none');
+    }
+
+    function updateTextSize(){
+      nodeLayer.selectAll('text')
+        .attr('font-size', `${labelSizeEl.value}px`)
+        .attr('x', function(){
+          const parent = d3.select(this.parentNode).datum();
+          return nodeRadius(parent) + 10;
+        });
+    }
+
+    function tick(){
+      if (!drawLinksSel || !drawNodesSel) return;
+      drawLinksSel
+        .attr('x1', d => (typeof d.source === 'object' ? d.source.x : (nodeById.get(d.source)?.x ?? 0)))
+        .attr('y1', d => (typeof d.source === 'object' ? d.source.y : (nodeById.get(d.source)?.y ?? 0)))
+        .attr('x2', d => (typeof d.target === 'object' ? d.target.x : (nodeById.get(d.target)?.x ?? 0)))
+        .attr('y2', d => (typeof d.target === 'object' ? d.target.y : (nodeById.get(d.target)?.y ?? 0)));
+      drawNodesSel.attr('transform', d => `translate(${d.x},${d.y})`);
+    }
+
+    function applyGraph(nextGraph){
+      const nodes = nextGraph.nodes.map(n => {
+        const existing = nodeById.get(n.id);
+        if (existing) {
+          existing.label = n.label;
+          existing.type = n.type;
+          existing.depth = n.depth;
+          existing._hasChildren = n._hasChildren;
+          existing._collapsed = n._collapsed;
+          return existing;
+        }
+        const fresh = { ...n, x: width()/2 + (Math.random()-0.5)*40, y: height()/2 + (Math.random()-0.5)*40 };
+        nodeById.set(n.id, fresh);
+        return fresh;
+      });
+
+      const nextIds = new Set(nextGraph.nodes.map(n => n.id));
+      for (const id of Array.from(nodeById.keys())) {
+        if (!nextIds.has(id)) nodeById.delete(id);
+      }
+
+      // De-dupe links after merging identical labels, otherwise the same edge can be added multiple times.
+      const linkKey = (l) => `${l.source}->${l.target}`;
+      const uniq = new Map();
+      for (const l of nextGraph.links) uniq.set(linkKey(l), l);
+      currentLinks = Array.from(uniq.values()).map(l => ({ source: l.source, target: l.target }));
+
+      const linksSel = linkLayer.selectAll('line')
+        .data(currentLinks, d => `${d.source}->${d.target}`);
+      linksSel.exit().remove();
+      const linksEnter = linksSel.enter().append('line')
+        .attr('stroke', '#000')
+        .attr('stroke-opacity', 1);
+      drawLinksSel = linksEnter.merge(linksSel);
+
+      const nodeSel = nodeLayer.selectAll('g')
+        .data(nodes, d => d.id);
+      nodeSel.exit().remove();
+
+      const nodeEnter = nodeSel.enter().append('g').attr('cursor', 'grab');
+      nodeEnter.append('circle').attr('fill', '#fff').attr('stroke', '#000').attr('stroke-width', 2);
+      nodeEnter.append('circle').attr('fill', '#000');
+      nodeEnter.append('text')
+        .attr('y', 4)
+        .attr('font-family', 'var(--mono)')
+        .attr('fill', '#000')
+        .attr('paint-order', 'stroke')
+        .attr('stroke', '#fff')
+        .attr('stroke-width', 6)
+        .attr('stroke-linejoin', 'round');
+
+      drawNodesSel = nodeEnter.merge(nodeSel);
+
+      drawNodesSel.select('circle:nth-child(1)')
+        .attr('r', d => nodeRadius(d))
+        .attr('stroke-dasharray', d => dashForType(d));
+
+      drawNodesSel.select('circle:nth-child(2)')
+        .attr('r', d => (d._hasChildren ? Math.max(2, nodeRadius(d) - 6) : 0))
+        .attr('opacity', d => (d._hasChildren ? 1 : 0));
+
+      drawNodesSel.select('text')
+        .attr('x', d => nodeRadius(d) + 10)
+        .attr('font-size', `${labelSizeEl.value}px`)
+        .text(d => d.label);
+
+      drawNodesSel.on('click', (event, d) => {
+        if (event.shiftKey) {
+          if (d.fx == null) { d.fx = d.x; d.fy = d.y; }
+          else { d.fx = null; d.fy = null; }
+          return;
+        }
+        if (d._hasChildren) {
+          if (collapsed.has(d.id)) collapsed.delete(d.id); else collapsed.add(d.id);
+          rebuildFromBullets();
+        }
+      });
+
+      drawNodesSel.call(
+        d3.drag()
+          .on('start', (event, d) => {
+            if (!event.active && simulation) simulation.alphaTarget(0.3).restart();
+            d.fx = d.x;
+            d.fy = d.y;
+          })
+          .on('drag', (event, d) => {
+            d.fx = event.x;
+            d.fy = event.y;
+          })
+          .on('end', (event) => {
+            if (!event.active && simulation) simulation.alphaTarget(0);
+          })
+      );
+
+      if (!simulation) {
+        simulation = d3.forceSimulation(nodes)
+          .force('link', d3.forceLink(currentLinks).id(d => d.id).distance(+linkDistanceEl.value).strength(1))
+          .force('charge', d3.forceManyBody().strength(+repelEl.value))
+          .force('center', d3.forceCenter(width()/2, height()/2))
+          .force('collide', d3.forceCollide().radius(d => nodeRadius(d) + 10).iterations(2))
+          .on('tick', tick);
+      } else {
+        simulation.nodes(nodes);
+        simulation.force('link').links(currentLinks);
+        simulation.force('center', d3.forceCenter(width()/2, height()/2));
+        simulation.force('collide').radius(d => nodeRadius(d) + 10);
+        simulation.on('tick', tick);
+      }
+
+      updateLabelVisibility();
+      updateTextSize();
+      simulation.alpha(0.35).restart();
+    }
+
+    function rebuildFromBullets(){
+      const indent = Math.max(1, Math.min(8, parseInt(indentEl.value || '2', 10)));
+      const tree = bulletsToTree(bulletsEl.value, indent);
+      const graph = treeToGraph(tree, collapsed);
+      applyGraph(graph);
+
+      const expected = graph.links.length;
+      const actual = linkLayer.selectAll('line').size();
+      if (expected !== actual) console.warn('[idea-world] link mismatch', { expected, actual });
+    }
+
+    function updateForces(){
+      if (!simulation) return;
+      simulation.force('link').distance(+linkDistanceEl.value);
+      simulation.force('charge').strength(+repelEl.value);
+      simulation.force('collide').radius(d => nodeRadius(d) + 10);
+      syncControlLabels();
+      updateTextSize();
+      simulation.alpha(0.25).restart();
+    }
+
+    function reheat(){ if (simulation) simulation.alpha(1).restart(); }
+    function centerView(){ svg.transition().duration(250).call(zoomBehavior.transform, d3.zoomIdentity); reheat(); }
+
+    function serializeSVG(){
+      const clone = svg.node().cloneNode(true);
+      const s = new XMLSerializer().serializeToString(clone);
+      return `<?xml version="1.0" encoding="UTF-8"?>\n${s}`;
+    }
+
+    function download(filename, content, mime){
+      const blob = new Blob([content], {type: mime});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = filename;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      URL.revokeObjectURL(url);
+    }
+
+    async function exportPNG(){
+      const svgText = serializeSVG();
+      const svgBlob = new Blob([svgText], {type: 'image/svg+xml;charset=utf-8'});
+      const url = URL.createObjectURL(svgBlob);
+      const img = new Image();
+
+      await new Promise((resolve, reject) => {
+        img.onload = resolve;
+        img.onerror = reject;
+        img.src = url;
+      });
+
+      const canvas = document.createElement('canvas');
+      canvas.width = width() * 2;
+      canvas.height = height() * 2;
+      const ctx = canvas.getContext('2d');
+      ctx.scale(2,2);
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0,0,width(),height());
+      ctx.drawImage(img, 0, 0, width(), height());
+
+      URL.revokeObjectURL(url);
+
+      canvas.toBlob((blob) => {
+        if (!blob) { alert('PNG export failed: canvas.toBlob returned null'); return; }
+        const pngUrl = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = pngUrl;
+        a.download = 'idea-world.png';
+        document.body.appendChild(a);
+        a.click();
+        a.remove();
+        URL.revokeObjectURL(pngUrl);
+      }, 'image/png');
+    }
+
+    // --------------------
+    // EDITOR ERGONOMICS
+    // --------------------
+    function getLineStart(text, index){
+      const i = text.lastIndexOf('\n', Math.max(0, index - 1));
+      return i === -1 ? 0 : i + 1;
+    }
+
+    function getLineEnd(text, index){
+      const i = text.indexOf('\n', index);
+      return i === -1 ? text.length : i;
+    }
+
+    function readBulletPrefix(line){
+      let i = 0;
+      while (i < line.length && (line[i] === ' ' || line[i] === '\t')) i++;
+      const indent = line.slice(0, i);
+      const bullet = line[i];
+      if ((bullet === '-' || bullet === '*' || bullet === '•') && line[i+1] === ' ') return { indent, bullet };
+      return null;
+    }
+
+    function insertAtSelection(el, text){
+      const v = el.value;
+      const a = el.selectionStart;
+      const b = el.selectionEnd;
+      el.value = v.slice(0, a) + text + v.slice(b);
+      const pos = a + text.length;
+      el.focus();
+      el.setSelectionRange(pos, pos);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    function indentOrOutdentBlock(el, direction /* +1 indent, -1 outdent */, indentSize){
+      const v = el.value;
+      const a = el.selectionStart;
+      const b = el.selectionEnd;
+
+      const startLine = getLineStart(v, a);
+      const endLine = getLineEnd(v, b);
+      const block = v.slice(startLine, endLine);
+      const lines = block.split('\n');
+
+      let changedFirstLineBy = 0;
+
+      const outLines = lines.map((ln, idx) => {
+        if (direction > 0) {
+          if (idx === 0) changedFirstLineBy = 1;
+          return '\t' + ln;
+        }
+        if (ln.startsWith('\t')) {
+          if (idx === 0) changedFirstLineBy = -1;
+          return ln.slice(1);
+        }
+        const m = ln.match(/^ +/);
+        if (!m) return ln;
+        const removeN = Math.min(m[0].length, indentSize);
+        if (idx === 0) changedFirstLineBy = -removeN;
+        return ln.slice(removeN);
+      });
+
+      const out = outLines.join('\n');
+      el.value = v.slice(0, startLine) + out + v.slice(endLine);
+
+      const newA = Math.max(startLine, a + changedFirstLineBy);
+      const newB = Math.max(newA, b + (direction > 0 ? outLines.length : 0) + (direction < 0 ? changedFirstLineBy : 0));
+
+      el.focus();
+      el.setSelectionRange(newA, newB);
+      el.dispatchEvent(new Event('input', { bubbles: true }));
+    }
+
+    bulletsEl.addEventListener('keydown', (e) => {
+      const unit = Math.max(1, Math.min(8, parseInt(indentEl.value || '2', 10)));
+
+      if (e.key === 'Tab') {
+        e.preventDefault();
+        indentOrOutdentBlock(bulletsEl, +1, unit);
+        return;
+      }
+
+      if (e.key === 'Enter' && !e.metaKey && !e.ctrlKey) {
+        if (e.shiftKey) return;
+
+        const v = bulletsEl.value;
+        const caret = bulletsEl.selectionStart;
+        const ls = getLineStart(v, caret);
+        const le = getLineEnd(v, caret);
+        const line = v.slice(ls, le);
+        const prefix = readBulletPrefix(line);
+        if (!prefix) return;
+
+        const after = line.slice(prefix.indent.length + 2).trim();
+        e.preventDefault();
+
+        if (!after) {
+          let currentIndent = prefix.indent;
+          let newIndent = currentIndent;
+
+          if (currentIndent.endsWith('\t')) {
+            newIndent = currentIndent.slice(0, -1);
+          } else {
+            const spaceMatch = currentIndent.match(/ +$/);
+            if (spaceMatch) {
+              const removeN = Math.min(spaceMatch[0].length, unit);
+              newIndent = currentIndent.slice(0, currentIndent.length - removeN);
+            }
+          }
+
+          const v2 = bulletsEl.value;
+          const replacement = `${newIndent}${prefix.bullet} `;
+          bulletsEl.value = v2.slice(0, ls) + replacement + v2.slice(le);
+
+          const newCaret = ls + replacement.length;
+          bulletsEl.focus();
+          bulletsEl.setSelectionRange(newCaret, newCaret);
+          bulletsEl.dispatchEvent(new Event('input', { bubbles: true }));
+          return;
+        }
+
+        insertAtSelection(bulletsEl, `\n${prefix.indent}${prefix.bullet} `);
+      }
+    });
+
+    // --------------------
+    // WIRING
+    // --------------------
+    syncControlLabels();
+
+    linkDistanceEl.addEventListener('input', updateForces);
+    repelEl.addEventListener('input', updateForces);
+    nodeSizeEl.addEventListener('input', updateForces);
+    labelSizeEl.addEventListener('input', () => { syncControlLabels(); updateTextSize(); });
+    showLabelsEl.addEventListener('change', updateLabelVisibility);
+
+    $('reheat').addEventListener('click', reheat);
+    $('center').addEventListener('click', centerView);
+    $('reset').addEventListener('click', () => {
+      bulletsEl.value = DEFAULT_BULLETS;
+      collapsed = new Set();
+      nodeById.clear();
+      rebuildFromBullets();
+      reheat();
+    });
+
+    $('exportSvg').addEventListener('click', () => download('idea-world.svg', serializeSVG(), 'image/svg+xml;charset=utf-8'));
+    $('exportPng').addEventListener('click', () => exportPNG().catch(err => alert('PNG export failed: ' + err)));
+
+    let debounceT = null;
+    function scheduleRebuild(){
+      clearTimeout(debounceT);
+      debounceT = setTimeout(() => rebuildFromBullets(), 220);
+    }
+    bulletsEl.addEventListener('input', scheduleRebuild);
+    indentEl.addEventListener('input', scheduleRebuild);
+
+    let resizeT = null;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeT);
+      resizeT = setTimeout(() => {
+        if (simulation) {
+          simulation.force('center', d3.forceCenter(width()/2, height()/2));
+          simulation.alpha(0.2).restart();
+        }
+      }, 100);
+    });
+
+    // --------------------
+    // TESTS (console)
+    // --------------------
+    (function runTests(){
+      try {
+        const t1 = bulletsToTree('- A\n  - B\n    - C', 2);
+        const g1 = treeToGraph(t1, new Set());
+        console.assert(g1.nodes.length >= 3, '[test] expected >= 3 nodes');
+        console.assert(g1.links.length >= 2, '[test] expected >= 2 links');
+
+        const tb = 'x\n- A\n\t- B';
+        const t2 = bulletsToTree(tb, 2);
+        const g2 = treeToGraph(t2, new Set());
+        console.assert(g2.nodes.length >= 2, '[test] tab-indented child parsed');
+
+        const t3 = bulletsToTree('- A\n  B', 2);
+        const g3 = treeToGraph(t3, new Set());
+        console.assert(g3.nodes.some(n => n.label === 'A'), '[test] has A');
+        console.assert(g3.nodes.some(n => n.label === 'B'), '[test] has B');
+        console.assert(g3.links.length >= 1, '[test] bulletless-indented produced a link');
+
+        const fake = { value: '- A\n\t- B', selectionStart: 0, selectionEnd: 0, focus(){}, setSelectionRange(){}, dispatchEvent(){} };
+        indentOrOutdentBlock(fake, +1, 2);
+        indentOrOutdentBlock(fake, -1, 2);
+        console.assert(true, '[test] indent/outdent block did not throw');
+
+        // Duplicate label merges into single node with multiple parents
+        const t4 = bulletsToTree('- A\n  - X\n- B\n  - X', 2);
+        const g4 = treeToGraph(t4, new Set());
+        const xNodes = g4.nodes.filter(n => n.label === 'X');
+        console.assert(xNodes.length === 1, '[test] duplicate label merged into single node');
+        const xLinks = g4.links.filter(l => {
+          const tgt = typeof l.target === 'object' ? l.target.id : l.target;
+          return tgt === xNodes[0].id;
+        });
+        console.assert(xLinks.length === 2, '[test] merged node has two incoming links');
+      } catch (e) {
+        console.error('[idea-world tests] failed', e);
+      }
+    })();
+
+    // Init
+    bulletsEl.value = DEFAULT_BULLETS;
+    rebuildFromBullets();
+  </script>
+</body>
+</html>

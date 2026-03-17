@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Random Cat Photo and Word Generator</title>
+	<style>
+		.container {
+			position: relative;
+			display: inline-block;
+		}
+
+		#cat-image {
+			display: block;
+			max-width: 100%;
+			max-height: 80vh;
+			margin: auto;
+		}
+
+		#random-word {
+			position: absolute;
+			top: 50%;
+			left: 50%;
+			transform: translate(-50%, -50%);
+			font-size: 3em;
+			color: white;
+			text-shadow: 1px 1px 1px black;
+			font-family: sans-serif;
+		}
+	</style>
+</head>
+<body onclick="getRandomCatPhotoAndWord()">
+	<h1>Random Cat Photo and Word Generator</h1>
+	<div class="container">
+		<img id="cat-image" src="" alt="Random Cat Photo">
+		<p id="random-word"></p>
+		<p>Click anywhere on the page to generate a new meme.</p>
+	</div>
+
+	<script>
+		function getRandomCatPhotoAndWord() {
+			// Fetch a random word
+			fetch('https://random-word-api.herokuapp.com/word?number=1')
+			  .then(response => response.json())
+			  .then(data => {
+			    const word = data[0];
+			    document.getElementById("random-word").innerHTML = word;
+			  });
+
+			// Fetch a random cat photo
+			fetch('https://api.thecatapi.com/v1/images/search')
+			  .then(response => response.json())
+			  .then(data => {
+			    const catImageUrl = data[0].url;
+			    document.getElementById("cat-image").src = catImageUrl;
+			  });
+		}
+	</script>
+</body>
+</html>

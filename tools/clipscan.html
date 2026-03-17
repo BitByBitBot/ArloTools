@@ -1,0 +1,720 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ClipScan — Contrast Cleaner</title>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0e0e0e; --bg-deep: #0b0b0b; --border: #1e1e1e; --border-hi: #2a2a2a;
+  --fg: #e8e4dc; --fg-dim: #5a5a5a; --fg-faint: #3a3a3a;
+  --gold: #d4c5a9; --gold-dark: #8b7355; --font: 'Courier New', Courier, monospace;
+}
+html, body { height: 100%; background: var(--bg); color: var(--fg); font-family: var(--font); overflow: hidden; }
+#app { display: flex; flex-direction: column; height: 100vh; }
+
+header {
+  display: flex; align-items: center; gap: 14px;
+  padding: 14px 24px; border-bottom: 1px solid var(--border-hi); flex-shrink: 0;
+}
+.logo-mark {
+  width: 34px; height: 34px; border-radius: 7px; flex-shrink: 0;
+  background: linear-gradient(135deg, var(--gold) 0%, var(--gold-dark) 100%);
+  display: flex; align-items: center; justify-content: center;
+}
+.logo-text .name { font-size: 13px; font-weight: 700; letter-spacing: .12em; text-transform: uppercase; }
+.logo-text .sub  { font-size: 10px; color: var(--fg-faint); letter-spacing: .1em; margin-top: 1px; }
+#file-info { margin-left: auto; font-size: 11px; color: var(--fg-dim); text-align: right; line-height: 1.5; }
+
+.body { display: flex; flex: 1; overflow: hidden; }
+
+aside {
+  width: 224px; border-right: 1px solid var(--border); background: var(--bg-deep);
+  padding: 20px 16px; display: flex; flex-direction: column; gap: 20px;
+  overflow-y: auto; flex-shrink: 0;
+}
+.sec-label { font-size: 10px; letter-spacing: .15em; text-transform: uppercase; color: #333; margin-bottom: 7px; }
+
+.tool-group { display: flex; gap: 6px; }
+.tool-btn {
+  flex: 1; padding: 8px 6px; border: 1px solid var(--border-hi); border-radius: 5px;
+  background: transparent; color: var(--fg-dim); font-size: 10px; letter-spacing: .08em;
+  text-transform: uppercase; font-family: var(--font); cursor: pointer;
+  transition: all .15s; display: flex; flex-direction: column; align-items: center; gap: 4px;
+}
+.tool-btn svg { display: block; }
+.tool-btn.active { background: var(--gold); color: var(--bg); border-color: var(--gold); }
+.tool-btn:not(.active):hover { border-color: var(--fg-faint); color: var(--fg); }
+
+.zoom-row { display: flex; align-items: center; gap: 6px; }
+.zoom-btn {
+  width: 28px; height: 28px; border: 1px solid var(--border-hi); border-radius: 4px;
+  background: transparent; color: var(--fg-dim); font-size: 16px; cursor: pointer;
+  display: flex; align-items: center; justify-content: center; font-family: var(--font);
+  transition: border-color .15s, color .15s; flex-shrink: 0;
+}
+.zoom-btn:hover { border-color: var(--fg-faint); color: var(--fg); }
+#zoom-fit { font-size: 10px; width: auto; padding: 0 8px; letter-spacing: .06em; }
+#zoom-label { font-size: 11px; color: var(--gold-dark); font-weight: 700; min-width: 42px; text-align: center; }
+
+#mode-btn {
+  width: 100%; padding: 8px 12px; border: 1px solid var(--border-hi); border-radius: 6px;
+  cursor: pointer; font-size: 11px; letter-spacing: .1em; font-family: var(--font);
+  text-transform: uppercase; font-weight: 700; transition: background .2s, color .2s;
+}
+#mode-btn.auto   { background: var(--gold); color: var(--bg); }
+#mode-btn.manual { background: #1e1e1e; color: var(--fg); }
+
+#manual-controls { display: none; flex-direction: column; gap: 14px; }
+#manual-controls.visible { display: flex; }
+
+.slider-row { display: flex; flex-direction: column; gap: 5px; }
+.slider-row .row-head { display: flex; justify-content: space-between; }
+.slider-label { font-size: 10px; color: var(--fg-dim); letter-spacing: .09em; text-transform: uppercase; }
+.slider-val   { font-size: 10px; color: var(--gold-dark); font-weight: 700; }
+input[type=range] { width: 100%; height: 3px; cursor: pointer; accent-color: var(--gold); }
+
+#reset-btn {
+  padding: 6px 10px; background: transparent; border: 1px solid var(--border-hi);
+  border-radius: 5px; color: var(--fg-faint); font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; cursor: pointer; font-family: var(--font);
+}
+#reset-btn:hover { color: var(--fg-dim); }
+
+#lasso-panel { display: none; flex-direction: column; gap: 10px; }
+#lasso-panel.visible { display: flex; }
+.lasso-hint { font-size: 10px; color: #444; line-height: 1.7; }
+.lasso-hint b { color: var(--gold-dark); font-weight: 700; }
+#lasso-pts-label { font-size: 10px; color: var(--fg-faint); }
+
+#export-lasso-btn {
+  padding: 9px 10px; border-radius: 5px; font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; cursor: pointer; font-family: var(--font); font-weight: 700;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--gold); color: var(--bg); border: none;
+  transition: opacity .15s;
+}
+#export-lasso-btn:disabled { opacity: .35; cursor: not-allowed; }
+#clear-lasso-btn {
+  padding: 7px 10px; border-radius: 5px; font-size: 10px; letter-spacing: .1em;
+  text-transform: uppercase; cursor: pointer; font-family: var(--font);
+  background: transparent; color: var(--fg-faint); border: 1px solid var(--border-hi);
+}
+#clear-lasso-btn:hover { color: var(--fg-dim); }
+
+.spacer { flex: 1; }
+
+#download-btn {
+  padding: 10px 14px; border: none; border-radius: 7px; font-size: 11px;
+  letter-spacing: .12em; text-transform: uppercase; font-weight: 700;
+  font-family: var(--font); cursor: pointer;
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+  transition: background .2s, color .2s;
+}
+#download-btn.ready    { background: var(--gold); color: var(--bg); }
+#download-btn.disabled { background: #1a1a1a; color: var(--fg-faint); cursor: not-allowed; }
+
+main { flex: 1; display: flex; flex-direction: column; overflow: hidden; position: relative; }
+
+#drop-zone {
+  flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 14px; margin: 28px; border: 2px dashed #222; border-radius: 14px; cursor: pointer;
+  transition: border-color .2s, background .2s;
+}
+#drop-zone.drag-over { border-color: var(--gold); background: #151510; }
+#drop-zone svg { color: #333; transition: color .2s; }
+#drop-zone.drag-over svg { color: var(--gold); }
+.drop-title { font-size: 13px; letter-spacing: .12em; text-transform: uppercase; color: #555; }
+.drop-sub   { font-size: 11px; color: #2e2e2e; letter-spacing: .08em; margin-top: 4px; }
+
+#viewport { flex: 1; position: relative; overflow: hidden; display: none; }
+#viewport.visible { display: block; }
+#main-canvas { position: absolute; top: 0; left: 0; display: block; }
+
+#split-handle {
+  position: absolute; top: 0; bottom: 0; width: 3px;
+  background: var(--gold); cursor: ew-resize; z-index: 6; transform: translateX(-1px);
+}
+#split-knob {
+  position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%);
+  width: 28px; height: 28px; border-radius: 50%; background: var(--gold);
+  display: flex; align-items: center; justify-content: center; color: var(--bg);
+  font-size: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.6); user-select: none; pointer-events: none;
+}
+
+.preview-label {
+  position: absolute; bottom: 12px; font-size: 10px; letter-spacing: .15em;
+  text-transform: uppercase; padding: 3px 8px; border-radius: 4px;
+  background: rgba(0,0,0,.6); z-index: 7; pointer-events: none;
+}
+#label-before { left: 12px; color: var(--fg-faint); }
+#label-after  { color: var(--gold); }
+
+#preview-controls { position: absolute; top: 12px; right: 12px; display: none; gap: 7px; z-index: 10; }
+#preview-controls.visible { display: flex; }
+.ctrl-btn {
+  padding: 5px 11px; background: rgba(14,14,14,.9); border: 1px solid var(--border-hi);
+  border-radius: 5px; font-size: 10px; letter-spacing: .1em; text-transform: uppercase;
+  cursor: pointer; font-family: var(--font); display: flex; align-items: center; gap: 5px;
+}
+#rotate-btn  { color: var(--gold); }
+#replace-btn { color: var(--fg-faint); }
+
+#processing-overlay {
+  position: absolute; inset: 0; background: rgba(14,14,14,.78);
+  display: none; align-items: center; justify-content: center; z-index: 20;
+  backdrop-filter: blur(2px);
+}
+#processing-overlay.visible { display: flex; }
+.proc-text { font-size: 11px; letter-spacing: .2em; text-transform: uppercase; color: var(--gold); animation: pulse 1s infinite alternate; }
+@keyframes pulse { from { opacity:.4 } to { opacity:1 } }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo-mark">
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#0e0e0e" stroke-width="2">
+        <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
+        <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
+        <rect x="7" y="7" width="10" height="10" rx="1"/>
+      </svg>
+    </div>
+    <div class="logo-text">
+      <div class="name">ClipScan</div>
+      <div class="sub">Contrast Cleaner</div>
+    </div>
+    <div id="file-info"></div>
+  </header>
+
+  <div class="body">
+    <aside>
+      <div>
+        <div class="sec-label">Tool</div>
+        <div class="tool-group">
+          <button class="tool-btn active" id="tool-pan">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M5 9l-3 3 3 3M9 5l3-3 3 3M15 19l-3 3-3-3M19 9l3 3-3 3M2 12h20M12 2v20"/>
+            </svg>
+            Pan
+          </button>
+          <button class="tool-btn" id="tool-lasso">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+              <path d="M3 3l5 2 4-2 5 3 4-1v8l-4 2-5-2-4 3-5-1z"/>
+            </svg>
+            Lasso
+          </button>
+        </div>
+      </div>
+
+      <div>
+        <div class="sec-label">Zoom</div>
+        <div class="zoom-row">
+          <button class="zoom-btn" id="zoom-out">−</button>
+          <span id="zoom-label">100%</span>
+          <button class="zoom-btn" id="zoom-in">+</button>
+          <button class="zoom-btn" id="zoom-fit">Fit</button>
+        </div>
+      </div>
+
+      <div>
+        <div class="sec-label">Processing Mode</div>
+        <button id="mode-btn" class="auto">⚡ Automatic</button>
+      </div>
+
+      <div id="manual-controls">
+        <div class="slider-row">
+          <div class="row-head"><span class="slider-label">Paper Threshold</span><span class="slider-val" id="val-threshold">15</span></div>
+          <input type="range" id="sl-threshold" min="0" max="40" step="1" value="15">
+        </div>
+        <div class="slider-row">
+          <div class="row-head"><span class="slider-label">Contrast Strength</span><span class="slider-val" id="val-contrast">1.00</span></div>
+          <input type="range" id="sl-contrast" min="0.5" max="2" step="0.05" value="1">
+        </div>
+        <div class="slider-row">
+          <div class="row-head"><span class="slider-label">Shadow Depth</span><span class="slider-val" id="val-shadow">0.50</span></div>
+          <input type="range" id="sl-shadow" min="0" max="1" step="0.01" value="0.5">
+        </div>
+        <div class="slider-row">
+          <div class="row-head"><span class="slider-label">Midtone Preserve</span><span class="slider-val" id="val-midtone">0.50</span></div>
+          <input type="range" id="sl-midtone" min="0" max="1" step="0.01" value="0.5">
+        </div>
+        <button id="reset-btn">↺ Reset</button>
+      </div>
+
+      <div id="lasso-panel">
+        <div class="sec-label" style="margin-bottom:2px">Lasso Selection</div>
+        <div class="lasso-hint">
+          <b>Click</b> to add points<br>
+          <b>Double-click</b> to close<br>
+          <b>Esc</b> to cancel &nbsp;·&nbsp; <b>Ctrl+Z</b> undo
+        </div>
+        <div id="lasso-pts-label">0 points</div>
+        <button id="export-lasso-btn" disabled>
+          <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+            <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          Export Selection
+        </button>
+        <button id="clear-lasso-btn">✕ Clear</button>
+      </div>
+
+      <div class="spacer"></div>
+
+      <button id="download-btn" class="disabled">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        Download PNG
+      </button>
+    </aside>
+
+    <main>
+      <div id="drop-zone">
+        <svg width="38" height="38" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        <div><div class="drop-title">Drop image here</div><div class="drop-sub">JPG · PNG · TIFF · WebP</div></div>
+      </div>
+
+      <div id="viewport">
+        <canvas id="main-canvas"></canvas>
+        <div id="split-handle"><div id="split-knob">⇔</div></div>
+        <div class="preview-label" id="label-before">Before</div>
+        <div class="preview-label" id="label-after">After</div>
+        <div id="processing-overlay"><span class="proc-text">Processing…</span></div>
+        <div id="preview-controls">
+          <button class="ctrl-btn" id="rotate-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2">
+              <path d="M21 2v6h-6"/><path d="M3 12a9 9 0 0 1 15-6.7L21 8"/>
+              <path d="M3 22v-6h6"/><path d="M21 12a9 9 0 0 1-15 6.7L3 16"/>
+            </svg>
+            Rotate
+          </button>
+          <button class="ctrl-btn" id="replace-btn">↑ Replace</button>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+<input type="file" id="file-input" accept="image/*">
+
+<script>
+// ── State ────────────────────────────────────────────────────────────────────
+const S = {
+  original: null, cleanedCanvas: null, processing: false, manual: false,
+  params: { paperThreshold:15, contrastStrength:1.0, shadowDepth:0.5, midtonePreservation:0.5 },
+  zoom: 1, panX: 0, panY: 0,
+  splitX: 0.5, splitDragging: false,
+  tool: 'pan',
+  lassoPoints: [], lassoClosed: false,
+  panDragging: false, panStart: {x:0,y:0}, panOrigin: {x:0,y:0},
+  spaceHeld: false,
+};
+let processTimer = null;
+let _origImg = null;
+let _animFrame = null;
+
+// ── Elements ─────────────────────────────────────────────────────────────────
+const $ = id => document.getElementById(id);
+const dropZone=$('drop-zone'), viewport=$('viewport'), canvas=$('main-canvas');
+const ctx = canvas.getContext('2d');
+const splitHandle=$('split-handle'), labelAfter=$('label-after');
+const procOverlay=$('processing-overlay'), previewCtrls=$('preview-controls');
+const fileInfo=$('file-info'), fileInput=$('file-input');
+const modeBtn=$('mode-btn'), manualCtrls=$('manual-controls');
+const downloadBtn=$('download-btn'), rotateBtn=$('rotate-btn'), replaceBtn=$('replace-btn'), resetBtn=$('reset-btn');
+const toolPanBtn=$('tool-pan'), toolLassoBtn=$('tool-lasso');
+const zoomInBtn=$('zoom-in'), zoomOutBtn=$('zoom-out'), zoomFitBtn=$('zoom-fit'), zoomLabel=$('zoom-label');
+const lassoPanel=$('lasso-panel'), lassoPtsLabel=$('lasso-pts-label'), exportLassoBtn=$('export-lasso-btn'), clearLassoBtn=$('clear-lasso-btn');
+const sliders = {
+  paperThreshold:      { el:$('sl-threshold'), val:$('val-threshold'), fmt:v=>Math.round(v) },
+  contrastStrength:    { el:$('sl-contrast'),  val:$('val-contrast'),  fmt:v=>parseFloat(v).toFixed(2) },
+  shadowDepth:         { el:$('sl-shadow'),    val:$('val-shadow'),    fmt:v=>parseFloat(v).toFixed(2) },
+  midtonePreservation: { el:$('sl-midtone'),   val:$('val-midtone'),   fmt:v=>parseFloat(v).toFixed(2) },
+};
+
+// ── Processing Engine ────────────────────────────────────────────────────────
+function processImage(imageData, opts) {
+  const { paperThreshold=15, contrastStrength=1.0, shadowDepth=0.5, midtonePreservation=0.5 } = opts;
+  const data=imageData.data, w=imageData.width, h=imageData.height;
+  const luma=new Float32Array(w*h);
+  for (let i=0;i<w*h;i++) luma[i]=0.299*data[i*4]+0.587*data[i*4+1]+0.114*data[i*4+2];
+
+  const ps=12; let bM=-1,bV=Infinity,pW=240,pR=255,pG=255,pB=255;
+  for (let py=0;py<h-ps;py+=ps) for (let px=0;px<w-ps;px+=ps) {
+    let s=0,s2=0,sR=0,sG=0,sB=0,c=0;
+    for (let dy=0;dy<ps;dy++) for (let dx=0;dx<ps;dx++) {
+      const idx=(py+dy)*w+(px+dx),v=luma[idx];
+      s+=v;s2+=v*v;sR+=data[idx*4];sG+=data[idx*4+1];sB+=data[idx*4+2];c++;
+    }
+    const m=s/c,vr=s2/c-m*m;
+    if (m>bM-5&&vr<bV){bM=m;bV=vr;pW=m;pR=sR/c;pG=sG/c;pB=sB/c;}
+  }
+  if (bM<0){const ss=[...luma].sort((a,b)=>a-b);pW=ss[Math.floor(ss.length*.95)];pR=pG=pB=pW;}
+  const wR=pR>0?255/pR:1,wG=pG>0?255/pG:1,wB=pB>0?255/pB:1;
+  let mn=255; for(let i=0;i<luma.length;i++) if(luma[i]<mn) mn=luma[i];
+  if(mn>200) return imageData;
+  const rng=pW-mn;
+  function sc(t){const g=0.85+(1-midtonePreservation)*0.3,v=Math.pow(t,g);const s=v<.5?.5*Math.pow(2*v,1+contrastStrength):1-.5*Math.pow(2*(1-v),1+contrastStrength);return v*.5+s*.5;}
+  const out=new ImageData(new Uint8ClampedArray(data),w,h);
+  for(let i=0;i<w*h;i++){
+    const l=luma[i];
+    if(l>pW-paperThreshold){out.data[i*4]=255;out.data[i*4+1]=255;out.data[i*4+2]=255;out.data[i*4+3]=255;continue;}
+    let t=rng>0?(l-mn)/rng:0;t=Math.max(0,Math.min(1,t));t=sc(t);t=Math.pow(t,1-shadowDepth*.4);
+    const val=Math.round(t*255),r=l>0?val/l:0;
+    out.data[i*4]=Math.min(255,Math.round(data[i*4]*wR*r));
+    out.data[i*4+1]=Math.min(255,Math.round(data[i*4+1]*wG*r));
+    out.data[i*4+2]=Math.min(255,Math.round(data[i*4+2]*wB*r));
+    out.data[i*4+3]=255;
+  }
+  return out;
+}
+
+function runProcess(dataUrl, p) {
+  S.processing=true; procOverlay.classList.add('visible'); downloadBtn.className='disabled';
+  setTimeout(()=>{
+    const img=new Image(); img.onload=()=>{
+      const c=document.createElement('canvas');c.width=img.width;c.height=img.height;
+      const cx=c.getContext('2d');cx.drawImage(img,0,0);
+      cx.putImageData(processImage(cx.getImageData(0,0,img.width,img.height),p),0,0);
+      S.cleanedCanvas=c; S.processing=false;
+      procOverlay.classList.remove('visible'); downloadBtn.className='ready';
+      render();
+    }; img.src=dataUrl;
+  },20);
+}
+
+function scheduleProcess(){
+  if(!S.original) return;
+  clearTimeout(processTimer);
+  processTimer=setTimeout(()=>runProcess(S.original.dataUrl,S.params),200);
+}
+
+// ── Coord helpers ─────────────────────────────────────────────────────────────
+function imgToView(x,y){return{x:S.panX+x*S.zoom,y:S.panY+y*S.zoom};}
+function viewToImg(x,y){return{x:(x-S.panX)/S.zoom,y:(y-S.panY)/S.zoom};}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function render(){
+  if(!S.original) return;
+  const vw=viewport.clientWidth,vh=viewport.clientHeight;
+  if(canvas.width!==vw||canvas.height!==vh){canvas.width=vw;canvas.height=vh;}
+  ctx.clearRect(0,0,vw,vh);
+
+  // Checker bg
+  ctx.fillStyle='#0e0e0e'; ctx.fillRect(0,0,vw,vh);
+  const cs=20;
+  for(let cy=0;cy<vh;cy+=cs) for(let cx2=0;cx2<vw;cx2+=cs){
+    if((Math.floor(cx2/cs)+Math.floor(cy/cs))%2===0){ctx.fillStyle='#141414';ctx.fillRect(cx2,cy,cs,cs);}
+  }
+
+  const iw=S.original.w,ih=S.original.h;
+  const dw=iw*S.zoom,dh=ih*S.zoom,dx=S.panX,dy=S.panY;
+  const splitPx=S.splitX*vw;
+
+  ctx.save();
+  ctx.beginPath(); ctx.rect(dx,dy,dw,dh); ctx.clip();
+  ctx.imageSmoothingEnabled=S.zoom<2;
+
+  // Before (right of split)
+  if(_origImg&&_origImg.complete&&splitPx<dx+dw){
+    ctx.save();
+    ctx.beginPath();ctx.rect(splitPx,dy,dx+dw-splitPx,dh);ctx.clip();
+    ctx.drawImage(_origImg,dx,dy,dw,dh);
+    ctx.restore();
+  }
+  // After (left of split)
+  if(S.cleanedCanvas&&splitPx>dx){
+    ctx.save();
+    ctx.beginPath();ctx.rect(dx,dy,Math.min(splitPx,dx+dw)-dx,dh);ctx.clip();
+    ctx.fillStyle='#fff';ctx.fillRect(dx,dy,dw,dh);
+    ctx.drawImage(S.cleanedCanvas,dx,dy,dw,dh);
+    ctx.restore();
+  }
+  ctx.restore();
+
+  // Split handle position
+  splitHandle.style.left=S.splitX*100+'%';
+  labelAfter.style.left=Math.min(S.splitX*100+1,80)+'%';
+
+  // Lasso overlay
+  if(S.lassoPoints.length>0){
+    ctx.save();
+    // Marching ants
+    const dash=6,gap=4;
+    ctx.lineWidth=1.5;
+    ctx.setLineDash([dash,gap]);
+    ctx.lineDashOffset=-(Date.now()/80%((dash+gap)));
+
+    ctx.beginPath();
+    const p0=imgToView(S.lassoPoints[0].x,S.lassoPoints[0].y);
+    ctx.moveTo(p0.x,p0.y);
+    for(let i=1;i<S.lassoPoints.length;i++){
+      const p=imgToView(S.lassoPoints[i].x,S.lassoPoints[i].y);
+      ctx.lineTo(p.x,p.y);
+    }
+    if(S.lassoClosed) ctx.closePath();
+
+    // Shadow
+    ctx.strokeStyle='rgba(0,0,0,0.5)'; ctx.lineWidth=3; ctx.stroke();
+    // Main line
+    ctx.strokeStyle='#d4c5a9'; ctx.lineWidth=1.5; ctx.stroke();
+
+    if(S.lassoClosed){
+      ctx.setLineDash([]);
+      ctx.fillStyle='rgba(212,197,169,0.10)';
+      ctx.fill();
+    }
+    ctx.setLineDash([]);
+
+    // Point handles
+    for(let i=0;i<S.lassoPoints.length;i++){
+      const p=imgToView(S.lassoPoints[i].x,S.lassoPoints[i].y);
+      const isFirst=i===0;
+      ctx.beginPath(); ctx.arc(p.x,p.y,isFirst?5.5:3.5,0,Math.PI*2);
+      ctx.fillStyle=isFirst?'#d4c5a9':'rgba(212,197,169,0.8)'; ctx.fill();
+      if(isFirst){ctx.strokeStyle='#0e0e0e';ctx.lineWidth=1.5;ctx.stroke();}
+    }
+    ctx.restore();
+
+    lassoPtsLabel.textContent=S.lassoPoints.length+' point'+(S.lassoPoints.length!==1?'s':'')+(S.lassoClosed?' · closed':'');
+    exportLassoBtn.disabled=!S.lassoClosed;
+  } else {
+    lassoPtsLabel.textContent='0 points';
+    exportLassoBtn.disabled=true;
+  }
+
+  // Cursor
+  if(S.tool==='lasso') canvas.style.cursor=S.lassoClosed?'default':'crosshair';
+  else canvas.style.cursor=S.panDragging?'grabbing':(S.spaceHeld?'grab':'grab');
+
+  // Keep animating for marching ants
+  if(_animFrame) cancelAnimationFrame(_animFrame);
+  if(S.lassoPoints.length>1&&!S.lassoClosed){
+    _animFrame=requestAnimationFrame(render);
+  }
+}
+
+// ── Zoom & Pan ────────────────────────────────────────────────────────────────
+function fitToView(){
+  if(!S.original) return;
+  const vw=viewport.clientWidth,vh=viewport.clientHeight,pad=40;
+  S.zoom=Math.min((vw-pad*2)/S.original.w,(vh-pad*2)/S.original.h);
+  S.panX=(vw-S.original.w*S.zoom)/2; S.panY=(vh-S.original.h*S.zoom)/2;
+  updateZoomLabel(); render();
+}
+
+function setZoom(nz,px,py){
+  const vw=viewport.clientWidth,vh=viewport.clientHeight;
+  px=px??vw/2; py=py??vh/2;
+  nz=Math.max(0.04,Math.min(24,nz));
+  const ix=(px-S.panX)/S.zoom,iy=(py-S.panY)/S.zoom;
+  S.zoom=nz; S.panX=px-ix*S.zoom; S.panY=py-iy*S.zoom;
+  updateZoomLabel(); render();
+}
+
+function updateZoomLabel(){ zoomLabel.textContent=Math.round(S.zoom*100)+'%'; }
+
+zoomInBtn.addEventListener('click',  ()=>setZoom(S.zoom*1.3));
+zoomOutBtn.addEventListener('click', ()=>setZoom(S.zoom/1.3));
+zoomFitBtn.addEventListener('click', fitToView);
+
+viewport.addEventListener('wheel', e=>{
+  e.preventDefault();
+  const r=viewport.getBoundingClientRect();
+  setZoom(S.zoom*(e.deltaY<0?1.1:1/1.1), e.clientX-r.left, e.clientY-r.top);
+},{passive:false});
+
+// ── Mouse events ──────────────────────────────────────────────────────────────
+function canvasPos(e){
+  const r=viewport.getBoundingClientRect(),ce=e.touches?e.touches[0]:e;
+  return{x:ce.clientX-r.left,y:ce.clientY-r.top};
+}
+
+// Split handle drag (must intercept before canvas)
+splitHandle.addEventListener('mousedown',e=>{e.stopPropagation();e.preventDefault();S.splitDragging=true;});
+
+// Canvas mousedown
+canvas.addEventListener('mousedown',e=>{
+  if(S.splitDragging) return;
+  if(S.tool==='pan'||S.spaceHeld){
+    S.panDragging=true;
+    const p=canvasPos(e);
+    S.panStart={x:p.x,y:p.y}; S.panOrigin={x:S.panX,y:S.panY};
+    e.preventDefault();
+  }
+});
+
+document.addEventListener('mousemove',e=>{
+  if(S.splitDragging){
+    const r=viewport.getBoundingClientRect();
+    S.splitX=Math.max(0.02,Math.min(0.98,(e.clientX-r.left)/r.width));
+    render(); return;
+  }
+  if(S.panDragging){
+    const p=canvasPos(e);
+    S.panX=S.panOrigin.x+(p.x-S.panStart.x);
+    S.panY=S.panOrigin.y+(p.y-S.panStart.y);
+    render();
+  }
+});
+
+document.addEventListener('mouseup',()=>{S.panDragging=false;S.splitDragging=false;});
+
+// ── Lasso ─────────────────────────────────────────────────────────────────────
+function dist2(a,b){return(a.x-b.x)**2+(a.y-b.y)**2;}
+
+canvas.addEventListener('click',e=>{
+  if(S.tool!=='lasso'||S.lassoClosed||S.spaceHeld) return;
+  const cp=canvasPos(e), ip=viewToImg(cp.x,cp.y);
+  // Close if near first point (≥3 pts)
+  if(S.lassoPoints.length>=3){
+    const fp=imgToView(S.lassoPoints[0].x,S.lassoPoints[0].y);
+    if(dist2(cp,fp)<13**2){S.lassoClosed=true;render();return;}
+  }
+  S.lassoPoints.push(ip);
+  render();
+});
+
+canvas.addEventListener('dblclick',e=>{
+  if(S.tool!=='lasso'||S.lassoClosed) return;
+  if(S.lassoPoints.length>=3){
+    S.lassoPoints.pop(); // remove duplicate from preceding click
+    S.lassoClosed=true; render();
+  }
+});
+
+document.addEventListener('keydown',e=>{
+  if(e.key==='Escape'){S.lassoPoints=[];S.lassoClosed=false;render();}
+  if(e.key===' '){S.spaceHeld=true;canvas.style.cursor='grab';}
+  if((e.key==='z'||e.key==='Z')&&(e.ctrlKey||e.metaKey)&&!S.lassoClosed&&S.lassoPoints.length>0){
+    e.preventDefault(); S.lassoPoints.pop(); render();
+  }
+});
+document.addEventListener('keyup',e=>{if(e.key===' '){S.spaceHeld=false;render();}});
+
+clearLassoBtn.addEventListener('click',()=>{S.lassoPoints=[];S.lassoClosed=false;render();});
+
+exportLassoBtn.addEventListener('click',()=>{
+  if(!S.lassoClosed||S.lassoPoints.length<3||!S.cleanedCanvas) return;
+  let mnX=Infinity,mnY=Infinity,mxX=-Infinity,mxY=-Infinity;
+  for(const p of S.lassoPoints){mnX=Math.min(mnX,p.x);mnY=Math.min(mnY,p.y);mxX=Math.max(mxX,p.x);mxY=Math.max(mxY,p.y);}
+  mnX=Math.max(0,Math.floor(mnX));mnY=Math.max(0,Math.floor(mnY));
+  mxX=Math.min(S.original.w,Math.ceil(mxX));mxY=Math.min(S.original.h,Math.ceil(mxY));
+  const bw=mxX-mnX,bh=mxY-mnY; if(bw<=0||bh<=0) return;
+  const ec=document.createElement('canvas');ec.width=bw;ec.height=bh;
+  const ex=ec.getContext('2d');
+  ex.fillStyle='#ffffff';ex.fillRect(0,0,bw,bh);
+  ex.save();
+  ex.beginPath();
+  ex.moveTo(S.lassoPoints[0].x-mnX,S.lassoPoints[0].y-mnY);
+  for(let i=1;i<S.lassoPoints.length;i++) ex.lineTo(S.lassoPoints[i].x-mnX,S.lassoPoints[i].y-mnY);
+  ex.closePath(); ex.clip();
+  ex.drawImage(S.cleanedCanvas,-mnX,-mnY); ex.restore();
+  const base=S.original.name.replace(/\.[^.]+$/,'');
+  const a=document.createElement('a');a.href=ec.toDataURL('image/png');a.download=`${base}_selection.png`;a.click();
+});
+
+// ── Tool switching ────────────────────────────────────────────────────────────
+toolPanBtn.addEventListener('click',()=>{
+  S.tool='pan';toolPanBtn.classList.add('active');toolLassoBtn.classList.remove('active');
+  lassoPanel.classList.remove('visible');render();
+});
+toolLassoBtn.addEventListener('click',()=>{
+  S.tool='lasso';toolLassoBtn.classList.add('active');toolPanBtn.classList.remove('active');
+  lassoPanel.classList.add('visible');render();
+});
+
+// ── Load file ─────────────────────────────────────────────────────────────────
+function loadFile(file){
+  if(!file||!file.type.startsWith('image/')) return;
+  const reader=new FileReader();
+  reader.onload=e=>{
+    const dataUrl=e.target.result;
+    const img=new Image();
+    img.onload=()=>{
+      _origImg=img;
+      S.original={dataUrl,name:file.name,w:img.width,h:img.height};
+      S.cleanedCanvas=null;S.lassoPoints=[];S.lassoClosed=false;
+      dropZone.style.display='none';
+      viewport.classList.add('visible');previewCtrls.classList.add('visible');
+      fileInfo.innerHTML=`${file.name}<br><span style="color:#3a3a3a">${img.width}&thinsp;×&thinsp;${img.height}px</span>`;
+      canvas.width=viewport.clientWidth;canvas.height=viewport.clientHeight;
+      fitToView();
+      runProcess(dataUrl,S.params);
+    };
+    img.src=dataUrl;
+  };
+  reader.readAsDataURL(file);
+}
+
+// ── Download full ─────────────────────────────────────────────────────────────
+downloadBtn.addEventListener('click',()=>{
+  if(!S.cleanedCanvas||S.processing) return;
+  const a=document.createElement('a');
+  a.href=S.cleanedCanvas.toDataURL('image/png');
+  a.download=S.original.name.replace(/\.[^.]+$/,'')+'_clean.png';
+  a.click();
+});
+
+// ── Rotate ────────────────────────────────────────────────────────────────────
+rotateBtn.addEventListener('click',()=>{
+  if(!S.original) return;
+  const img=new Image(); img.onload=()=>{
+    const c=document.createElement('canvas');c.width=img.height;c.height=img.width;
+    const cx=c.getContext('2d');cx.translate(c.width/2,c.height/2);cx.rotate(Math.PI/2);cx.drawImage(img,-img.width/2,-img.height/2);
+    const url=c.toDataURL('image/png');
+    const ni=new Image(); ni.onload=()=>{
+      _origImg=ni;
+      S.original={...S.original,dataUrl:url,w:c.width,h:c.height};
+      S.cleanedCanvas=null;S.lassoPoints=[];S.lassoClosed=false;
+      fileInfo.innerHTML=`${S.original.name}<br><span style="color:#3a3a3a">${c.width}&thinsp;×&thinsp;${c.height}px</span>`;
+      fitToView();runProcess(url,S.params);
+    }; ni.src=url;
+  }; img.src=S.original.dataUrl;
+});
+
+// ── Mode / sliders ────────────────────────────────────────────────────────────
+modeBtn.addEventListener('click',()=>{
+  S.manual=!S.manual;
+  modeBtn.textContent=S.manual?'⚙  Manual':'⚡ Automatic';
+  modeBtn.className=S.manual?'manual':'auto';
+  manualCtrls.classList.toggle('visible',S.manual);
+});
+
+Object.entries(sliders).forEach(([key,{el,val,fmt}])=>{
+  el.addEventListener('input',()=>{S.params[key]=parseFloat(el.value);val.textContent=fmt(el.value);scheduleProcess();});
+});
+
+resetBtn.addEventListener('click',()=>{
+  S.params={paperThreshold:15,contrastStrength:1.0,shadowDepth:0.5,midtonePreservation:0.5};
+  sliders.paperThreshold.el.value=15;      sliders.paperThreshold.val.textContent='15';
+  sliders.contrastStrength.el.value=1.0;   sliders.contrastStrength.val.textContent='1.00';
+  sliders.shadowDepth.el.value=0.5;        sliders.shadowDepth.val.textContent='0.50';
+  sliders.midtonePreservation.el.value=0.5;sliders.midtonePreservation.val.textContent='0.50';
+  scheduleProcess();
+});
+
+// ── File input / drag-drop ────────────────────────────────────────────────────
+replaceBtn.addEventListener('click',()=>fileInput.click());
+dropZone.addEventListener('click',()=>fileInput.click());
+fileInput.addEventListener('change',e=>{loadFile(e.target.files[0]);fileInput.value='';});
+dropZone.addEventListener('dragover',e=>{e.preventDefault();dropZone.classList.add('drag-over');});
+dropZone.addEventListener('dragleave',()=>dropZone.classList.remove('drag-over'));
+dropZone.addEventListener('drop',e=>{e.preventDefault();dropZone.classList.remove('drag-over');loadFile(e.dataTransfer.files[0]);});
+viewport.addEventListener('dragover',e=>e.preventDefault());
+viewport.addEventListener('drop',e=>{e.preventDefault();loadFile(e.dataTransfer.files[0]);});
+
+// ── Resize ────────────────────────────────────────────────────────────────────
+new ResizeObserver(()=>{
+  if(!S.original) return;
+  canvas.width=viewport.clientWidth;canvas.height=viewport.clientHeight;render();
+}).observe(viewport);
+</script>
+</body>
+</html>
