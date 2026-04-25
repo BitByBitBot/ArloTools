@@ -1,0 +1,2475 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Signal Chain — Image Effect Processor</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@100;200;300;400;500;600;700&family=IBM+Plex+Sans:wght@100;200;300;400;500;600;700&family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=Bebas+Neue&family=Space+Mono:wght@400;700&family=Cormorant+Garamond:wght@300;400;600;700&family=Archivo+Black&family=Archivo:wght@100;300;400;700;900&family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;700&family=Inconsolata:wght@300;400;700;900&family=Libre+Baskerville:wght@400;700&family=Libre+Franklin:wght@100;300;400;700;900&family=Oswald:wght@300;400;500;700&family=Crimson+Text:wght@400;600;700&family=JetBrains+Mono:wght@300;400;500;700&family=Lora:wght@400;500;700&family=Bitter:wght@300;400;700;900&family=Fira+Code:wght@300;400;500;700&family=Inter:wght@100;300;400;500;700;900&family=Barlow:wght@100;300;400;500;700;900&family=Barlow+Condensed:wght@100;300;400;500;700;900&family=Rajdhani:wght@300;400;500;600;700&family=Anton&family=Black+Han+Sans&family=Chakra+Petch:wght@300;400;600;700&family=Kanit:wght@100;300;400;500;700;900&family=Prompt:wght@100;300;400;500;700;900&family=Unbounded:wght@300;400;700;900&family=Squada+One&family=Exo+2:wght@100;300;400;700;900&family=Titillium+Web:wght@200;300;400;600;700&family=Yanone+Kaffeesatz:wght@300;400;500;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #111113;
+    --surface: #18181c;
+    --surface2: #1f1f25;
+    --surface3: #27272f;
+    --border: #2e2e38;
+    --border-hi: #44445a;
+    --text: #d8d5ce;
+    --text-dim: #706e78;
+    --text-xdim: #4a4854;
+    --amber: #e8a840;
+    --amber-dim: #5a4218;
+    --amber-glow: rgba(232, 168, 64, 0.12);
+    --red: #d85040;
+    --green: #50b868;
+    --blue: #5898d8;
+    --violet: #9878c8;
+    --cyan: #48b8b8;
+    --pink: #d870a0;
+    --orange: #e07830;
+    --teal: #38c8a0;
+    --radius: 5px;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 12px;
+    height: 100vh;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* ── HEADER ── */
+  .topbar {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 14px 24px;
+    border-bottom: 1px solid var(--border);
+    background: var(--surface);
+    flex-shrink: 0;
+  }
+
+  .topbar-left {
+    display: flex;
+    align-items: center;
+    gap: 14px;
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    font-weight: 400;
+    color: var(--amber);
+    letter-spacing: -0.3px;
+  }
+
+  .logo em { font-style: italic; color: var(--text); }
+
+  .badge {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 3px 8px;
+    border-radius: 3px;
+  }
+
+  .topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .iter-control {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    color: var(--text-dim);
+    font-size: 11px;
+  }
+
+  .iter-control input {
+    width: 52px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--amber);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 14px;
+    font-weight: 600;
+    text-align: center;
+    padding: 5px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+
+  .iter-control input:focus { border-color: var(--amber-dim); }
+
+  .run-btn {
+    background: var(--amber);
+    color: var(--bg);
+    border: none;
+    padding: 8px 22px;
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    cursor: pointer;
+    border-radius: var(--radius);
+    transition: all 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .run-btn:hover { background: #f0b848; box-shadow: 0 0 20px var(--amber-glow); }
+  .run-btn:active { transform: scale(0.97); }
+  .run-btn:disabled { opacity: 0.4; cursor: default; transform: none; box-shadow: none; }
+
+  .run-btn.stop-mode {
+    background: var(--red);
+  }
+
+  .run-btn.stop-mode:hover { background: #e86060; box-shadow: 0 0 20px rgba(216,80,64,0.2); }
+
+  .auto-toggle {
+    background: var(--surface2);
+    color: var(--text-dim);
+    border: 1px solid var(--border);
+    padding: 8px 14px;
+    font-size: 10px;
+  }
+
+  .auto-toggle:hover { background: var(--surface3); border-color: var(--border-hi); box-shadow: none; }
+
+  .auto-toggle.active {
+    background: var(--amber-dim);
+    color: var(--amber);
+    border-color: var(--amber-dim);
+  }
+
+  .auto-toggle.active:hover { background: var(--amber-dim); box-shadow: 0 0 12px var(--amber-glow); }
+
+  /* ── MAIN LAYOUT ── */
+  .main {
+    display: grid;
+    grid-template-columns: 240px 1fr;
+    grid-template-rows: 1fr auto;
+    flex: 1;
+    overflow: hidden;
+  }
+
+  /* ── PALETTE ── */
+  .palette {
+    grid-row: 1 / 3;
+    border-right: 1px solid var(--border);
+    background: var(--surface);
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0;
+    overflow-y: auto;
+  }
+
+  .palette-title {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--text-dim);
+    margin-bottom: 0;
+    padding: 10px 14px 6px;
+  }
+
+  .palette-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 7px 14px;
+    background: transparent;
+    border: none;
+    border-bottom: 1px solid var(--border);
+    border-radius: 0;
+    cursor: grab;
+    transition: all 0.15s;
+    user-select: none;
+  }
+
+  .palette-item:hover {
+    background: var(--surface2);
+  }
+
+  .palette-item:active { transform: none; background: var(--surface3); cursor: grabbing; }
+
+  .palette-item.dragging { opacity: 0.4; }
+
+  .palette-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .palette-item span {
+    font-size: 11px;
+    color: var(--text);
+    font-weight: 400;
+  }
+
+  .palette-item .plus {
+    margin-left: auto;
+    color: var(--text-xdim);
+    font-size: 14px;
+    font-weight: 300;
+  }
+
+  /* ── WORKSPACE ── */
+  .workspace {
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ── CHAIN ── */
+  .chain-area {
+    border-bottom: 1px solid var(--border);
+    overflow-x: auto;
+    overflow-y: hidden;
+    flex-shrink: 0;
+  }
+
+  .chain-section {
+    border-bottom: 1px solid var(--border);
+  }
+
+  .chain-section:last-child { border-bottom: none; }
+
+  .chain-section-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 6px 16px;
+    background: var(--surface);
+  }
+
+  .section-toggle {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    padding: 3px 10px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .section-toggle:hover { border-color: var(--border-hi); color: var(--text); }
+
+  .section-toggle.active {
+    background: var(--amber-dim);
+    border-color: var(--amber-dim);
+    color: var(--amber);
+  }
+
+  .section-hint {
+    font-size: 9px;
+    color: var(--text-xdim);
+    letter-spacing: 0.5px;
+  }
+
+  .section-label-main {
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--text-dim);
+    font-weight: 500;
+  }
+
+  .chain-section-body {
+    padding: 10px 16px;
+  }
+
+  .chain-section.main-chain > .chain {
+    padding: 10px 16px;
+  }
+
+  .chain {
+    display: flex;
+    align-items: stretch;
+    gap: 0;
+    min-height: 80px;
+  }
+
+  .chain-empty {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 100%;
+    min-height: 80px;
+    border: 1px dashed var(--border);
+    border-radius: var(--radius);
+    color: var(--text-xdim);
+    font-size: 10px;
+    letter-spacing: 0.5px;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .chain.drop-target {
+    background: var(--amber-glow);
+    border-radius: var(--radius);
+  }
+
+  .chain.drop-target .chain-empty {
+    border-color: var(--amber);
+    color: var(--text-dim);
+  }
+
+  .chain-block {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+    min-width: 170px;
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    position: relative;
+    transition: border-color 0.15s, box-shadow 0.15s;
+    flex-shrink: 0;
+    cursor: default;
+  }
+
+  .chain-block:hover {
+    border-color: var(--border-hi);
+  }
+
+  .chain-block.dragging {
+    opacity: 0.5;
+    border-style: dashed;
+  }
+
+  .chain-block.drag-over {
+    border-color: var(--amber);
+    box-shadow: 0 0 12px var(--amber-glow);
+  }
+
+  .chain-block.drag-over {
+    border-color: var(--amber);
+    box-shadow: 0 0 12px var(--amber-glow);
+  }
+
+  .chain-connector {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    flex-shrink: 0;
+    color: var(--text-xdim);
+    font-size: 16px;
+    user-select: none;
+  }
+
+  .block-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+    margin: -12px -14px 6px;
+    padding: 6px 10px 6px 10px;
+    background: var(--surface2);
+    border-bottom: 1px solid var(--border);
+    border-radius: 4px 4px 0 0;
+    cursor: grab;
+    user-select: none;
+  }
+
+  .block-header:active { cursor: grabbing; }
+
+  .drag-grip {
+    color: var(--text-xdim);
+    font-size: 10px;
+    letter-spacing: 1px;
+    flex-shrink: 0;
+    line-height: 1;
+    pointer-events: none;
+  }
+
+  .block-name {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text);
+  }
+
+  .block-dot {
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    flex-shrink: 0;
+  }
+
+  .block-remove {
+    background: none;
+    border: none;
+    color: var(--text-xdim);
+    cursor: pointer;
+    font-size: 14px;
+    line-height: 1;
+    padding: 2px 4px;
+    border-radius: 3px;
+    transition: all 0.1s;
+  }
+
+  .block-remove:hover {
+    color: var(--red);
+    background: rgba(216, 80, 64, 0.1);
+  }
+
+  .block-params {
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+  }
+
+  .param-row {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
+  }
+
+  .param-label {
+    font-size: 10px;
+    color: var(--text-dim);
+    white-space: nowrap;
+  }
+
+  .param-val {
+    font-size: 10px;
+    color: var(--amber);
+    font-weight: 500;
+    width: 32px;
+    text-align: right;
+  }
+
+  .param-select {
+    flex: 1;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 10px;
+    padding: 3px 5px;
+    border-radius: 3px;
+    outline: none;
+    cursor: pointer;
+    min-width: 0;
+  }
+
+  .param-select:focus { border-color: var(--amber-dim); }
+
+  .param-toggle {
+    background: var(--surface3);
+    border: 1px solid var(--border);
+    color: var(--text-xdim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    font-weight: 500;
+    letter-spacing: 1px;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    transition: all 0.12s;
+  }
+
+  .param-toggle:hover { border-color: var(--border-hi); }
+
+  .param-toggle.on {
+    background: var(--amber-dim);
+    border-color: var(--amber-dim);
+    color: var(--amber);
+  }
+
+  .param-row input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 3px;
+    background: var(--surface3);
+    border-radius: 2px;
+    outline: none;
+    min-width: 60px;
+  }
+
+  .param-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+    border: 1.5px solid var(--bg);
+  }
+
+  .param-row input[type="range"]::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+    border: 1.5px solid var(--bg);
+  }
+
+  /* ── CANVAS OUTPUT ── */
+  .output-area {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .viewport-header {
+    padding: 10px 20px;
+    border-bottom: 1px solid var(--border);
+    font-size: 9px;
+    text-transform: uppercase;
+    letter-spacing: 2.5px;
+    color: var(--text-dim);
+    background: var(--surface);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-shrink: 0;
+  }
+
+  .viewport-header .info { color: var(--text-xdim); letter-spacing: 1px; }
+
+  .viewport {
+    flex: 1;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+    overflow: auto;
+    background: repeating-conic-gradient(var(--surface) 0% 25%, var(--bg) 0% 50%) 0 0 / 16px 16px;
+    position: relative;
+  }
+
+  .viewport canvas {
+    max-width: 100%;
+    max-height: 100%;
+    display: block;
+    image-rendering: auto;
+    box-shadow: 0 4px 30px rgba(0,0,0,0.5);
+  }
+
+  .frame-badge {
+    position: absolute;
+    top: 14px;
+    right: 20px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    padding: 6px 12px;
+    font-size: 11px;
+    color: var(--amber);
+    font-weight: 500;
+    pointer-events: none;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .frame-badge .frame-effect {
+    color: var(--text-dim);
+    font-weight: 400;
+    font-size: 10px;
+  }
+
+  .viewport .pane-placeholder {
+    color: var(--text-xdim);
+    font-size: 11px;
+    text-align: center;
+    line-height: 1.8;
+  }
+
+  /* ── ADVANCED MODE ── */
+  /* Hide advanced elements when not in advanced mode, using !important to beat inline styles */
+  body:not(.advanced-mode) .advanced-only { display: none !important; }
+  .auto-btn {
+    width: 16px;
+    height: 16px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 2px;
+    color: var(--text-xdim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 9px;
+    line-height: 1;
+    cursor: pointer;
+    padding: 0;
+    flex-shrink: 0;
+    transition: all 0.1s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .auto-btn:hover { border-color: var(--border-hi); color: var(--text-dim); }
+
+  .auto-btn.on {
+    background: var(--amber-dim);
+    border-color: var(--amber);
+    color: var(--amber);
+  }
+
+  .auto-panel {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+    margin-top: 3px;
+    padding: 6px 8px;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    border-radius: 3px;
+  }
+
+  .auto-type-row {
+    display: flex;
+    gap: 3px;
+  }
+
+  .auto-type-btn {
+    flex: 1;
+    background: var(--surface2);
+    border: 1px solid var(--border);
+    color: var(--text-dim);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 8px;
+    padding: 3px 4px;
+    border-radius: 3px;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.1s;
+    white-space: nowrap;
+  }
+
+  .auto-type-btn:hover { border-color: var(--border-hi); }
+
+  .auto-type-btn.active {
+    background: var(--amber-dim);
+    border-color: var(--amber-dim);
+    color: var(--amber);
+  }
+
+  .auto-range-row {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+
+  .auto-range-label {
+    font-size: 8px;
+    color: var(--text-xdim);
+    min-width: 14px;
+  }
+
+  .auto-range-val {
+    font-size: 9px;
+    color: var(--amber);
+    min-width: 24px;
+    text-align: right;
+  }
+
+  .auto-range-row input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 2px;
+    background: var(--surface3);
+    border-radius: 1px;
+    outline: none;
+    min-width: 40px;
+  }
+
+  .auto-range-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+    border: 1px solid var(--bg);
+  }
+
+  .auto-range-row input[type="range"]::-moz-range-thumb {
+    width: 8px; height: 8px;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+    border: 1px solid var(--bg);
+  }
+
+  .param-slider-automated {
+    opacity: 0.35;
+  }
+  .chain-block.active-effect {
+    border-color: var(--amber);
+    box-shadow: 0 0 14px var(--amber-glow);
+  }
+
+  /* ── STATUS BAR ── */
+  .statusbar {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 8px 24px;
+    border-top: 1px solid var(--border);
+    background: var(--surface);
+    font-size: 10px;
+    color: var(--text-dim);
+    flex-shrink: 0;
+  }
+
+  .statusbar .progress {
+    height: 2px;
+    width: 120px;
+    background: var(--surface3);
+    border-radius: 1px;
+    overflow: hidden;
+  }
+
+  .statusbar .progress .fill {
+    height: 100%;
+    background: var(--amber);
+    width: 0%;
+    transition: width 0.08s;
+  }
+
+  .status-group {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  /* ── TEXT INPUT SECTION ── */
+  .text-section {
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .text-section .palette-title { margin-bottom: 0; padding: 0 0 6px; }
+
+  .text-row {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 5px;
+  }
+
+  .text-row:last-child { margin-bottom: 0; }
+
+  .text-section input[type="text"],
+  .text-section textarea,
+  .text-section select {
+    flex: 1;
+    min-width: 0;
+    background: var(--bg);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-family: 'IBM Plex Mono', monospace;
+    font-size: 11px;
+    padding: 5px 7px;
+    border-radius: var(--radius);
+    outline: none;
+  }
+
+  .text-section textarea {
+    resize: vertical;
+    min-height: 28px;
+    line-height: 1.4;
+  }
+
+  .typo-slider-row {
+    align-items: center;
+    gap: 4px;
+  }
+
+  .typo-slider-row input[type="range"] {
+    -webkit-appearance: none;
+    appearance: none;
+    flex: 1;
+    height: 3px;
+    background: var(--surface3);
+    border-radius: 2px;
+    outline: none;
+    min-width: 40px;
+  }
+
+  .typo-slider-row input[type="range"]::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+    border: 1.5px solid var(--bg);
+  }
+
+  .typo-slider-row input[type="range"]::-moz-range-thumb {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--amber);
+    cursor: pointer;
+    border: 1.5px solid var(--bg);
+  }
+
+  .typo-val {
+    font-size: 9px;
+    color: var(--amber);
+    font-weight: 500;
+    min-width: 28px;
+    text-align: right;
+  }
+
+  .text-section select { cursor: pointer; }
+  .text-section input:focus, .text-section select:focus, .text-section textarea:focus { border-color: var(--amber-dim); }
+
+  .mini-input {
+    width: 48px !important;
+    flex: none !important;
+    text-align: center;
+  }
+
+  .color-swatch {
+    width: 26px;
+    height: 26px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    cursor: pointer;
+    padding: 1px;
+    background: none;
+    flex-shrink: 0;
+  }
+
+  .text-label {
+    font-size: 8px;
+    color: var(--text-dim);
+    letter-spacing: 1px;
+    text-transform: uppercase;
+    display: flex;
+    align-items: center;
+    white-space: nowrap;
+    margin-right: 2px;
+    min-width: 28px;
+    flex-shrink: 0;
+  }
+
+  @media (max-width: 860px) {
+    .main { grid-template-columns: 1fr; grid-template-rows: auto 1fr auto; }
+    .palette {
+      grid-row: auto;
+      flex-direction: column;
+      border-right: none;
+      border-bottom: 1px solid var(--border);
+      max-height: 40vh;
+      overflow-y: auto;
+    }
+    .chain-area { overflow-x: auto; }
+    .chain { flex-wrap: nowrap; }
+  }
+</style>
+</head>
+<body>
+
+<!-- TOPBAR -->
+<div class="topbar">
+  <div class="topbar-left">
+    <div class="logo">Signal <em>Chain</em></div>
+    <button class="run-btn secondary auto-toggle" id="advancedBtn" title="Toggle advanced features">Adv</button>
+  </div>
+  <div class="topbar-right">
+    <div class="iter-control">
+      <span>repeat chain</span>
+      <input type="number" id="chainRepeats" value="25" min="1" max="100">
+      <span>×</span>
+    </div>
+    <button class="run-btn" id="runBtn">&#9654; Process</button>
+    <button class="run-btn secondary auto-toggle" id="autoBtn" title="Auto-process when idle">Auto</button>
+    <button class="run-btn secondary" id="exportBtn" title="Export animated GIF">⬇ GIF</button>
+    <button class="run-btn secondary auto-toggle" id="bounceBtn" title="Bounce: play forwards then backwards">↔</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div class="main">
+  <!-- PALETTE -->
+  <div class="palette">
+    <div class="text-section">
+      <div class="palette-title">Source Text</div>
+      <div class="text-row">
+        <textarea id="srcText" rows="2" placeholder="Text…">Signal</textarea>
+      </div>
+      <div class="text-row">
+        <select id="srcFont">
+          <optgroup label="Sans-serif">
+            <option value="Helvetica, Arial, sans-serif">Helvetica / Arial</option>
+            <option value="Inter">Inter</option>
+            <option value="DM Sans">DM Sans</option>
+            <option value="IBM Plex Sans">IBM Plex Sans</option>
+            <option value="Barlow">Barlow</option>
+            <option value="Barlow Condensed">Barlow Condensed</option>
+            <option value="Libre Franklin">Libre Franklin</option>
+            <option value="Titillium Web">Titillium Web</option>
+            <option value="Exo 2">Exo 2</option>
+            <option value="Kanit">Kanit</option>
+            <option value="Prompt">Prompt</option>
+            <option value="Bebas Neue">Bebas Neue</option>
+            <option value="Anton">Anton</option>
+            <option value="Archivo Black">Archivo Black</option>
+            <option value="Archivo">Archivo</option>
+            <option value="Unbounded">Unbounded</option>
+            <option value="Squada One">Squada One</option>
+            <option value="Chakra Petch">Chakra Petch</option>
+            <option value="Rajdhani">Rajdhani</option>
+            <option value="Oswald">Oswald</option>
+            <option value="Yanone Kaffeesatz">Yanone Kaffeesatz</option>
+          </optgroup>
+          <optgroup label="Serif">
+            <option value="Times New Roman, serif">Times New Roman</option>
+            <option value="Playfair Display">Playfair Display</option>
+            <option value="DM Serif Display">DM Serif Display</option>
+            <option value="Cormorant Garamond">Cormorant Garamond</option>
+            <option value="Libre Baskerville">Libre Baskerville</option>
+            <option value="Crimson Text">Crimson Text</option>
+            <option value="Lora">Lora</option>
+            <option value="Bitter">Bitter</option>
+            <option value="Georgia">Georgia</option>
+          </optgroup>
+          <optgroup label="Monospace">
+            <option value="Courier New, monospace">Courier New</option>
+            <option value="IBM Plex Mono">IBM Plex Mono</option>
+            <option value="JetBrains Mono">JetBrains Mono</option>
+            <option value="Space Mono">Space Mono</option>
+            <option value="Inconsolata">Inconsolata</option>
+            <option value="Fira Code">Fira Code</option>
+          </optgroup>
+        </select>
+      </div>
+      <div class="text-row">
+        <span class="text-label">Size</span>
+        <input class="mini-input" type="number" id="srcSize" value="72" min="12" max="400">
+        <span class="text-label">Wt</span>
+        <input class="mini-input" type="number" id="srcWeight" value="700" min="100" max="900" step="100">
+      </div>
+      <div class="text-row">
+        <span class="text-label">Fg</span>
+        <input type="color" class="color-swatch" id="srcFg" value="#ffffff">
+        <span class="text-label">Bg</span>
+        <input type="color" class="color-swatch" id="srcBg" value="#000000">
+        <span class="text-label">Align</span>
+        <select id="srcAlign" style="flex:1;min-width:0">
+          <option value="center">C</option>
+          <option value="left">L</option>
+          <option value="right">R</option>
+        </select>
+      </div>
+      <div class="text-row typo-slider-row">
+        <span class="text-label">Track</span>
+        <input type="range" id="srcTracking" min="-20" max="60" value="0" step="1">
+        <span class="typo-val" id="srcTrackingVal">0</span>
+      </div>
+      <div class="text-row typo-slider-row">
+        <span class="text-label">Lead</span>
+        <input type="range" id="srcLeading" min="80" max="250" value="140" step="5">
+        <span class="typo-val" id="srcLeadingVal">140%</span>
+      </div>
+      <div class="text-row typo-slider-row">
+        <span class="text-label">Margin</span>
+        <input type="range" id="srcMargin" min="0" max="200" value="50" step="1">
+        <span class="typo-val" id="srcMarginVal">50</span>
+      </div>
+    </div>
+
+    <div class="palette-title" style="border-top:1px solid var(--border)">Effects</div>
+    <div class="palette-item" draggable="true" data-effect="gaussian_blur" tabindex="0">
+      <div class="palette-dot" style="background:var(--blue)"></div>
+      <span>Gaussian Blur</span>
+      <span class="plus">+</span>
+    </div>
+    <div class="palette-item" draggable="true" data-effect="box_blur" tabindex="0">
+      <div class="palette-dot" style="background:var(--cyan)"></div>
+      <span>Box Blur</span>
+      <span class="plus">+</span>
+    </div>
+    <div class="palette-item" draggable="true" data-effect="motion_blur" tabindex="0">
+      <div class="palette-dot" style="background:var(--green)"></div>
+      <span>Motion Blur</span>
+      <span class="plus">+</span>
+    </div>
+    <div class="palette-item advanced-only" draggable="true" data-effect="rotational_blur" tabindex="0">
+      <div class="palette-dot" style="background:var(--violet)"></div>
+      <span>Rotational Blur</span>
+      <span class="plus">+</span>
+    </div>
+    <div class="palette-item" draggable="true" data-effect="unsharp_mask" tabindex="0">
+      <div class="palette-dot" style="background:var(--amber)"></div>
+      <span>Unsharp Mask</span>
+      <span class="plus">+</span>
+    </div>
+    <div class="palette-item" draggable="true" data-effect="threshold" tabindex="0">
+      <div class="palette-dot" style="background:var(--pink)"></div>
+      <span>Threshold</span>
+      <span class="plus">+</span>
+    </div>
+    <div class="palette-item advanced-only" draggable="true" data-effect="noise_displace" tabindex="0">
+      <div class="palette-dot" style="background:var(--orange)"></div>
+      <span>Noise Displace</span>
+      <span class="plus">+</span>
+    </div>
+    <div class="palette-item advanced-only" draggable="true" data-effect="point_blur" tabindex="0">
+      <div class="palette-dot" style="background:var(--teal)"></div>
+      <span>Point Blur</span>
+      <span class="plus">+</span>
+    </div>
+  </div>
+
+  <!-- WORKSPACE -->
+  <div class="workspace">
+    <!-- CHAIN -->
+    <div class="chain-area">
+      <div class="chain-section advanced-only" id="preSection">
+        <div class="chain-section-header">
+          <button class="section-toggle" id="preToggle">Pre</button>
+          <span class="section-hint">runs once before chain</span>
+        </div>
+        <div class="chain-section-body" id="preBody" style="display:none">
+          <div class="chain" id="preChainEl">
+            <div class="chain-empty">No pre-processing effects</div>
+          </div>
+        </div>
+      </div>
+      <div class="chain-section main-chain">
+        <div class="chain-section-header">
+          <span class="section-label-main">Chain</span>
+          <span class="section-hint">repeats × <span id="chainRepeatLabel">1</span></span>
+        </div>
+        <div class="chain" id="chain">
+          <div class="chain-empty" id="chainEmpty">Click an effect from the palette to begin</div>
+        </div>
+      </div>
+      <div class="chain-section advanced-only" id="postSection">
+        <div class="chain-section-header">
+          <button class="section-toggle" id="postToggle">Post</button>
+          <span class="section-hint">runs once after chain</span>
+        </div>
+        <div class="chain-section-body" id="postBody" style="display:none">
+          <div class="chain" id="postChainEl">
+            <div class="chain-empty">No post-processing effects</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- OUTPUT -->
+    <div class="output-area">
+      <div class="viewport-header">
+        <span>Viewport</span>
+        <span class="info" id="viewportInfo"></span>
+      </div>
+      <div class="viewport" id="viewport">
+        <div class="pane-placeholder" id="viewportPlaceholder">Process a chain to see live results</div>
+        <canvas id="displayCanvas" style="display:none"></canvas>
+        <div class="frame-badge" id="frameBadge" style="display:none">
+          <span id="frameBadgeText"></span>
+          <span class="frame-effect" id="frameBadgeEffect"></span>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- STATUS -->
+  <div class="statusbar">
+    <div class="status-group">
+      <span id="statusText">Ready</span>
+    </div>
+    <div class="status-group">
+      <span id="timeText"></span>
+      <div class="progress"><div class="fill" id="progressFill"></div></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ═══════════════════════════════════════
+// EFFECT DEFINITIONS
+// ═══════════════════════════════════════
+const EFFECTS = {
+  gaussian_blur: {
+    name: 'Gaussian Blur', color: 'var(--blue)',
+    params: [{ key: 'radius', label: 'Radius', min: 1, max: 30, step: 1, def: 3 }]
+  },
+  box_blur: {
+    name: 'Box Blur', color: 'var(--cyan)',
+    params: [{ key: 'radius', label: 'Radius', min: 1, max: 30, step: 1, def: 3 }]
+  },
+  motion_blur: {
+    name: 'Motion Blur', color: 'var(--green)',
+    params: [
+      { key: 'radius', label: 'Length', min: 1, max: 40, step: 1, def: 8 },
+      { key: 'angle', label: 'Angle', min: 0, max: 359, step: 1, def: 0 }
+    ]
+  },
+  rotational_blur: {
+    name: 'Rotational Blur', color: 'var(--violet)',
+    params: [{ key: 'amount', label: 'Amount', min: 1, max: 30, step: 1, def: 5 }]
+  },
+  unsharp_mask: {
+    name: 'Unsharp Mask', color: 'var(--amber)',
+    params: [
+      { key: 'radius', label: 'Radius', min: 1, max: 20, step: 1, def: 2 },
+      { key: 'amount', label: 'Amount', min: 0.1, max: 5.0, step: 0.1, def: 1.5 },
+      { key: 'threshold', label: 'Thresh', min: 0, max: 50, step: 1, def: 0 }
+    ]
+  },
+  threshold: {
+    name: 'Threshold', color: 'var(--pink)',
+    params: [
+      { key: 'level', label: 'Level', min: 0, max: 255, step: 1, def: 128 },
+      { key: 'softness', label: 'Soft', min: 0, max: 128, step: 1, def: 0 }
+    ]
+  },
+  noise_displace: {
+    name: 'Noise Displace', color: 'var(--orange)',
+    params: [
+      { key: 'noiseType', label: 'Noise', type: 'select', options: [
+        { value: 'perlin', label: 'Perlin' },
+        { value: 'value', label: 'Value' },
+        { value: 'worley', label: 'Worley' },
+        { value: 'simplex', label: 'Simplex' },
+        { value: 'ridged', label: 'Ridged' }
+      ], def: 'perlin' },
+      { key: 'scale', label: 'Scale', min: 1, max: 200, step: 1, def: 40 },
+      { key: 'amount', label: 'Amount', min: 1, max: 80, step: 1, def: 15 },
+      { key: 'seed', label: 'Seed', min: 0, max: 999, step: 1, def: 0 },
+      { key: 'randSeed', label: 'Rand/rep', type: 'toggle', def: false }
+    ]
+  },
+  point_blur: {
+    name: 'Point Blur', color: 'var(--teal)',
+    params: [
+      { key: 'mode', label: 'Mode', type: 'select', options: [
+        { value: 'edges', label: 'Edges' },
+        { value: 'center', label: 'Center' }
+      ], def: 'edges' },
+      { key: 'amount', label: 'Amount', min: 1, max: 120, step: 1, def: 30 },
+      { key: 'cx', label: 'Center X', min: 0, max: 100, step: 1, def: 50 },
+      { key: 'cy', label: 'Center Y', min: 0, max: 100, step: 1, def: 50 }
+    ]
+  }
+};
+
+// ═══════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════
+let preChain = [];
+let chain = [];
+let postChain = [];
+let preEnabled = false;
+let postEnabled = false;
+let nextId = 0;
+let dragId = null;
+let dragTarget = null; // which chain is being drag-reordered
+
+// ═══════════════════════════════════════
+// PRE/POST TOGGLES
+// ═══════════════════════════════════════
+const preToggle = document.getElementById('preToggle');
+const preBody = document.getElementById('preBody');
+const postToggle = document.getElementById('postToggle');
+const postBody = document.getElementById('postBody');
+
+function togglePre() {
+  preEnabled = !preEnabled;
+  preToggle.classList.toggle('active', preEnabled);
+  preBody.style.display = preEnabled ? '' : 'none';
+}
+
+function togglePost() {
+  postEnabled = !postEnabled;
+  postToggle.classList.toggle('active', postEnabled);
+  postBody.style.display = postEnabled ? '' : 'none';
+}
+
+preToggle.addEventListener('click', togglePre);
+postToggle.addEventListener('click', togglePost);
+
+// ═══════════════════════════════════════
+// CHAIN UI
+// ═══════════════════════════════════════
+const chainEl = document.getElementById('chain');
+const chainEmptyEl = document.getElementById('chainEmpty');
+const preChainEl = document.getElementById('preChainEl');
+const postChainEl = document.getElementById('postChainEl');
+
+function getTargetChain(target) {
+  if (target === 'pre') return preChain;
+  if (target === 'post') return postChain;
+  return chain;
+}
+
+function makeBlock(type) {
+  const def = EFFECTS[type];
+  const params = {};
+  const automation = {};
+  def.params.forEach(p => {
+    params[p.key] = p.def;
+    if (!p.type) {
+      automation[p.key] = { enabled: false, type: 'ramp', from: p.min, to: p.max };
+    }
+  });
+  return { id: nextId++, type, params, automation };
+}
+
+function addEffect(type) {
+  chain.push(makeBlock(type)); // click always adds to main chain
+  renderAll();
+}
+
+function addEffectTo(type, target) {
+  if (!EFFECTS[type]) return;
+  getTargetChain(target).push(makeBlock(type));
+  if (target === 'pre' && !preEnabled) togglePre();
+  if (target === 'post' && !postEnabled) togglePost();
+  renderAll();
+}
+
+function removeFromChain(arr, id) {
+  const idx = arr.findIndex(b => b.id === id);
+  if (idx !== -1) arr.splice(idx, 1);
+}
+
+function removeEffect(id) {
+  removeFromChain(preChain, id);
+  removeFromChain(chain, id);
+  removeFromChain(postChain, id);
+  renderAll();
+}
+
+function renderBlocks(arr, containerEl, emptyText) {
+  containerEl.innerHTML = '';
+  if (arr.length === 0) {
+    const empty = document.createElement('div');
+    empty.className = 'chain-empty';
+    empty.textContent = emptyText;
+    containerEl.appendChild(empty);
+    return;
+  }
+
+  arr.forEach((block, idx) => {
+    if (idx > 0) {
+      const conn = document.createElement('div');
+      conn.className = 'chain-connector';
+      conn.textContent = '→';
+      containerEl.appendChild(conn);
+    }
+
+    const def = EFFECTS[block.type];
+    const el = document.createElement('div');
+    el.className = 'chain-block';
+    el.dataset.id = block.id;
+
+    // Drop target events stay on the block
+    el.addEventListener('dragover', e => {
+      if (dragId === null) return;
+      e.preventDefault();
+      e.dataTransfer.dropEffect = 'move';
+      el.classList.add('drag-over');
+    });
+    el.addEventListener('dragleave', () => el.classList.remove('drag-over'));
+    el.addEventListener('drop', e => {
+      e.preventDefault();
+      el.classList.remove('drag-over');
+      if (dragId === null || !dragTarget) return;
+      const srcArr = dragTarget;
+      const fromIdx = srcArr.findIndex(b => b.id === dragId);
+      if (fromIdx === -1) return;
+      const [moved] = srcArr.splice(fromIdx, 1);
+      // Insert before the hovered block in the destination chain
+      const toIdx = arr.findIndex(b => b.id === block.id);
+      arr.splice(toIdx, 0, moved);
+      // Auto-enable pre/post if something was dropped there
+      if (arr === preChain && !preEnabled) togglePre();
+      if (arr === postChain && !postEnabled) togglePost();
+      renderAll();
+    });
+
+    // Header — this is the drag handle
+    const header = document.createElement('div');
+    header.className = 'block-header';
+    header.draggable = true;
+    header.innerHTML = `
+      <span class="drag-grip">⠿</span>
+      <div class="block-name">
+        <div class="block-dot" style="background:${def.color}"></div>
+        ${def.name}
+      </div>
+      <button class="block-remove" title="Remove">✕</button>
+    `;
+    header.querySelector('.block-remove').addEventListener('click', e => {
+      e.stopPropagation();
+      removeEffect(block.id);
+    });
+    header.addEventListener('dragstart', e => {
+      dragId = block.id;
+      dragTarget = arr;
+      el.classList.add('dragging');
+      e.dataTransfer.effectAllowed = 'move';
+    });
+    header.addEventListener('dragend', () => {
+      dragId = null; dragTarget = null;
+      el.classList.remove('dragging');
+      renderAll();
+    });
+    el.appendChild(header);
+
+    // Params
+    const paramsEl = document.createElement('div');
+    paramsEl.className = 'block-params';
+    def.params.forEach(p => {
+      const row = document.createElement('div');
+      row.className = 'param-row';
+
+      if (p.type === 'select') {
+        const sel = document.createElement('select');
+        sel.className = 'param-select';
+        p.options.forEach(opt => {
+          const o = document.createElement('option');
+          o.value = opt.value;
+          o.textContent = opt.label;
+          if (block.params[p.key] === opt.value) o.selected = true;
+          sel.appendChild(o);
+        });
+        sel.addEventListener('change', () => { block.params[p.key] = sel.value; });
+        row.innerHTML = `<span class="param-label">${p.label}</span>`;
+        row.appendChild(sel);
+      } else if (p.type === 'toggle') {
+        const tog = document.createElement('button');
+        tog.className = 'param-toggle' + (block.params[p.key] ? ' on' : '');
+        tog.textContent = block.params[p.key] ? 'ON' : 'OFF';
+        tog.addEventListener('click', () => {
+          block.params[p.key] = !block.params[p.key];
+          tog.classList.toggle('on', block.params[p.key]);
+          tog.textContent = block.params[p.key] ? 'ON' : 'OFF';
+          tog.dispatchEvent(new Event('input', { bubbles: true }));
+        });
+        row.innerHTML = `<span class="param-label">${p.label}</span>`;
+        row.appendChild(tog);
+      } else {
+        const valSpan = document.createElement('span');
+        valSpan.className = 'param-val';
+        valSpan.textContent = p.step < 1 ? Number(block.params[p.key]).toFixed(1) : block.params[p.key];
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.min = p.min;
+        slider.max = p.max;
+        slider.step = p.step;
+        slider.value = block.params[p.key];
+        slider.addEventListener('input', () => {
+          const v = Number(slider.value);
+          block.params[p.key] = v;
+          valSpan.textContent = p.step < 1 ? v.toFixed(1) : v;
+        });
+
+        // Automation toggle button
+        const auto = block.automation && block.automation[p.key];
+        const autoBtn = document.createElement('button');
+        autoBtn.className = 'auto-btn advanced-only' + (auto && auto.enabled ? ' on' : '');
+        autoBtn.textContent = '~';
+        autoBtn.title = 'Automate';
+
+        // Automation panel (shown when enabled)
+        const autoPanel = document.createElement('div');
+        autoPanel.className = 'auto-panel advanced-only';
+        autoPanel.style.display = auto && auto.enabled ? '' : 'none';
+        if (slider) slider.classList.toggle('param-slider-automated', !!(auto && auto.enabled));
+
+        if (auto) {
+          // Type selector row
+          const typeRow = document.createElement('div');
+          typeRow.className = 'auto-type-row';
+          [['ramp', 'Ramp'], ['sine', 'Sine ⌇']].forEach(([val, label]) => {
+            const btn = document.createElement('button');
+            btn.className = 'auto-type-btn' + (auto.type === val ? ' active' : '');
+            btn.textContent = label;
+            btn.addEventListener('click', () => {
+              auto.type = val;
+              typeRow.querySelectorAll('.auto-type-btn').forEach(b => b.classList.remove('active'));
+              btn.classList.add('active');
+            });
+            typeRow.appendChild(btn);
+          });
+          autoPanel.appendChild(typeRow);
+
+          // From range
+          const fromRow = document.createElement('div');
+          fromRow.className = 'auto-range-row';
+          const fromVal = document.createElement('span');
+          fromVal.className = 'auto-range-val';
+          fromVal.textContent = p.step < 1 ? Number(auto.from).toFixed(1) : auto.from;
+          const fromSlider = document.createElement('input');
+          fromSlider.type = 'range';
+          fromSlider.min = p.min; fromSlider.max = p.max; fromSlider.step = p.step;
+          fromSlider.value = auto.from;
+          fromSlider.addEventListener('input', () => {
+            auto.from = Number(fromSlider.value);
+            fromVal.textContent = p.step < 1 ? auto.from.toFixed(1) : auto.from;
+          });
+          fromRow.innerHTML = '<span class="auto-range-label">From</span>';
+          fromRow.appendChild(fromSlider);
+          fromRow.appendChild(fromVal);
+          autoPanel.appendChild(fromRow);
+
+          // To range
+          const toRow = document.createElement('div');
+          toRow.className = 'auto-range-row';
+          const toVal = document.createElement('span');
+          toVal.className = 'auto-range-val';
+          toVal.textContent = p.step < 1 ? Number(auto.to).toFixed(1) : auto.to;
+          const toSlider = document.createElement('input');
+          toSlider.type = 'range';
+          toSlider.min = p.min; toSlider.max = p.max; toSlider.step = p.step;
+          toSlider.value = auto.to;
+          toSlider.addEventListener('input', () => {
+            auto.to = Number(toSlider.value);
+            toVal.textContent = p.step < 1 ? auto.to.toFixed(1) : auto.to;
+          });
+          toRow.innerHTML = '<span class="auto-range-label">To</span>';
+          toRow.appendChild(toSlider);
+          toRow.appendChild(toVal);
+          autoPanel.appendChild(toRow);
+
+          autoBtn.addEventListener('click', () => {
+            auto.enabled = !auto.enabled;
+            autoBtn.classList.toggle('on', auto.enabled);
+            autoPanel.style.display = auto.enabled ? '' : 'none';
+            slider.classList.toggle('param-slider-automated', auto.enabled);
+          });
+        }
+
+        row.innerHTML = `<span class="param-label">${p.label}</span>`;
+        row.appendChild(slider);
+        row.appendChild(valSpan);
+        if (auto) row.appendChild(autoBtn);
+
+        // Append automation panel as sibling after the row
+        const wrapper = document.createElement('div');
+        wrapper.appendChild(row);
+        wrapper.appendChild(autoPanel);
+        paramsEl.appendChild(wrapper);
+        return; // skip the paramsEl.appendChild(row) below
+      }
+      paramsEl.appendChild(row);
+    });
+    el.appendChild(paramsEl);
+    containerEl.appendChild(el);
+  });
+}
+
+function renderAll() {
+  renderBlocks(preChain, preChainEl, 'Drag effects here');
+  renderBlocks(chain, chainEl, 'Drag or click effects to add them here');
+  renderBlocks(postChain, postChainEl, 'Drag effects here');
+  document.getElementById('chainRepeatLabel').textContent =
+    document.getElementById('chainRepeats').value;
+}
+
+// Attach container-level drop zones once — handles drops onto empty chains
+// or onto the chain background (appends to end)
+function attachContainerDrop(containerEl, arr) {
+  containerEl.addEventListener('dragover', e => {
+    if (dragId === null) return;
+    e.preventDefault();
+    containerEl.classList.add('drop-target');
+  });
+  containerEl.addEventListener('dragleave', e => {
+    if (!containerEl.contains(e.relatedTarget)) containerEl.classList.remove('drop-target');
+  });
+  containerEl.addEventListener('drop', e => {
+    containerEl.classList.remove('drop-target');
+    // If dropped onto a block child, that block's own handler takes it — skip
+    if (e.target.closest && e.target.closest('.chain-block')) return;
+    if (dragId === null || !dragTarget) return;
+    e.preventDefault();
+    const fromIdx = dragTarget.findIndex(b => b.id === dragId);
+    if (fromIdx === -1) return;
+    const [moved] = dragTarget.splice(fromIdx, 1);
+    arr.push(moved);
+    if (arr === preChain && !preEnabled) togglePre();
+    if (arr === postChain && !postEnabled) togglePost();
+    renderAll();
+  });
+}
+document.getElementById('chainRepeats').addEventListener('input', () => {
+  document.getElementById('chainRepeatLabel').textContent =
+    document.getElementById('chainRepeats').value;
+});
+
+// Palette clicks + drag
+document.querySelectorAll('.palette-item[data-effect]').forEach(item => {
+  item.addEventListener('click', () => addEffect(item.dataset.effect));
+  item.addEventListener('dragstart', e => {
+    e.dataTransfer.setData('effect-type', item.dataset.effect);
+    e.dataTransfer.effectAllowed = 'copy';
+    item.classList.add('dragging');
+  });
+  item.addEventListener('dragend', () => {
+    item.classList.remove('dragging');
+    document.querySelectorAll('.chain.drop-target').forEach(el => el.classList.remove('drop-target'));
+  });
+});
+
+// Drop targets: map each chain container to its target name
+const dropTargets = [
+  { el: preChainEl, target: 'pre' },
+  { el: chainEl, target: 'chain' },
+  { el: postChainEl, target: 'post' }
+];
+
+dropTargets.forEach(({ el, target }) => {
+  el.addEventListener('dragover', e => {
+    if (!e.dataTransfer.types.includes('effect-type')) return;
+    e.preventDefault();
+    e.dataTransfer.dropEffect = 'copy';
+    el.classList.add('drop-target');
+  });
+  el.addEventListener('dragleave', e => {
+    if (!el.contains(e.relatedTarget)) el.classList.remove('drop-target');
+  });
+  el.addEventListener('drop', e => {
+    e.preventDefault();
+    el.classList.remove('drop-target');
+    const effectType = e.dataTransfer.getData('effect-type');
+    if (effectType) addEffectTo(effectType, target);
+  });
+});
+
+renderAll();
+attachContainerDrop(preChainEl, preChain);
+attachContainerDrop(chainEl, chain);
+attachContainerDrop(postChainEl, postChain);
+
+// ── Default chain: Gaussian Blur → Unsharp Mask → Threshold (grow preset) ──
+(function initDefaultChain() {
+  // Gaussian Blur — gentle spread
+  const blur = makeBlock('gaussian_blur');
+  blur.params.radius = 3;
+
+  // Unsharp Mask — amplify the spread
+  const usm = makeBlock('unsharp_mask');
+  usm.params.radius = 2;
+  usm.params.amount = 2.0;
+  usm.params.threshold = 0;
+
+  // Threshold — snap back but include the spread (low level = more growth)
+  const thresh = makeBlock('threshold');
+  thresh.params.level = 100;
+  thresh.params.softness = 0;
+
+  chain.push(blur, usm, thresh);
+  renderAll();
+  document.getElementById('chainRepeatLabel').textContent = '25';
+})();
+
+// Tracking & leading value displays
+document.getElementById('srcTracking').addEventListener('input', e => {
+  document.getElementById('srcTrackingVal').textContent = e.target.value;
+});
+document.getElementById('srcLeading').addEventListener('input', e => {
+  document.getElementById('srcLeadingVal').textContent = e.target.value + '%';
+});
+document.getElementById('srcMargin').addEventListener('input', e => {
+  document.getElementById('srcMarginVal').textContent = e.target.value;
+});
+
+// ═══════════════════════════════════════
+// IMAGE PROCESSING KERNELS
+// ═══════════════════════════════════════
+
+function rasterizeText(text, font, size, weight, fg, bg, tracking, leadingPct, align, margin) {
+  const lines = text.split('\n');
+  const lineHeight = Math.ceil(size * (leadingPct / 100));
+  const letterSpacing = tracking;
+  const generics = ['sans-serif', 'serif', 'monospace', 'cursive', 'fantasy'];
+  // If font contains a comma it's a stack — pass through as-is; 
+  // if it's a generic keyword don't quote; otherwise quote it
+  let fontFamily;
+  if (font.includes(',')) fontFamily = font;
+  else if (generics.includes(font)) fontFamily = font;
+  else fontFamily = `"${font}"`;
+  const fontStr = `${weight} ${size}px ${fontFamily}`;
+
+  // Measure each line accounting for tracking
+  const m = document.createElement('canvas').getContext('2d');
+  m.font = fontStr;
+  let maxW = 0;
+  const lineWidths = [];
+  for (const line of lines) {
+    const chars = Array.from(line || ' ');
+    let lw = 0;
+    for (const ch of chars) lw += m.measureText(ch).width;
+    lw += Math.max(0, chars.length - 1) * letterSpacing;
+    lineWidths.push(Math.max(0, lw));
+    if (lw > maxW) maxW = lw;
+  }
+
+  const pad = margin !== undefined ? margin : Math.ceil(size * 0.5);
+  const w = Math.max(1, Math.ceil(maxW) + pad * 2);
+  // Text block height: last line is just the font size, no trailing leading
+  const textBlockH = Math.max(0, (lines.length - 1) * lineHeight) + size;
+  const h = Math.max(1, textBlockH + pad * 2);
+  const c = document.createElement('canvas');
+  c.width = w; c.height = h;
+  const ctx = c.getContext('2d');
+  ctx.fillStyle = bg;
+  ctx.fillRect(0, 0, w, h);
+  ctx.fillStyle = fg;
+  ctx.font = fontStr;
+  ctx.textBaseline = 'top';
+
+  const topOffset = pad;
+  for (let i = 0; i < lines.length; i++) {
+    const chars = Array.from(lines[i]);
+    const lw = lineWidths[i];
+    let x;
+    if (align === 'left') x = pad;
+    else if (align === 'right') x = w - pad - lw;
+    else x = (w - lw) / 2;
+
+    const y = topOffset + i * lineHeight;
+    for (const ch of chars) {
+      ctx.fillText(ch, x, y);
+      x += m.measureText(ch).width + letterSpacing;
+    }
+  }
+  return c;
+}
+
+function cloneCanvas(src) {
+  const c = document.createElement('canvas');
+  c.width = src.width; c.height = src.height;
+  c.getContext('2d').drawImage(src, 0, 0);
+  return c;
+}
+
+function getPixels(canvas) {
+  return canvas.getContext('2d').getImageData(0, 0, canvas.width, canvas.height);
+}
+
+function putPixels(canvas, imgData) {
+  canvas.getContext('2d').putImageData(imgData, 0, 0);
+}
+
+// Gaussian kernel
+function gaussKernel(r) {
+  const s = r * 2 + 1, k = new Float32Array(s), sigma = Math.max(r / 2.5, 0.5);
+  let sum = 0;
+  for (let i = 0; i < s; i++) { const x = i - r; k[i] = Math.exp(-(x*x)/(2*sigma*sigma)); sum += k[i]; }
+  for (let i = 0; i < s; i++) k[i] /= sum;
+  return k;
+}
+
+// Separable 1D convolution (horizontal or vertical)
+function conv1D(src, out, w, h, kernel, vertical) {
+  const kh = (kernel.length - 1) / 2;
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let r = 0, g = 0, b = 0, a = 0;
+      for (let k = 0; k < kernel.length; k++) {
+        let sx, sy;
+        if (vertical) { sx = x; sy = Math.min(Math.max(y + k - kh, 0), h - 1); }
+        else { sx = Math.min(Math.max(x + k - kh, 0), w - 1); sy = y; }
+        const i = (sy * w + sx) * 4;
+        const wt = kernel[k];
+        r += src[i] * wt; g += src[i+1] * wt; b += src[i+2] * wt; a += src[i+3] * wt;
+      }
+      const i = (y * w + x) * 4;
+      out[i] = r; out[i+1] = g; out[i+2] = b; out[i+3] = a;
+    }
+  }
+}
+
+function applyGaussianBlur(imgData, radius) {
+  const { width: w, height: h, data } = imgData;
+  const k = gaussKernel(radius);
+  const temp = new Uint8ClampedArray(data.length);
+  const out = new Uint8ClampedArray(data.length);
+  conv1D(data, temp, w, h, k, false);
+  conv1D(temp, out, w, h, k, true);
+  return new ImageData(out, w, h);
+}
+
+function applyBoxBlur(imgData, radius) {
+  const s = radius * 2 + 1;
+  const k = new Float32Array(s).fill(1 / s);
+  const { width: w, height: h, data } = imgData;
+  const temp = new Uint8ClampedArray(data.length);
+  const out = new Uint8ClampedArray(data.length);
+  conv1D(data, temp, w, h, k, false);
+  conv1D(temp, out, w, h, k, true);
+  return new ImageData(out, w, h);
+}
+
+function applyMotionBlur(imgData, length, angleDeg) {
+  const { width: w, height: h, data } = imgData;
+  const out = new Uint8ClampedArray(data.length);
+  const rad = angleDeg * Math.PI / 180;
+  const dx = Math.cos(rad), dy = Math.sin(rad);
+  const samples = length * 2 + 1;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let r = 0, g = 0, b = 0, a = 0, count = 0;
+      for (let s = -length; s <= length; s++) {
+        const sx = Math.round(x + s * dx);
+        const sy = Math.round(y + s * dy);
+        if (sx >= 0 && sx < w && sy >= 0 && sy < h) {
+          const i = (sy * w + sx) * 4;
+          r += data[i]; g += data[i+1]; b += data[i+2]; a += data[i+3];
+          count++;
+        }
+      }
+      const i = (y * w + x) * 4;
+      out[i] = r/count; out[i+1] = g/count; out[i+2] = b/count; out[i+3] = a/count;
+    }
+  }
+  return new ImageData(out, w, h);
+}
+
+function applyRotationalBlur(imgData, amount) {
+  const { width: w, height: h, data } = imgData;
+  const out = new Uint8ClampedArray(data.length);
+  const cx = w / 2, cy = h / 2;
+  const steps = amount * 2 + 1;
+  const maxAngle = amount * 0.015; // radians spread
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      let r = 0, g = 0, b = 0, a = 0, count = 0;
+      const ox = x - cx, oy = y - cy;
+      const baseAngle = Math.atan2(oy, ox);
+      const dist = Math.sqrt(ox * ox + oy * oy);
+
+      for (let s = -amount; s <= amount; s++) {
+        const ang = baseAngle + (s / amount) * maxAngle;
+        const sx = Math.round(cx + dist * Math.cos(ang));
+        const sy = Math.round(cy + dist * Math.sin(ang));
+        if (sx >= 0 && sx < w && sy >= 0 && sy < h) {
+          const i = (sy * w + sx) * 4;
+          r += data[i]; g += data[i+1]; b += data[i+2]; a += data[i+3];
+          count++;
+        }
+      }
+      const i = (y * w + x) * 4;
+      out[i] = r/count; out[i+1] = g/count; out[i+2] = b/count; out[i+3] = a/count;
+    }
+  }
+  return new ImageData(out, w, h);
+}
+
+function applyUnsharpMask(imgData, radius, amount, threshold) {
+  const blurred = applyGaussianBlur(imgData, radius);
+  const orig = imgData.data;
+  const blur = blurred.data;
+  const out = new Uint8ClampedArray(orig.length);
+
+  for (let i = 0; i < orig.length; i += 4) {
+    for (let c = 0; c < 3; c++) {
+      const diff = orig[i+c] - blur[i+c];
+      out[i+c] = Math.abs(diff) >= threshold
+        ? Math.min(255, Math.max(0, orig[i+c] + diff * amount))
+        : orig[i+c];
+    }
+    out[i+3] = orig[i+3];
+  }
+  return new ImageData(out, imgData.width, imgData.height);
+}
+
+function hexToRGB(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return [(n >> 16) & 255, (n >> 8) & 255, n & 255];
+}
+
+function applyThreshold(imgData, level, softness, fgHex, bgHex) {
+  const d = imgData.data;
+  const out = new Uint8ClampedArray(d.length);
+  const fg = hexToRGB(fgHex);
+  const bg = hexToRGB(bgHex);
+  // Determine which color is lighter by luminance
+  const fgLum = 0.299 * fg[0] + 0.587 * fg[1] + 0.114 * fg[2];
+  const bgLum = 0.299 * bg[0] + 0.587 * bg[1] + 0.114 * bg[2];
+  const light = fgLum >= bgLum ? fg : bg;
+  const dark  = fgLum >= bgLum ? bg : fg;
+  const half = Math.max(softness, 0.5);
+  const lo = level - half;
+  const hi = level + half;
+
+  for (let i = 0; i < d.length; i += 4) {
+    const lum = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+    // t: 0 = dark color, 1 = light color
+    const t = softness === 0
+      ? (lum >= level ? 1 : 0)
+      : Math.min(1, Math.max(0, (lum - lo) / (hi - lo)));
+    out[i]     = dark[0] + (light[0] - dark[0]) * t;
+    out[i + 1] = dark[1] + (light[1] - dark[1]) * t;
+    out[i + 2] = dark[2] + (light[2] - dark[2]) * t;
+    out[i + 3] = d[i + 3];
+  }
+  return new ImageData(out, imgData.width, imgData.height);
+}
+
+// ── Noise Functions ──
+const _perm = (function() {
+  const base = [];
+  for (let i = 0; i < 256; i++) base[i] = i;
+  for (let i = 255; i > 0; i--) {
+    const j = (i * 16807 + 37) % (i + 1);
+    [base[i], base[j]] = [base[j], base[i]];
+  }
+  const p = new Uint8Array(512);
+  for (let i = 0; i < 512; i++) p[i] = base[i & 255];
+  return p;
+})();
+
+function _fade(t) { return t * t * t * (t * (t * 6 - 15) + 10); }
+function _lerp(a, b, t) { return a + t * (b - a); }
+function _grad(hash, x, y) {
+  const h = hash & 3;
+  const u = h < 2 ? x : y;
+  const v = h < 2 ? y : x;
+  return ((h & 1) ? -u : u) + ((h & 2) ? -v : v);
+}
+function _hash(x, y, s) { return _perm[(_perm[(x + s) & 255] + y + s) & 511]; }
+
+// Perlin noise
+function noisePerlin(x, y, seed) {
+  const s = seed | 0;
+  const xi = Math.floor(x) & 255, yi = Math.floor(y) & 255;
+  const xf = x - Math.floor(x), yf = y - Math.floor(y);
+  const u = _fade(xf), v = _fade(yf);
+  const aa = _hash(xi, yi, s), ab = _hash(xi, yi+1, s);
+  const ba = _hash(xi+1, yi, s), bb = _hash(xi+1, yi+1, s);
+  return _lerp(
+    _lerp(_grad(aa, xf, yf), _grad(ba, xf-1, yf), u),
+    _lerp(_grad(ab, xf, yf-1), _grad(bb, xf-1, yf-1), u), v
+  );
+}
+
+// Value noise
+function noiseValue(x, y, seed) {
+  const s = seed | 0;
+  const xi = Math.floor(x) & 255, yi = Math.floor(y) & 255;
+  const xf = x - Math.floor(x), yf = y - Math.floor(y);
+  const u = _fade(xf), v = _fade(yf);
+  const n00 = _hash(xi, yi, s) / 255;
+  const n10 = _hash(xi+1, yi, s) / 255;
+  const n01 = _hash(xi, yi+1, s) / 255;
+  const n11 = _hash(xi+1, yi+1, s) / 255;
+  return _lerp(_lerp(n00, n10, u), _lerp(n01, n11, u), v) * 2 - 1;
+}
+
+// Worley (cellular) noise
+function noiseWorley(x, y, seed) {
+  const xi = Math.floor(x), yi = Math.floor(y);
+  let minDist = 999;
+  for (let dy = -1; dy <= 1; dy++) {
+    for (let dx = -1; dx <= 1; dx++) {
+      const cx = xi + dx, cy = yi + dy;
+      const h = _hash(cx & 255, cy & 255, seed | 0);
+      const px = cx + (h / 255);
+      const h2 = _hash((cx + 37) & 255, (cy + 17) & 255, seed | 0);
+      const py = cy + (h2 / 255);
+      const d = Math.sqrt((x - px) * (x - px) + (y - py) * (y - py));
+      if (d < minDist) minDist = d;
+    }
+  }
+  return minDist * 2 - 1; // normalize to ~[-1, 1]
+}
+
+// Simplex-style noise (2D)
+function noiseSimplex(x, y, seed) {
+  const F2 = 0.5 * (Math.sqrt(3) - 1);
+  const G2 = (3 - Math.sqrt(3)) / 6;
+  const s = (x + y) * F2;
+  const i = Math.floor(x + s), j = Math.floor(y + s);
+  const t = (i + j) * G2;
+  const x0 = x - (i - t), y0 = y - (j - t);
+  const i1 = x0 > y0 ? 1 : 0, j1 = x0 > y0 ? 0 : 1;
+  const x1 = x0 - i1 + G2, y1 = y0 - j1 + G2;
+  const x2 = x0 - 1 + 2 * G2, y2 = y0 - 1 + 2 * G2;
+  const ii = i & 255, jj = j & 255;
+  const sv = seed | 0;
+  let n = 0;
+  let t0 = 0.5 - x0*x0 - y0*y0;
+  if (t0 > 0) { t0 *= t0; n += t0 * t0 * _grad(_hash(ii, jj, sv), x0, y0); }
+  let t1 = 0.5 - x1*x1 - y1*y1;
+  if (t1 > 0) { t1 *= t1; n += t1 * t1 * _grad(_hash(ii+i1, jj+j1, sv), x1, y1); }
+  let t2 = 0.5 - x2*x2 - y2*y2;
+  if (t2 > 0) { t2 *= t2; n += t2 * t2 * _grad(_hash(ii+1, jj+1, sv), x2, y2); }
+  return 70 * n;
+}
+
+// Ridged noise (abs of Perlin inverted)
+function noiseRidged(x, y, seed) {
+  return 1 - 2 * Math.abs(noisePerlin(x, y, seed));
+}
+
+const NOISE_FNS = {
+  perlin: noisePerlin,
+  value: noiseValue,
+  worley: noiseWorley,
+  simplex: noiseSimplex,
+  ridged: noiseRidged
+};
+
+function applyNoiseDisplace(imgData, noiseType, scale, amount, seed) {
+  const { width: w, height: h, data } = imgData;
+  const out = new Uint8ClampedArray(data.length);
+  const invScale = 1 / Math.max(1, scale);
+  const noiseFn = NOISE_FNS[noiseType] || noisePerlin;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = noiseFn(x * invScale, y * invScale, seed) * amount;
+      const dy = noiseFn(x * invScale + 100, y * invScale + 100, seed) * amount;
+      const sx = Math.round(x + dx);
+      const sy = Math.round(y + dy);
+      const idx = (y * w + x) * 4;
+      if (sx >= 0 && sx < w && sy >= 0 && sy < h) {
+        const si = (sy * w + sx) * 4;
+        out[idx] = data[si]; out[idx+1] = data[si+1];
+        out[idx+2] = data[si+2]; out[idx+3] = data[si+3];
+      } else {
+        out[idx+3] = 0;
+      }
+    }
+  }
+  return new ImageData(out, w, h);
+}
+
+// ═══════════════════════════════════════
+// AUTOMATION: compute param values at t∈[0,1]
+// ═══════════════════════════════════════
+function computeEffectiveBlock(block, t) {
+  if (!block.automation) return block;
+  const effectiveParams = { ...block.params };
+  for (const key of Object.keys(block.automation)) {
+    const auto = block.automation[key];
+    if (!auto.enabled) continue;
+    let factor;
+    if (auto.type === 'ramp') factor = t;
+    else factor = 0.5 * (1 - Math.cos(2 * Math.PI * t)); // sine: 0→peak→0
+    const raw = auto.from + (auto.to - auto.from) * factor;
+    const def = EFFECTS[block.type].params.find(p => p.key === key);
+    const step = def ? def.step : 1;
+    effectiveParams[key] = step < 1
+      ? Math.round(raw / step) * step
+      : Math.round(raw);
+  }
+  return { ...block, params: effectiveParams };
+}
+
+// ── Point Blur (radial zoom blur) ──
+function applyPointBlur(imgData, amount, cxPct, cyPct, mode) {
+  const { width: w, height: h, data } = imgData;
+  const out = new Uint8ClampedArray(data.length);
+  const focusX = w * cxPct / 100;
+  const focusY = h * cyPct / 100;
+  const maxDist = Math.sqrt(w * w + h * h) * 0.5;
+  const SAMPLES = 14;
+
+  for (let y = 0; y < h; y++) {
+    for (let x = 0; x < w; x++) {
+      const dx = x - focusX;
+      const dy = y - focusY;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      const idx = (y * w + x) * 4;
+
+      if (dist < 1) {
+        const blurRadius = mode === 'center' ? amount : 0;
+        if (blurRadius < 1) {
+          out[idx] = data[idx]; out[idx+1] = data[idx+1];
+          out[idx+2] = data[idx+2]; out[idx+3] = data[idx+3];
+          continue;
+        }
+      }
+
+      const t = dist / maxDist;
+      const blurRadius = mode === 'center'
+        ? (1 - t) * amount   // max at center, zero at edges
+        : t * amount;        // zero at center, max at edges
+
+      if (blurRadius < 0.5) {
+        out[idx] = data[idx]; out[idx+1] = data[idx+1];
+        out[idx+2] = data[idx+2]; out[idx+3] = data[idx+3];
+        continue;
+      }
+
+      const ndx = dist > 0 ? dx / dist : 1;
+      const ndy = dist > 0 ? dy / dist : 0;
+
+      let r = 0, g = 0, b = 0, a = 0;
+      for (let s = 0; s < SAMPLES; s++) {
+        const offset = (s / (SAMPLES - 1) - 0.5) * blurRadius;
+        const sx = Math.min(w - 1, Math.max(0, Math.round(x + ndx * offset)));
+        const sy = Math.min(h - 1, Math.max(0, Math.round(y + ndy * offset)));
+        const si = (sy * w + sx) * 4;
+        r += data[si]; g += data[si + 1]; b += data[si + 2]; a += data[si + 3];
+      }
+
+      out[idx]   = r / SAMPLES; out[idx+1] = g / SAMPLES;
+      out[idx+2] = b / SAMPLES; out[idx+3] = a / SAMPLES;
+    }
+  }
+  return new ImageData(out, w, h);
+}
+
+// ═══════════════════════════════════════
+// PROCESSING PIPELINE
+// ═══════════════════════════════════════
+function applyEffect(imgData, block, ctx) {
+  const p = block.params;
+  switch (block.type) {
+    case 'gaussian_blur':   return applyGaussianBlur(imgData, p.radius);
+    case 'box_blur':        return applyBoxBlur(imgData, p.radius);
+    case 'motion_blur':     return applyMotionBlur(imgData, p.radius, p.angle);
+    case 'rotational_blur': return applyRotationalBlur(imgData, p.amount);
+    case 'unsharp_mask':    return applyUnsharpMask(imgData, p.radius, p.amount, p.threshold);
+    case 'threshold':       return applyThreshold(imgData, p.level, p.softness, ctx.fg, ctx.bg);
+    case 'noise_displace':  return applyNoiseDisplace(imgData, p.noiseType, p.scale, p.amount, p.seed);
+    case 'point_blur':      return applyPointBlur(imgData, p.amount, p.cx, p.cy, p.mode);
+    default: return imgData;
+  }
+}
+
+const viewportInfo = document.getElementById('viewportInfo');
+const viewportPlaceholder = document.getElementById('viewportPlaceholder');
+const displayCanvas = document.getElementById('displayCanvas');
+const frameBadge = document.getElementById('frameBadge');
+const frameBadgeText = document.getElementById('frameBadgeText');
+const frameBadgeEffect = document.getElementById('frameBadgeEffect');
+const progressFill = document.getElementById('progressFill');
+const statusText = document.getElementById('statusText');
+const timeText = document.getElementById('timeText');
+
+async function runPipeline() {
+  if (chain.length === 0 && preChain.length === 0 && postChain.length === 0) return;
+
+  cancelRequested = false;
+
+  const text = document.getElementById('srcText').value || 'Hello';
+  const font = document.getElementById('srcFont').value;
+  const size = parseInt(document.getElementById('srcSize').value) || 72;
+  const weight = parseInt(document.getElementById('srcWeight').value) || 700;
+  const fg = document.getElementById('srcFg').value;
+  const bg = document.getElementById('srcBg').value;
+  const tracking = parseInt(document.getElementById('srcTracking').value) || 0;
+  const leading = parseInt(document.getElementById('srcLeading').value) || 140;
+  const align = document.getElementById('srcAlign').value;
+  const margin = parseInt(document.getElementById('srcMargin').value) ?? 50;
+  const repeats = Math.max(1, parseInt(document.getElementById('chainRepeats').value) || 1);
+
+  const runBtn = document.getElementById('runBtn');
+  runBtn.textContent = '■ Stop';
+  runBtn.classList.add('stop-mode');
+
+  // Rasterize original
+  const original = rasterizeText(text, font, size, weight, fg, bg, tracking, leading, align, margin);
+  viewportInfo.textContent = `${original.width}×${original.height}`;
+  viewportPlaceholder.style.display = 'none';
+  displayCanvas.style.display = 'block';
+  frameBadge.style.display = '';
+
+  displayCanvas.width = original.width;
+  displayCanvas.height = original.height;
+  const dCtx = displayCanvas.getContext('2d');
+  dCtx.drawImage(original, 0, 0);
+  frameBadgeText.textContent = 'Original';
+  frameBadgeEffect.textContent = '';
+
+  const work = cloneCanvas(original);
+  const t0 = performance.now();
+  const effectCtx = { fg, bg };
+
+  // Helper to run a list of blocks once
+  function runBlockList(blocks) {
+    for (const block of blocks) {
+      let imgData = getPixels(work);
+      imgData = applyEffect(imgData, block, effectCtx);
+      putPixels(work, imgData);
+    }
+  }
+
+  // PRE-PROCESSING (once)
+  if (preEnabled && preChain.length > 0) {
+    statusText.textContent = 'Pre-processing…';
+    frameBadgeEffect.textContent = 'Pre';
+    await new Promise(r => requestAnimationFrame(r));
+    runBlockList(preChain);
+    dCtx.drawImage(work, 0, 0);
+    frameBadgeText.textContent = 'Pre done';
+    await new Promise(r => requestAnimationFrame(r));
+  }
+
+  // MAIN CHAIN (repeated)
+  for (let rep = 0; rep < repeats; rep++) {
+    const t = repeats === 1 ? 0 : rep / (repeats - 1);
+    for (let i = 0; i < chain.length; i++) {
+      const block = computeEffectiveBlock(chain[i], t);
+      let savedSeed;
+      if (block.type === 'noise_displace' && chain[i].params.randSeed) {
+        block.params.seed = Math.floor(Math.random() * 1000);
+      }
+      let imgData = getPixels(work);
+      imgData = applyEffect(imgData, block, effectCtx);
+      putPixels(work, imgData);
+    }
+
+    dCtx.drawImage(work, 0, 0);
+    frameBadgeText.textContent = `${rep+1} / ${repeats}`;
+    frameBadgeEffect.textContent = `Chain pass ${rep+1}`;
+    statusText.textContent = `Repeat ${rep+1}/${repeats}`;
+    progressFill.style.width = (((rep+1) / repeats) * 100) + '%';
+    await new Promise(r => requestAnimationFrame(r));
+    if (cancelRequested) break;
+  }
+
+  // POST-PROCESSING (once)
+  if (!cancelRequested && postEnabled && postChain.length > 0) {
+    statusText.textContent = 'Post-processing…';
+    frameBadgeEffect.textContent = 'Post';
+    await new Promise(r => requestAnimationFrame(r));
+    runBlockList(postChain);
+    dCtx.drawImage(work, 0, 0);
+    frameBadgeText.textContent = 'Post done';
+    await new Promise(r => requestAnimationFrame(r));
+  }
+
+  const elapsed = ((performance.now() - t0) / 1000).toFixed(2);
+  frameBadgeText.textContent = cancelRequested ? 'Stopped' : 'Done';
+  frameBadgeEffect.textContent = `${elapsed}s`;
+  statusText.textContent = cancelRequested ? 'Stopped' : 'Complete';
+  timeText.textContent = elapsed + 's';
+  progressFill.style.width = cancelRequested ? progressFill.style.width : '100%';
+  runBtn.textContent = '▶ Process';
+  runBtn.classList.remove('stop-mode');
+}
+
+document.getElementById('runBtn').addEventListener('click', () => {
+  if (isProcessing) cancelPipeline();
+  else runPipeline();
+});
+document.addEventListener('keydown', e => {
+  if (e.target.tagName === 'INPUT' || e.target.tagName === 'SELECT' || e.target.tagName === 'TEXTAREA') return;
+  if (e.code === 'Space') { e.preventDefault(); if (isProcessing) cancelPipeline(); else runPipeline(); }
+});
+
+// ═══════════════════════════════════════
+// AUTO-PROCESS MODE
+// ═══════════════════════════════════════
+let autoMode = false;
+let autoTimer = null;
+let isProcessing = false;
+let needsRerun = false;
+let cancelRequested = false;
+
+function cancelPipeline() {
+  if (isProcessing) cancelRequested = true;
+}
+
+const autoBtn = document.getElementById('autoBtn');
+autoBtn.addEventListener('click', () => {
+  autoMode = !autoMode;
+  autoBtn.classList.toggle('active', autoMode);
+  if (autoMode && chain.length > 0) scheduleAuto();
+});
+
+function scheduleAuto() {
+  if (!autoMode) return;
+  clearTimeout(autoTimer);
+  autoTimer = setTimeout(() => {
+    if (isProcessing) { needsRerun = true; return; }
+    runPipeline();
+  }, 300);
+}
+
+// Wrap runPipeline to track processing state
+const _origRun = runPipeline;
+runPipeline = async function() {
+  if (isProcessing) { needsRerun = true; return; }
+  isProcessing = true;
+  try { await _origRun(); } finally {
+    isProcessing = false;
+    if (needsRerun && autoMode) {
+      needsRerun = false;
+      scheduleAuto();
+    }
+  }
+};
+
+// Listen for any slider/input changes across the whole page
+document.addEventListener('input', e => {
+  if (!autoMode) return;
+  const tag = e.target.tagName;
+  const type = e.target.type;
+  if (tag === 'INPUT' && (type === 'range' || type === 'number' || type === 'color' || type === 'text')) {
+    scheduleAuto();
+  }
+  if (tag === 'SELECT' || tag === 'TEXTAREA' || tag === 'BUTTON') scheduleAuto();
+});
+document.addEventListener('change', e => {
+  if (!autoMode) return;
+  if (e.target.tagName === 'SELECT') scheduleAuto();
+});
+
+// Also trigger on chain add/remove
+const _origAdd = addEffect;
+addEffect = function(type) { _origAdd(type); if (autoMode) scheduleAuto(); };
+const _origAddTo = addEffectTo;
+addEffectTo = function(type, target) { _origAddTo(type, target); if (autoMode) scheduleAuto(); };
+const _origRemove = removeEffect;
+removeEffect = function(id) { _origRemove(id); if (autoMode) scheduleAuto(); };
+
+// ═══════════════════════════════════════
+// GIF ENCODER
+// ═══════════════════════════════════════
+function lzwEncode(minCodeSize, pixels) {
+  const clearCode = 1 << minCodeSize;
+  const eoiCode = clearCode + 1;
+  let codeSize = minCodeSize + 1;
+  let nextCode = eoiCode + 1;
+  const output = [];
+  let curByte = 0, curBits = 0;
+
+  function emit(code) {
+    curByte |= (code << curBits);
+    curBits += codeSize;
+    while (curBits >= 8) { output.push(curByte & 0xFF); curByte >>= 8; curBits -= 8; }
+  }
+
+  let table;
+  function resetTable() {
+    table = new Map();
+    for (let i = 0; i < clearCode; i++) table.set('' + i, i);
+    nextCode = eoiCode + 1;
+    codeSize = minCodeSize + 1;
+  }
+
+  emit(clearCode);
+  resetTable();
+  let cur = '' + pixels[0];
+  for (let i = 1; i < pixels.length; i++) {
+    const next = cur + ',' + pixels[i];
+    if (table.has(next)) { cur = next; }
+    else {
+      emit(table.get(cur));
+      if (nextCode < 4096) {
+        table.set(next, nextCode++);
+        if (nextCode > (1 << codeSize) && codeSize < 12) codeSize++;
+      } else { emit(clearCode); resetTable(); }
+      cur = '' + pixels[i];
+    }
+  }
+  emit(table.get(cur));
+  emit(eoiCode);
+  if (curBits > 0) output.push(curByte & 0xFF);
+  return output;
+}
+
+function buildGIF(frames, w, h, delayCs) {
+  const buf = [];
+  const wb = b => buf.push(b & 0xFF);
+  const ws = v => { wb(v); wb(v >> 8); };
+  const wstr = s => { for (let i = 0; i < s.length; i++) wb(s.charCodeAt(i)); };
+
+  // 6×6×6 color cube quantizer
+  function qIdx(r, g, b) {
+    return Math.round(r * 5 / 255) * 36 + Math.round(g * 5 / 255) * 6 + Math.round(b * 5 / 255);
+  }
+
+  // Header
+  wstr('GIF89a');
+  ws(w); ws(h);
+  wb(0xF7); wb(0); wb(0); // GCT: 256 colors, 8-bit
+
+  // GCT: 216 cube + 40 black padding
+  for (let r = 0; r < 6; r++)
+    for (let g = 0; g < 6; g++)
+      for (let b = 0; b < 6; b++) {
+        wb(Math.round(r * 255 / 5));
+        wb(Math.round(g * 255 / 5));
+        wb(Math.round(b * 255 / 5));
+      }
+  for (let i = 216; i < 256; i++) { wb(0); wb(0); wb(0); }
+
+  // NETSCAPE looping extension
+  wb(0x21); wb(0xFF); wb(11);
+  wstr('NETSCAPE2.0');
+  wb(3); wb(1); ws(0); wb(0);
+
+  for (const frame of frames) {
+    // Graphic Control Extension
+    wb(0x21); wb(0xF9); wb(4);
+    wb(0x00); ws(delayCs); wb(0); wb(0);
+
+    // Image Descriptor
+    wb(0x2C);
+    ws(0); ws(0); ws(w); ws(h);
+    wb(0); // no LCT
+
+    // LZW
+    wb(8); // min code size
+    const px = new Uint8Array(w * h);
+    const d = frame.data;
+    for (let i = 0; i < w * h; i++) px[i] = qIdx(d[i * 4], d[i * 4 + 1], d[i * 4 + 2]);
+    const lzw = lzwEncode(8, px);
+    let off = 0;
+    while (off < lzw.length) {
+      const sz = Math.min(255, lzw.length - off);
+      wb(sz);
+      for (let i = 0; i < sz; i++) buf.push(lzw[off++]);
+    }
+    wb(0);
+  }
+
+  wb(0x3B); // trailer
+  return new Uint8Array(buf);
+}
+
+// ═══════════════════════════════════════
+// EXPORT PIPELINE
+// ═══════════════════════════════════════
+async function exportGIF() {
+  if (chain.length === 0 && preChain.length === 0 && postChain.length === 0) return;
+
+  const exportBtn = document.getElementById('exportBtn');
+  exportBtn.disabled = true;
+  exportBtn.textContent = '⏳ …';
+
+  const text = document.getElementById('srcText').value || 'Hello';
+  const font = document.getElementById('srcFont').value;
+  const size = parseInt(document.getElementById('srcSize').value) || 72;
+  const weight = parseInt(document.getElementById('srcWeight').value) || 700;
+  const fg = document.getElementById('srcFg').value;
+  const bg = document.getElementById('srcBg').value;
+  const tracking = parseInt(document.getElementById('srcTracking').value) || 0;
+  const leading = parseInt(document.getElementById('srcLeading').value) || 140;
+  const align = document.getElementById('srcAlign').value;
+  const margin = parseInt(document.getElementById('srcMargin').value) ?? 50;
+  const repeats = Math.max(1, parseInt(document.getElementById('chainRepeats').value) || 1);
+  const effectCtx = { fg, bg };
+
+  const original = rasterizeText(text, font, size, weight, fg, bg, tracking, leading, align, margin);
+  const work = cloneCanvas(original);
+  const w = work.width, h = work.height;
+  const capturedFrames = [];
+
+  // Capture original
+  capturedFrames.push(new ImageData(new Uint8ClampedArray(getPixels(work).data), w, h));
+
+  // Pre
+  if (preEnabled && preChain.length > 0) {
+    for (const block of preChain) {
+      let imgData = getPixels(work);
+      imgData = applyEffect(imgData, block, effectCtx);
+      putPixels(work, imgData);
+    }
+    capturedFrames.push(new ImageData(new Uint8ClampedArray(getPixels(work).data), w, h));
+  }
+
+  // Main chain passes
+  for (let rep = 0; rep < repeats; rep++) {
+    const t = repeats === 1 ? 0 : rep / (repeats - 1);
+    for (let i = 0; i < chain.length; i++) {
+      const block = computeEffectiveBlock(chain[i], t);
+      if (block.type === 'noise_displace' && chain[i].params.randSeed) {
+        block.params.seed = Math.floor(Math.random() * 1000);
+      }
+      let imgData = getPixels(work);
+      imgData = applyEffect(imgData, block, effectCtx);
+      putPixels(work, imgData);
+    }
+    capturedFrames.push(new ImageData(new Uint8ClampedArray(getPixels(work).data), w, h));
+
+    statusText.textContent = `Capturing ${rep + 1}/${repeats}…`;
+    progressFill.style.width = ((rep + 1) / repeats * 100) + '%';
+    await new Promise(r => requestAnimationFrame(r));
+  }
+
+  // Post
+  if (postEnabled && postChain.length > 0) {
+    for (const block of postChain) {
+      let imgData = getPixels(work);
+      imgData = applyEffect(imgData, block, effectCtx);
+      putPixels(work, imgData);
+    }
+    capturedFrames.push(new ImageData(new Uint8ClampedArray(getPixels(work).data), w, h));
+  }
+
+  statusText.textContent = 'Encoding GIF…';
+  await new Promise(r => requestAnimationFrame(r));
+
+  // Bounce: append reversed frames (skip first and last to avoid duplicates)
+  if (bounceMode && capturedFrames.length > 2) {
+    for (let i = capturedFrames.length - 2; i >= 1; i--) {
+      capturedFrames.push(capturedFrames[i]);
+    }
+  }
+
+  const delay = Math.max(2, Math.round(300 / capturedFrames.length));
+  const gif = buildGIF(capturedFrames, w, h, delay);
+
+  const blob = new Blob([gif], { type: 'image/gif' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = 'signal-chain.gif';
+  a.click();
+  URL.revokeObjectURL(url);
+
+  statusText.textContent = `Exported ${capturedFrames.length}-frame GIF${bounceMode ? ' (bounce)' : ''}`;
+  progressFill.style.width = '100%';
+  exportBtn.disabled = false;
+  exportBtn.textContent = '⬇ GIF';
+}
+
+let bounceMode = false;
+const bounceBtn = document.getElementById('bounceBtn');
+bounceBtn.addEventListener('click', () => {
+  bounceMode = !bounceMode;
+  bounceBtn.classList.toggle('active', bounceMode);
+});
+
+// ── Advanced Mode ──
+const advancedBtn = document.getElementById('advancedBtn');
+advancedBtn.addEventListener('click', () => {
+  const on = document.body.classList.toggle('advanced-mode');
+  advancedBtn.classList.toggle('active', on);
+});
+
+document.getElementById('exportBtn').addEventListener('click', () => exportGIF());
+</script>
+</body>
+</html>
